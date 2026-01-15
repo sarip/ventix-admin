@@ -1,0 +1,327 @@
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8); /* Background semi transparan */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Pastikan tampil di atas semua */
+}
+
+@font-face {
+  font-family: "boxicons";
+  font-weight: normal;
+  font-style: normal;
+  src: url("/public/assets/vendor/fonts/boxicons/boxicons.eot");
+  src: url("/public/assets/vendor/fonts/boxicons/boxicons.eot") format("embedded-opentype"),
+  url("/public/assets/vendor/fonts/boxicons/boxicons.woff2") format("woff2"),
+  url("/public/assets/vendor/fonts/boxicons/boxicons.woff") format("woff"),
+  url("/public/assets/vendor/fonts/boxicons/boxicons.ttf") format("truetype"),
+  url("/public/assets/vendor/fonts/boxicons/boxicons.svg") format("svg");
+}
+.menu-sub {
+  display: none;
+}
+
+.menu-sub.show {
+  display: block;
+}
+.pagination > previous {
+  margin-right: 0.3125rem; /* Adjust as needed */
+}
+.pagination .page-item.next .page-link {
+  margin-left: 0.3125rem;
+}
+ul.pagination .page-link {
+  padding: 0.535rem;
+  min-width: calc(2.0075rem + calc(0px * 2));
+  font-size: 0.9375rem;
+  line-height: 1;
+}
+.pagination .page-item.last .page-link, .pagination .page-item.next .page-link {
+  border-radius: var(--bs-border-radius);
+}
+.select2-container{
+  z-index:1090;
+}
+.select2-dropdown {
+  position: absolute !important;
+  z-index: 9999 !important;
+}
+
+.select2-container--default .select2-selection--single .is-invalid {
+  border-color: #dc3545; /* Warna border merah */
+}
+
+.select2-container--default .select2-selection--single .is-invalid .select2-selection__arrow {
+  border-left-color: #dc3545; /* Warna panah dropdown merah */
+}
+/* Styling untuk sidebar dan kalender */
+.rooms-list {
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+.room-status {
+  background-color: #f1f1f1;
+  border-left: 5px solid;
+  transition: all 0.3s ease-in-out;
+}
+
+.room-status:hover {
+  background-color: #e9ecef;
+  cursor: pointer;
+}
+
+.room-status .badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.calendar-container {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.fullcalendar {
+  margin-top: 10px;
+}
+/* Perbesar tinggi slot */
+.fc-timegrid-slot {
+  height: 100px !important; /* Pastikan height di override */
+}
+
+/* Pastikan dropdown date range tidak tertutup */
+.date-picker-input {
+  position: relative;
+  z-index: 1051; /* Z-index tinggi untuk mengatasi elemen di atasnya */
+}
+
+.react-datepicker-popper {
+  z-index: 1091 !important; /* Pastikan dropdown DatePicker di atas elemen FullCalendar */
+}
+
+/* Gaya tambahan untuk kalender agar lebih rapi */
+.fc {
+  font-size: 14px;
+}
+.fc-scrollgrid {
+  border: 1px solid #ddd;
+}
+.fc-timegrid {
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
+/* Kurangi margin dan padding untuk menyesuaikan layout */
+.container {
+  padding: 0 !important;
+}
+
+
+/* Hilangkan background abu-abu di slot waktu kosong */
+.fc-theme-standard td, .fc-theme-standard th {
+  background-color: transparent !important; /* Buat slot transparan */
+}
+
+/* Optional: Gaya tambahan untuk memperbaiki tampilan */
+.fc-timegrid-slot {
+  border: 1px solid #ddd; /* Tambahkan garis tepi yang halus */
+}
+.swal2-container {
+  z-index: 1090 !important; /* Lebih tinggi dari modal Bootstrap (1050) */
+}
+
+/*.select2-close-mask{*/
+/*  z-index: 2099;*/
+/*}*/
+/*.select2-dropdown{*/
+/*  z-index: 3051;*/
+/*}*/
+/*@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');*/
+/*@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css');*/
+/*@import url('/public/assets/vendor/fonts/boxicons.css');*/
+/*@import url('/public/assets/vendor/css/rtl/core.css');*/
+/*@import url('/public/assets/vendor/css/rtl/theme-default.css');*/
+/*@import url('/public/assets/css/demo.css');*/
+/*@import url('/public/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css');*/
+
+.chart-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px;
+}
+.room-label {
+  font-weight: bold;
+  width: 80px;
+  text-align: center;
+}
+.status-label {
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+.bg-red {
+  background-color: #dc3545; /* Warna merah Bootstrap */
+  color: #fff;
+}
+.cell {
+  cursor: pointer;
+}
+.booking-rectangle {
+  background: #FFCCCD;
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+.table-container {
+  max-height: 700px; /* Sesuaikan tinggi sesuai kebutuhan */
+  overflow-y: auto;
+  position: relative;
+}
+
+.table-container thead {
+  position: sticky;
+  top: 0;
+  background-color: white; /* Sesuaikan warna background agar header tetap terlihat */
+  z-index: 1000;
+}
+
+/* Ensure the dropdown is displayed properly */
+.dropdown-menu {
+  position: absolute;
+  z-index: 1050; /* Ensure it's above other elements */
+  display: none; /* Hidden by default */
+}
+
+.dropdown-menu.show {
+  display: block; /* Visible when active */
+}
+.hover-underline:hover {
+  text-decoration: underline !important;
+}
+
+.disabled-event {
+  background-color: #e0e0e0 !important; /* Warna abu-abu */
+  color: #ffffff !important;
+  pointer-events: none; /* Disable klik */
+  cursor: not-allowed;
+  border: none;
+}
+
+
+.table-sticky-first-column th:first-child,
+.table-sticky-first-column td:first-child {
+  position: sticky;
+  left: 0;
+  background: white; /* Pastikan tetap terlihat */
+  z-index: 50; /* Pastikan berada di atas elemen lain */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Tambahkan efek bayangan */
+}
+
+.table-sticky-first-column thead th:first-child {
+  z-index: 100; /* Header lebih tinggi agar tidak tertutup */
+}
+
+
+/* Atur tinggi setiap slot waktu */
+.fc-timegrid-slot {
+  height: 60px !important;
+}
+
+.fc-timegrid-col {
+  width: 20% !important;
+}
+
+/* Ubah lebar kolom header */
+.fc-col-header-cell {
+  width: 20% !important;
+}
+
+/* Override default daterangepicker selects agar seragam Bootstrap 5 */
+.daterangepicker select.monthselect,
+.daterangepicker select.yearselect {
+  display: inline-block;
+  width: auto;
+  min-width: 10px; /* biar gak kependekan */
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem; /* sama seperti .form-select */
+  appearance: none; /* seragam di semua browser */
+  cursor: pointer;
+}
+
+/* Hover & focus state */
+.daterangepicker select.monthselect:focus,
+.daterangepicker select.yearselect:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+
+
+.bg-critical {
+  background-color: #b71c1c !important; /* merah tua pekat */
+  color: #fff !important;
+}
+
+.filepond--credits {
+  display: none !important;
+}
+
+.filepond--drop-label {
+  background: #f8f9fa;
+  border: 2px dashed #d0d7de;
+  border-radius: 12px;
+  color: #6c757d;
+  font-size: 0.95rem;
+  padding: 1rem;
+}
+
+.filepond--drop-label label {
+  color: #0d6efd;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+
+.filepond--item {
+  width: calc(25% - 0.5em); /* 4 gambar per baris */
+}
+
+.filepond--item-panel {
+  background-color: #f8f9fa; /* lebih soft */
+  border-radius: 12px;
+}
+
+.filepond--file {
+  border-radius: 12px;
+}
+
+.filepond--drop-label {
+  color: #6c757d;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.filepond--drop-label label {
+  color: #0d6efd;
+  cursor: pointer;
+}
+

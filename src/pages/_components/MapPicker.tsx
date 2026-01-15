@@ -1,0 +1,139 @@
+'use client';
+
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import Swal from "sweetalert2";
+import { isInsideIndonesia } from "@/utils/geo";
+
+/* fix marker */
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+interface Props {
+    latitude?: string;
+    longitude?: string;
+    onChange: (lat: string, lng: string, label?: string) => void;
+}
+
+export default function MapPicker({
+                                      latitude,
+                                      longitude,
+                                      onChange
+                                  }: Props) {
+    const mapRef = useRef<any>(null);
+    const [search, setSearch] = useState("");
+    const [results, setResults] = useState<any[]>([]);
+
+    const center = useMemo(
+        () => [
+            latitude ? +latitude : -6.2,
+            longitude ? +longitude : 106.816,
+        ],
+        [latitude, longitude]
+    );
+
+    /* SEARCH */
+    useEffect(() => {
+        if (search.length < 3) {
+            setResults([]);
+            return;
+        }
+
+        const t = setTimeout(async () => {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=id&q=${encodeURIComponent(
+                    search
+                )}`
+            );
+            setResults(await res.json());
+        }, 400);
+
+        return () => clearTimeout(t);
+    }, [search]);
+
+    const setLocation = (lat: number, lng: number, label?: string) => {
+        if (!isInsideIndonesia(lat, lng)) {
+            Swal.fire("Warning", "Lokasi harus di Indonesia", "warning");
+            return;
+        }
+
+        onChange(lat.toFixed(6), lng.toFixed(6), label);
+        mapRef.current?.setView([lat, lng], 15);
+    };
+
+    const MapClick = () => {
+        useMapEvents({
+            click(e) {
+                setLocation(e.latlng.lat, e.latlng.lng);
+            },
+        });
+        return null;
+    };
+
+    return (
+        <div>
+            {/* SEARCH */}
+            <input
+                className="form-control mb-2"
+                placeholder="Cari lokasi..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+            />
+
+            {results.length > 0 && (
+                <div className="list-group mb-2">
+                    {results.map((r, i) => (
+                        <button
+                            key={i}
+                            type="button"
+                            className="list-group-item list-group-item-action"
+                            onClick={() =>
+                                setLocation(
+                                    parseFloat(r.lat),
+                                    parseFloat(r.lon),
+                                    r.display_name
+                                )
+                            }
+                        >
+                            {r.display_name}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* MAP */}
+            <MapContainer
+                center={center}
+                zoom={13}
+                style={{ height: 300 }}
+                whenCreated={(m) => (mapRef.current = m)}
+                scrollWheelZoom={false}
+            >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker
+                    position={center}
+                    draggable
+                    eventHandlers={{
+                        dragend: (e) => {
+                            const p = e.target.getLatLng();
+                            setLocation(p.lat, p.lng);
+                        },
+                    }}
+                />
+                <MapClick />
+            </MapContainer>
+
+            <small className="text-muted">
+                Klik peta atau geser marker
+            </small>
+        </div>
+    );
+}

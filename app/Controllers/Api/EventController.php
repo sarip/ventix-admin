@@ -1,0 +1,342 @@
+<?php
+/**
+ * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
+ * @copyright Sarip Hidayat 2024
+ * @date 2026-01-12
+ */
+
+
+namespace App\Controllers\Api;
+
+use App\Filters\SearchFilter;
+use App\Models\Event;
+use App\Models\EventsAgenda;
+use App\Models\EventsGuest;
+use App\Models\EventsOrganizer;
+use App\Models\EventTicket;
+use App\Models\User;
+
+class EventController extends ApiController
+{
+
+    /**
+     * List Event Controller
+     * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
+     * @return mixed|void
+     *
+     * @api {get} /api/v1/events List Event
+     * @apiName List-Event
+     * @apiGroup Event
+     * @apiVersion 1.0.0
+     * @apiHeader {String} key Token
+     * @apiSuccess {Object[]} data List of Event
+     * @apiQuery {String} search Search
+     * @apiQuery {String} filter Filter by column with value
+     * @apiQuery {String} sort_by Sort by column
+     * @apiQuery {String} fields Select column
+     * @apiQuery {String} per_page Per page
+     * @apiQuery {String} page Page
+     *
+     */
+    public function index() {
+        $Model = new Event();
+
+        // Define searchable column on this model
+        $searchable_column = [
+            'search' => ['events_organizer_id'],
+        ];
+
+        // Execute search filter
+        $output = SearchFilter::execute($Model, $searchable_column, 'events', []);
+        array_walk($output['events'], function(&$item) {
+            $User = new User();
+            $EventOrganizer = new EventsOrganizer();
+            $item->user = $User->find($item->user_id_pic);
+            $item->event_organizer = $EventOrganizer->find($item->events_organizer_id);
+
+            $EventsAgenda = new EventsAgenda();
+            $item->events_agendas = $EventsAgenda->where('events_id', $item->id)->findAll();
+
+            $EventsGuest = new EventsGuest();
+            $item->events_guests = $EventsGuest->where('event_id', $item->id)->findAll();
+
+            $EventTicket = new EventTicket();
+            $item->events_tickets = $EventTicket->where('event_id', $item->id)->findAll();
+
+
+        });
+
+        // Return output
+        return $this->successOutput($output);
+    }
+
+    /**
+     * Create Event
+     *
+     * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
+     * @return mixed
+     * @throws \ReflectionException
+     *
+     * @api {post} /api/v1/event Create Event
+     * @apiName Create-Event
+     * @apiGroup Event
+     * @apiVersion 1.0.0
+     * @apiHeader {String} key Token
+     * @apiBody {String} events_organizer_id events_organizer_id
+     * @apiBody {String} user_id_pic user_id_pic
+     * @apiBody {String} event_category event_category
+     * @apiBody {String} title title
+     * @apiBody {String} description description
+     * @apiBody {String} start_date start_date
+     * @apiBody {String} end_date end_date
+     * @apiBody {String} location_name location_name
+     * @apiBody {String} latitude latitude
+     * @apiBody {String} longitude longitude
+     * @apiBody {String} price_pool price_pool
+     * @apiBody {String} registration_fee registration_fee
+     * @apiBody {String} thumbnail_url thumbnail_url
+     * @apiBody {String} events_status events_status
+
+     *
+     */
+    public function create() {
+        $Event = new Event();
+        $create_data = [
+            'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
+            'user_id_pic' => $this->request->getJsonVar('user_id_pic'),
+            'event_category' => $this->request->getJsonVar('event_category'),
+            'title' => $this->request->getJsonVar('title'),
+            'description' => $this->request->getJsonVar('description'),
+            'start_date' => $this->request->getJsonVar('start_date'),
+            'end_date' => $this->request->getJsonVar('end_date'),
+            'location_name' => $this->request->getJsonVar('location_name'),
+            'latitude' => $this->request->getJsonVar('latitude'),
+            'longitude' => $this->request->getJsonVar('longitude'),
+            'price_pool' => $this->request->getJsonVar('price_pool'),
+            'registration_fee' => $this->request->getJsonVar('registration_fee'),
+            'thumbnail_url' => $this->request->getJsonVar('thumbnail_url'),
+            'events_status' => $this->request->getJsonVar('events_status')
+        ];
+
+        $id = $Event->insert($create_data);
+
+        return $this->successOutput(['id' => $id], 201);
+    }
+
+
+    public function saveAll()
+    {
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+
+
+        try {
+            $eventModel = new Event();
+            $agendaModel = new EventsAgenda();
+            $ticketModel = new EventTicket();
+
+
+            // ======================
+            // STEP 1: EVENT
+            // ======================
+            $id = $this->request->getPost('id');
+            $event_data = [
+                'events_organizer_id' => $this->request->getPost('events_organizer_id'),
+                'user_id_pic' => $this->request->getPost('user_id_pic'),
+                'event_category' => $this->request->getPost('event_category'),
+                'title' => $this->request->getPost('title'),
+                'description' => $this->request->getPost('description'),
+                'start_date' => $this->request->getPost('start_date'),
+                'end_date' => $this->request->getPost('end_date'),
+                'location_name' => $this->request->getPost('location_name'),
+                'latitude' => $this->request->getPost('latitude'),
+                'longitude' => $this->request->getPost('longitude'),
+                'price_pool' => $this->request->getPost('price_pool'),
+                'registration_fee' => $this->request->getPost('registration_fee'),
+                'events_status' => $this->request->getPost('events_status')
+            ];
+
+            $file = $this->request->getFile('thumbnail_url');
+            if ($file && $file->isValid() && !$file->hasMoved()) {
+                $thumbnail_url = $file->getRandomName();
+                $file->move(FCPATH . 'uploads/event', $thumbnail_url);
+                $event_data['thumbnail_url'] = $thumbnail_url;
+            }
+
+
+            if (!empty($id)) {
+                $eventModel->update($id, $event_data);
+                $eventId = $id;
+            } else {
+                $eventId = $eventModel->insert($event_data, true);
+            }
+
+            if (!$eventId) {
+                throw new \Exception('Gagal menyimpan event');
+            }
+
+            // ======================
+            // STEP 2: AGENDA
+            // ======================
+            $agendas = json_decode($this->request->getPost('agendas'), true) ?? [];
+            if (!empty($agendas)) {
+                foreach ($agendas as $agenda) {
+                    if (!empty($agenda['_isDeleted'])) {
+                        $agendaModel->delete($agenda['id']);
+                    }
+                    $agenda['events_id'] = $eventId;
+
+                    $agenda_data = [
+                        'events_id'     => $eventId,
+                        'start_time'    =>  $agenda['start_time'],
+                        'end_time'      =>  $agenda['end_time'],
+                        'activity_name' =>  $agenda['activity_name'],
+                        'notes'         =>  $agenda['notes'],
+                    ];
+
+                    if (!empty($agenda['_isNew'])) {
+                        $agendaModel->insert($agenda_data);
+                    } else {
+                        $agendaModel->update($agenda['id'], $agenda_data);
+                    }
+                }
+            }
+
+            // ======================
+            // STEP 3: TICKETS
+            // ======================
+            $tickets = json_decode($this->request->getPost('tickets'), true) ?? [];
+            if (!empty($tickets)) {
+                foreach ($tickets as $ticket) {
+                    if (!empty($ticket['_isDeleted'])) {
+                        $ticketModel->delete($ticket['id']);
+                    }
+
+                    $ticket['event_id'] = $eventId;
+                    $ticket_data = [
+                        'event_id'                  => $eventId,
+                        'name'                      =>  $ticket['name'],
+                        'description'               =>  $ticket['description'],
+                        'price'                     =>  $ticket['price'],
+                        'total_capacity'            =>  $ticket['total_capacity'],
+                        'remaining_capacity'        =>  $ticket['remaining_capacity'],
+                        'max_per_order'             =>  $ticket['max_per_order'] ?? 5,
+                        'sales_start_date'          =>  $ticket['sales_start_date'],
+                        'sales_end_date'            =>  $ticket['sales_end_date'],
+                        'is_active'                 =>  $ticket['is_active']  ?? 1,
+                        'sort_order'                =>  $ticket['sort_order'] ?? 0,
+                    ];
+
+
+                    if (!empty($ticket['_isNew'])) {
+                        $ticketModel->insert($ticket_data);
+                    } else {
+                        $ticketModel->update($ticket['id'], $ticket_data);
+                    }
+                }
+            }
+
+            // ======================
+            // COMMIT
+            // ======================
+            if ($db->transStatus() === false) {
+                throw new \Exception('Transaction gagal');
+
+            }
+
+            $db->transCommit();
+
+            return $this->successOutput([
+                'status' => true,
+                'id' => $eventId
+            ]);
+
+        } catch (\Throwable $e) {
+            $db->transRollback();
+
+            return $this->errorOutput(
+                $e->getMessage(),
+                400
+            );
+        }
+    }
+
+
+
+    /**
+     * Update Event
+     * @param $id
+     * @return mixed
+     * @throws \ReflectionException
+     *
+     * @api {put} /api/v1/event/:id Update Event
+     * @apiName Update-Event
+     * @apiGroup Event
+     * @apiVersion 1.0.0
+     * @apiHeader {String} key Token
+     * @apiParam {Number} id Event id
+     * @apiBody {String} events_organizer_id events_organizer_id
+     * @apiBody {String} user_id_pic user_id_pic
+     * @apiBody {String} event_category event_category
+     * @apiBody {String} title title
+     * @apiBody {String} description description
+     * @apiBody {String} start_date start_date
+     * @apiBody {String} end_date end_date
+     * @apiBody {String} location_name location_name
+     * @apiBody {String} latitude latitude
+     * @apiBody {String} longitude longitude
+     * @apiBody {String} price_pool price_pool
+     * @apiBody {String} registration_fee registration_fee
+     * @apiBody {String} thumbnail_url thumbnail_url
+     * @apiBody {String} events_status events_status
+
+     *
+     */
+    public function update($id) {
+        $Event = new Event();
+        $update_data = [
+            'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
+            'user_id_pic' => $this->request->getJsonVar('user_id_pic'),
+            'event_category' => $this->request->getJsonVar('event_category'),
+            'title' => $this->request->getJsonVar('title'),
+            'description' => $this->request->getJsonVar('description'),
+            'start_date' => $this->request->getJsonVar('start_date'),
+            'end_date' => $this->request->getJsonVar('end_date'),
+            'location_name' => $this->request->getJsonVar('location_name'),
+            'latitude' => $this->request->getJsonVar('latitude'),
+            'longitude' => $this->request->getJsonVar('longitude'),
+            'price_pool' => $this->request->getJsonVar('price_pool'),
+            'registration_fee' => $this->request->getJsonVar('registration_fee'),
+            'thumbnail_url' => $this->request->getJsonVar('thumbnail_url'),
+            'events_status' => $this->request->getJsonVar('events_status')
+        ];
+
+        $Event->update($id, $update_data);
+
+        $data = $Event->find($id);
+
+        return $this->successOutput(['event' => $data]);
+    }
+
+
+    /**
+     * Delete Event
+     *
+     * @param $id
+     * @return mixed
+     *
+     * @api {delete} /api/v1/event/:id Delete Event
+     * @apiName Delete-Event
+     * @apiGroup Event
+     * @apiVersion 1.0.0
+     * @apiHeader {String} key Token
+     * @apiParam {Number} id Event id
+     */
+    public function delete($id) {
+        $Event = new Event();
+        $Event->delete($id);
+
+        return $this->successOutput([], 200);
+    }
+}

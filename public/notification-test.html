@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLA & Escalation Notifications - Test Client</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .status-bar {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .controls label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .controls input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .controls button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .controls button:hover {
+            background: #5568d3;
+        }
+
+        .notifications {
+            padding: 20px 30px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .notification {
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.sla-breach {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .notification.sla-warning {
+            border-color: #ffc107;
+            background: #fffef5;
+        }
+
+        .notification.escalation {
+            border-color: #ff6b6b;
+            background: #fff0f0;
+        }
+
+        .notification.escalation-resolved {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .notification.ticket-update {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .notification-details {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .severity-high {
+            background: #dc3545;
+            color: white;
+        }
+
+        .severity-medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .severity-critical {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 SLA & Escalation Notifications</h1>
+            <p>Real-time ticket notification monitoring</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <div id="eventCount">Events: 0</div>
+        </div>
+
+        <div class="controls">
+            <label for="userIdInput">User ID (for user-specific notifications)</label>
+            <input type="number" id="userIdInput" placeholder="Enter your user ID" value="1">
+            <button onclick="connectSocket()">Connect</button>
+            <button onclick="disconnectSocket()">Disconnect</button>
+            <button onclick="clearNotifications()">Clear All</button>
+        </div>
+
+        <div class="notifications" id="notifications">
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                    </path>
+                </svg>
+                <p>No notifications yet.<br>Waiting for SLA breaches or escalations...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let eventCount = 0;
+
+        function connectSocket() {
+            const userId = document.getElementById('userIdInput').value;
+            const wsPort = 3001; // Websocket port
+
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io(`http://localhost:${wsPort}`, {
+                query: { userId: userId }
+            });
+
+            socket.on('connect', () => {
+                updateStatus(true, `Connected as User #${userId}`);
+                addSystemNotification('Connected to websocket server');
+            });
+
+            socket.on('disconnect', () => {
+                updateStatus(false, 'Disconnected');
+                addSystemNotification('Disconnected from server');
+            });
+
+            // SLA Breach notifications
+            socket.on('sla:breach', (data) => {
+                addNotification('sla-breach', 'SLA Breach', data.message, data);
+            });
+
+            // SLA Warning notifications
+            socket.on('sla:warning', (data) => {
+                addNotification('sla-warning', 'SLA Warning', data.message, data);
+            });
+
+            // Escalation triggered notifications
+            socket.on('escalation:alert', (data) => {
+                addNotification('escalation', 'Escalation Alert', data.message, data);
+            });
+
+            socket.on('escalation:update', (data) => {
+                addNotification('escalation', 'Escalation Update', data.message, data);
+            });
+
+            // Escalation resolved notifications
+            socket.on('escalation:resolved', (data) => {
+                addNotification('escalation-resolved', 'Escalation Resolved', data.message, data);
+            });
+
+            // General ticket updates
+            socket.on('ticket:update', (data) => {
+                addNotification('ticket-update', 'Ticket Update', data.message || 'Ticket has been updated', data);
+            });
+
+            // Work Order assignment notifications
+            socket.on('wo:assigned', (data) => {
+                addNotification('escalation', 'Work Order Assigned', data.message, data);
+            });
+
+            socket.on('wo:reassigned', (data) => {
+                addNotification('sla-warning', 'Work Order Reassigned', data.message, data);
+            });
+
+            // Work Order status change
+            socket.on('wo:status_changed', (data) => {
+                addNotification('ticket-update', 'Work Order Status Changed', data.message, data);
+            });
+
+            // Work Order completed
+            socket.on('wo:completed', (data) => {
+                addNotification('escalation-resolved', 'Work Order Completed', data.message, data);
+            });
+
+            // Work Order created
+            socket.on('wo:created', (data) => {
+                addNotification('ticket-update', 'Work Order Created', data.message, data);
+            });
+        }
+
+        function disconnectSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function updateStatus(connected, text) {
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                dot.classList.add('connected');
+            } else {
+                dot.classList.remove('connected');
+            }
+
+            statusText.textContent = text;
+        }
+
+        function addNotification(type, title, message, data) {
+            eventCount++;
+            document.getElementById('eventCount').textContent = `Events: ${eventCount}`;
+
+            const container = document.getElementById('notifications');
+
+            // Remove empty state if exists
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+
+            const time = new Date().toLocaleTimeString();
+            const severityBadge = data.severity ? `<span class="severity-badge severity-${data.severity}">${data.severity}</span>` : '';
+
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-time">${time}</div>
+                </div>
+                <div class="notification-message">${message}</div>
+                <div class="notification-details">
+                    ${data.ticket ? `Ticket: #${data.ticket.ticket_code || data.ticket.id}` : ''}
+                    ${data.escalation ? `| Level: ${data.escalation.level}` : ''}
+                </div>
+                ${severityBadge}
+            `;
+
+            container.insertBefore(notification, container.firstChild);
+        }
+
+        function addSystemNotification(message) {
+            const container = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = 'notification ticket-update';
+            notification.innerHTML = `
+                <div class="notification-message">${message}</div>
+                <div class="notification-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            container.insertBefore(notification, container.firstChild);
+        }
+
+        function clearNotifications() {
+            const container = document.getElementById('notifications');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                    <p>No notifications yet.<br>Waiting for SLA breaches or escalations...</p>
+                </div>
+            `;
+            eventCount = 0;
+            document.getElementById('eventCount').textContent = 'Events: 0';
+        }
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            setTimeout(connectSocket, 500);
+        });
+    </script>
+</body>
+
+</html>
