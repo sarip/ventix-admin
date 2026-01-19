@@ -40,7 +40,7 @@ class EventTicketController extends ApiController
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['event_id'],
+            'search' => ['name', 'description', 'price', 'total_capacity', 'remaining_capacity', 'max_per_order', 'sales_start_date', 'sales_end_date', 'is_active', 'sort_order'],
         ];
 
         // Execute search filter

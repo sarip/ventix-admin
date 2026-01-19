@@ -25,11 +25,17 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
 
     $routes->put('password', 'AuthController::updatePassword', ['filter' => 'tokenFilter']);
 
+    // DASHBOARD
+    $routes->get('dashboard/facility', 'DashboardController::facilityDashboard', ['filter' => 'PermissionFilter']);
+
     $routes->get('users', 'UserController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('user/(:num)', 'UserController::show/$1', ['filter' => 'PermissionFilter']);
     $routes->get('users-lists', 'UserController::lists', ['filter' => 'PermissionFilter']);
     $routes->post('user', 'UserController::create', ['filter' => 'PermissionFilter']);
     $routes->put('user/(:num)', 'UserController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('user/(:num)', 'UserController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('user/(:num)/status', 'UserController::changeStatus/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('user/(:num)/reset-password', 'UserController::resetPassword/$1', ['filter' => 'PermissionFilter']);
 
 
     $routes->get('actions', 'ActionController::index', ['filter' => 'PermissionFilter']);
@@ -133,9 +139,9 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->delete('order/(:num)', 'OrderController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('facilities', 'FacilitieController::index', ['filter' => 'PermissionFilter']);
-    $routes->post('facilitie', 'FacilitieController::create', ['filter' => 'PermissionFilter']);
-    $routes->put('facilitie/(:num)', 'FacilitieController::update/$1', ['filter' => 'PermissionFilter']);
-    $routes->delete('facilitie/(:num)', 'FacilitieController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility', 'FacilitieController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('facility/(:num)', 'FacilitieController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facility/(:num)', 'FacilitieController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('facility_bookings', 'FacilityBookingController::index', ['filter' => 'PermissionFilter']);
     $routes->post('facilitybooking', 'FacilityBookingController::create', ['filter' => 'PermissionFilter']);
@@ -151,6 +157,56 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('user', 'UserController::create', ['filter' => 'PermissionModel']);
     $routes->put('user/(:num)', 'UserController::update/$1', ['filter' => 'PermissionModel']);
     $routes->delete('user/(:num)', 'UserController::delete/$1', ['filter' => 'PermissionModel']);
+
+    $routes->get('orders_status', 'OrdersStatuController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('ordersstatu', 'OrdersStatuController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('ordersstatu/(:num)', 'OrdersStatuController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('ordersstatu/(:num)', 'OrdersStatuController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // FACILITY MANAGEMENT SYSTEM
+    // Facilities
+    $routes->get('facilities', 'FacilityController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('facility/(:num)', 'FacilityController::show/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility', 'FacilityController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('facility/(:num)', 'FacilityController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facility/(:num)', 'FacilityController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // Facility Pricing
+    $routes->get('facility_pricings', 'FacilityPricingController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('facility_pricing/(:num)', 'FacilityPricingController::show/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility_pricing', 'FacilityPricingController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('facility_pricing/(:num)', 'FacilityPricingController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facility_pricing/(:num)', 'FacilityPricingController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility_pricing/check_overlap', 'FacilityPricingController::checkOverlap', ['filter' => 'PermissionFilter']);
+
+    // Facility Bookings
+    $routes->get('facility_bookings', 'FacilityBookingController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('facility_booking/(:num)', 'FacilityBookingController::show/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility_booking', 'FacilityBookingController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('facility_booking/(:num)', 'FacilityBookingController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facility_booking/(:num)', 'FacilityBookingController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('facility_booking/(:num)/status', 'FacilityBookingController::updateStatus/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility_booking/check_availability', 'FacilityBookingController::checkAvailability', ['filter' => 'PermissionFilter']);
+    $routes->post('facility_booking/calculate_price', 'FacilityBookingController::calculatePrice', ['filter' => 'PermissionFilter']);
+
+    // Facility Booking Status
+    $routes->get('facility_booking_statuses', 'FacilitybookingStatuController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('facility_booking_status/(:num)', 'FacilitybookingStatuController::show/$1', ['filter' => 'PermissionFilter']);
+
+    $routes->get('facility_pricing', 'FacilityPricingController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('facilitypricing', 'FacilityPricingController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('facilitypricing/(:num)', 'FacilityPricingController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilitypricing/(:num)', 'FacilityPricingController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    $routes->get('user_points', 'UserPointController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('userpoint', 'UserPointController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('userpoint/(:num)', 'UserPointController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('userpoint/(:num)', 'UserPointController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    $routes->get('userpoint_rules', 'UserpointRuleController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('userpointrule', 'UserpointRuleController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('userpointrule/(:num)', 'UserpointRuleController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('userpointrule/(:num)', 'UserpointRuleController::delete/$1', ['filter' => 'PermissionFilter']);
 
     // OTHER API REQUEST //
 });

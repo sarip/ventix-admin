@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { buildQuery } from '@/lib/FilterDriver';
+import Select2Component from "@/pages/_components/Select2";
+import {Event} from "@/models/Event";
 
 interface FilterProps {
     onSubmit: (query: any) => void;
@@ -17,16 +19,20 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
     const [sortBy, setSortBy] = useState<string>('created_at:desc');
     const [perPage, setPerPage] = useState<number>(10);
     const [typing, setTyping] = useState<NodeJS.Timeout | null>(null);
+    const [filters, setFilters] = useState({
+        event_id: "",
+        is_active: ""
+    })
 
     const getQuery = useCallback(() => {
-        const query = {};
+        const query = buildQuery(filters);
         return {
             search,
-            filter: buildQuery(query),
+            filter: query,
             sort_by: sortBy,
             per_page: perPage,
         };
-    }, [search, sortBy, perPage]);
+    }, [search, sortBy, perPage, filters]);
 
     const debouncedSubmit = useCallback(() => {
         if (typing) clearTimeout(typing);
@@ -34,7 +40,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
             submit();
         }, 1000);
         setTyping(newTyping);
-    }, [typing, search, sortBy, perPage]);
+    }, [typing, search, sortBy, perPage, filters]);
 
     const submit = () => {
         const query = getQuery();
@@ -47,13 +53,23 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
         return () => {
             if (typing) clearTimeout(typing);
         };
-    }, [search, sortBy, perPage]);
+    }, [search, sortBy, perPage, filters]);
 
     const resetFilter = () => {
         setSearch('');
         setSortBy('created_at:desc');
         setPerPage(10);
     };
+
+    const EventModel = new Event();
+    const handleFilters = (e) => {
+        const { name, value } = e.target;
+        setFilters(prevData => ({
+            ...prevData,
+            [name]: value,
+        }));
+    };
+
 
     return (
         <div className="card">
@@ -73,6 +89,19 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
                         />
                     </div>
                 </div>
+                <div className="col-12 col-md-3">
+                    <label className="form-label">Event</label>
+                    <Select2Component
+                        fetchData={EventModel.list}
+                        placeholder="All Event"
+                        name="event_id"
+                        onChange={handleFilters}
+                        selectedId={filters.event_id}
+                        dataKey="events"
+                        showKey="title"
+                    />
+                </div>
+
                 <div className="d-flex flex-column flex-md-row align-items-start align-items-md-end ms-auto gap-3">
                     <div>
                         <label className="form-label">Sort</label>
@@ -83,7 +112,8 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
                     </div>
                     <div>
                         <label className="form-label">Show</label>
-                        <select className="form-select" value={perPage} onChange={(e) => setPerPage(parseInt(e.target.value))}>
+                        <select className="form-select" value={perPage}
+                                onChange={(e) => setPerPage(parseInt(e.target.value))}>
                             <option value="10">10</option>
                             <option value="20">20</option>
                             <option value="50">50</option>

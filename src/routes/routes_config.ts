@@ -25,14 +25,6 @@ const routes: Route[] = [
 
 
     {
-        path: '/tenant',
-        side_menu: true,
-        tooltip: "Tenant",
-        icon: 'bxs-dashboard',
-        title: 'Tenant',
-    },
-
-    {
         path: '#',
         side_menu: true,
         tooltip: "Ticket",
@@ -122,6 +114,66 @@ const routes: Route[] = [
     {
         path: '#',
         side_menu: true,
+        tooltip: "Facility",
+        icon: 'bx-buildings',
+        title: 'Facility',
+        group: 'Facility',
+        childrens: [
+            {
+                path: '/facility',
+                side_menu: true,
+                tooltip: "Facility Management",
+                icon: 'bx-building',
+                title: 'Facility Management',
+                endpoint: 'api/v1/facilities',
+            },
+            {
+                path: '/facility_booking',
+                side_menu: true,
+                tooltip: "Facility Booking",
+                icon: 'bx-calendar-check',
+                title: 'Facility Booking',
+                endpoint: 'api/v1/facility_bookings',
+            }
+        ]
+    },
+
+
+    {
+
+        path: '#',
+        side_menu: true,
+        tooltip: "User Points",
+        icon: 'bx-medal',
+        title: 'User Points',
+        group: 'Users',
+        childrens: [
+            {
+                path: '/user_points',
+                side_menu: true,
+                tooltip: "User Points",
+                title: 'User Points',
+                endpoint: 'api/v1/users',
+            },
+            {
+                path: '/userpoint_rules',
+                side_menu: true,
+                tooltip: "User Point Rules",
+                title: 'User Point Rules',
+                endpoint: 'api/v1/users',
+            },
+            {
+                path: '/userpoint_status',
+                side_menu: true,
+                tooltip: "User Point Status",
+                title: 'User Point Status',
+                endpoint: 'api/v1/users',
+            },
+        ]
+    },
+    {
+        path: '#',
+        side_menu: true,
         tooltip: "User Management",
         icon: 'bx-user-circle',
         title: 'User Management',
@@ -135,14 +187,46 @@ const routes: Route[] = [
                 title: 'Users',
                 endpoint: 'api/v1/users',
             },
+            // {
+            //     path: '/roles',
+            //     side_menu: true,
+            //     tooltip: "Roles",
+            //     icon: 'bx-user',
+            //     title: 'Roles',
+            //     endpoint: 'api/v1/users',
+            // }
+        ]
+    },
+    {
+
+        path: '#',
+        side_menu: true,
+        tooltip: "System App",
+        icon: 'bx-cog',
+        title: 'System App',
+        group: 'Users',
+        childrens: [
             {
-                path: '/roles',
+                path: '/sys_userpoint_cat',
                 side_menu: true,
-                tooltip: "Roles",
-                icon: 'bx-user',
-                title: 'Roles',
+                tooltip: "User Point Category",
+                title: 'User Point Category',
                 endpoint: 'api/v1/users',
-            }
+            },
+            {
+                path: '/sys_users_apppermissions',
+                side_menu: true,
+                tooltip: "User App Permission",
+                title: 'User App Permission',
+                endpoint: 'api/v1/users',
+            },
+            {
+                path: '/sys_users_role',
+                side_menu: true,
+                tooltip: "User Ticket Status",
+                title: 'User Ticket Status',
+                endpoint: 'api/v1/users',
+            },
         ]
     },
     // {

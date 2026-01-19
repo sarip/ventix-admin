@@ -117,40 +117,6 @@ const TicketAnalyticsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* DATE FILTERS */}
-            <Card className="mb-4">
-                <Card.Body>
-                    <Row className="align-items-end">
-                        <Col md={4}>
-                            <Form.Group>
-                                <Form.Label>Start Date</Form.Label>
-                                <Form.Control
-                                    type="date"
-                                    value={dateRange.start}
-                                    onChange={(e) => handleDateChange('start', e.target.value)}
-                                />
-                            </Form.Group>
-                        </Col>
-                        <Col md={4}>
-                            <Form.Group>
-                                <Form.Label>End Date</Form.Label>
-                                <Form.Control
-                                    type="date"
-                                    value={dateRange.end}
-                                    onChange={(e) => handleDateChange('end', e.target.value)}
-                                />
-                            </Form.Group>
-                        </Col>
-                        <Col md={4}>
-                            <button className="btn btn-outline-secondary" onClick={resetFilters}>
-                                <i className="bx bx-reset me-1"></i>
-                                Reset Filters
-                            </button>
-                        </Col>
-                    </Row>
-                </Card.Body>
-            </Card>
-
             {/* SUMMARY CARDS */}
             <Row className="g-3 mb-4">
                 {/* Total Revenue */}

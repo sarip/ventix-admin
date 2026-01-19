@@ -1,18 +1,27 @@
-import React, {useCallback, useEffect, useState} from "react";
-import {Button} from "react-bootstrap";
-import {fromText, randomColor} from '@/utils/image'
-import {convertUnixTimestampToDate} from '@/utils/date'
-import Filter from "@/pages/user/_filter";
-import {InUser, InUserForm, User} from "@/models/User";
-import {useRouter} from "next/router";
+/**
+ * User Management - List Page
+ * Professional table view with search, filter, sort, and pagination
+ * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
+ * @date 2026-01-17
+ */
+
+import React, { useCallback, useEffect, useState } from "react";
+import { Button } from "react-bootstrap";
+import { InUser, InUserForm, User, UserListQuery } from "@/models/User";
+import { useRouter } from "next/router";
 import useBlockUI from "@/pages/_components/useBlockUI";
-import {InItem, InItemForm} from "@/models/Item";
 import Pagination from "@/pages/_components/Pagination";
 import Link from "next/link";
 import Form from "./_form";
-import {showToast} from "@/utils/toast";
+import { showToast } from "@/utils/toast";
 import Swal from "sweetalert2";
-
+import { UserRoleBadge, UserStatusBadge } from "@/components/UserBadge";
+import SearchBar from "@/components/SearchBar";
+import { UserRole, UserStatus, UserSortOptions } from "@/types/user";
+import { canEditUser, canChangeStatus, canResetPassword, getUserPermissions } from "@/utils/permission";
+import { convertUnixTimestampToDate } from "@/utils/date";
+import ChangeStatusModal from "@/pages/user/_change_status_modal";
+import ResetPasswordModal from "@/pages/user/_reset_password_modal";
 
 export default function UserPage() {
     const router = useRouter();
@@ -20,30 +29,62 @@ export default function UserPage() {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [users, setUsers] = useState<InUser[]>([]);
     const [pagination, setPagination] = useState<any>({});
-    const [pageCount, setPageCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [lastQuery, setLastQuery] = useState<any>({});
     const [showForm, setShowForm] = useState<boolean>(false);
-    const [formData, setFormData] = useState<InUserForm>({id: undefined, role_id : '', username : '', password : '', fullname: ''});
-    const [validationError, SetValidationError] = useState<{}>({});
+    const [showChangeStatusModal, setShowChangeStatusModal] = useState<boolean>(false);
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState<boolean>(false);
+    const [selectedUser, setSelectedUser] = useState<InUser | null>(null);
+    const [formData, setFormData] = useState<InUserForm>({
+        eo_id: null,
+        username: '',
+        name: '',
+        email: '',
+        phone: '',
+        role: '',
+        status: 'Active',
+        password: '',
+        confirm_password: ''
+    });
+    const [validationError, setValidationError] = useState<any>({});
+    const [currentUser, setCurrentUser] = useState<InUser | null>(null);
+
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [roleFilter, setRoleFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [eoFilter, setEOFilter] = useState<string>('');
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const [perPage, setPerPage] = useState<number>(25);
+
     const Model = new User();
 
 
-    const listData = async (query: any = {}) => {
+    const listData = async () => {
         if (isInitialLoad) blockUI();
+
         try {
-            query.page = currentPage;
+            const query: UserListQuery = {
+                page: currentPage,
+                per_page: perPage,
+                search: searchQuery || undefined,
+                role: roleFilter || undefined,
+                status: statusFilter || undefined,
+                eo_id: eoFilter || undefined,
+                sort_by: sortBy,
+                sort_order: sortOrder
+            };
+
             const response = await Model.list(query);
-            setLastQuery(query);
-            setUsers(response.users);
-            setPagination(response.pagination);
-            setPageCount(response.pagination.page_count);
-        } catch (e){
-            if(e.status === 403){
+            setUsers(response.users || []);
+            setPagination(response.pagination || {});
+        } catch (e: any) {
+            if (e.status === 403) {
                 router.push('/403');
             }
-            unblockUI();
-        }finally {
+            console.error('Error loading users:', e);
+            showToast('Failed to load users', 'error');
+        } finally {
             if (isInitialLoad) {
                 unblockUI();
                 setIsInitialLoad(false);
@@ -51,159 +92,393 @@ export default function UserPage() {
         }
     };
 
+    // Reload data when filters change
+    useEffect(() => {
+        if (!isInitialLoad) {
+            setCurrentPage(1); // Reset to first page on filter change
+            listData();
+        }
+    }, [searchQuery, roleFilter, statusFilter, eoFilter, sortBy, sortOrder, perPage]);
+
+    // Reload data when page changes
+    useEffect(() => {
+        if (!isInitialLoad) {
+            listData();
+        }
+    }, [currentPage]);
+
+    // Initial load
+    useEffect(() => {
+        listData();
+    }, []);
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
     const create = () => {
-        SetValidationError({});
-        setFormData({ id: undefined, role_id: '', username: '', password: '', fullname: '' });
-        console.log({'create' : formData})
+        setValidationError({});
+        setFormData({
+            eo_id: null,
+            username: '',
+            name: '',
+            email: '',
+            phone: '',
+            role: '',
+            status: 'Active',
+            password: '',
+            confirm_password: ''
+        });
         setShowForm(true);
     };
 
-    const update = (data: InUser) => {
-        SetValidationError({});
-        setFormData({ ...data, password: '' }); // Reset password field
-        console.log({'update' : formData})
+    const edit = (user: InUser) => {
+        setValidationError({});
+        setFormData({
+            id: user.id,
+            eo_id: user.eo_id,
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            status: user.status,
+            profile_picture: user.profile_picture || undefined
+        });
         setShowForm(true);
     };
 
     useEffect(() => {
         if (showForm) {
-            jQuery("#modal-user").modal('show');
+            (jQuery as any)("#modal-user").modal('show');
         } else {
-            jQuery("#modal-user").modal('hide');
+            (jQuery as any)("#modal-user").modal('hide');
         }
     }, [showForm]);
-
 
     const save = useCallback(async (data: InUserForm) => {
         try {
             if (data.id) {
                 await Model.update(data.id, data);
+                showToast('User berhasil diupdate', 'success');
             } else {
                 await Model.create(data);
+                showToast('User berhasil ditambahkan', 'success');
             }
-            showToast(`Berhasil di ${(data.id) ? 'update' : 'tambahkan'}`, "success");
-            jQuery('#modal-user').modal('hide');
-            listData(lastQuery);
-        } catch (error) {
-            let lines = error.message.trim().split('\n');
-            let result = lines.map(line => {
-                let [field, ...message] = line.split(' ');
-                return {
-                    field,
-                    message: message.join(' ')
-                };
+            (jQuery as any)('#modal-user').modal('hide');
+            setShowForm(false);
+            listData();
+        } catch (error: any) {
+            const lines = error.message?.trim().split('\n') || [];
+            const result = lines.map((line: string) => {
+                const [field, ...message] = line.split(' ');
+                return { field, message: message.join(' ') };
             });
-            SetValidationError(result)
+            setValidationError(result);
+            showToast('Validation error', 'error');
         }
-    }, [Model, lastQuery, listData]);
+    }, []);
 
-    const remove = async (id:number) => {
+    const handleChangeStatus = (user: InUser) => {
+        setSelectedUser(user);
+        setShowChangeStatusModal(true);
+        (jQuery as any)('#modal-change-status').modal('show');
+    };
+
+    const handleResetPassword = (user: InUser) => {
+        setSelectedUser(user);
+        setShowResetPasswordModal(true);
+        (jQuery as any)('#modal-reset-password').modal('show');
+    };
+
+    const confirmChangeStatus = async (userId: number, newStatus: UserStatus, reason: string) => {
+        try {
+            await Model.changeStatus(userId, { status: newStatus, reason });
+            showToast('User status updated successfully', 'success');
+            listData(); // Reload data
+            (jQuery as any)('#modal-change-status').modal('hide');
+            setShowChangeStatusModal(false);
+        } catch (error: any) {
+            console.error('Error changing status:', error);
+            showToast('Failed to change user status', 'error');
+        }
+    };
+
+
+    const confirmResetPassword = async (userId: number, newPassword: string, sendEmail: boolean) => {
+        try {
+            await Model.resetPassword(userId, {
+                new_password: newPassword,
+                send_email: sendEmail
+            });
+
+            showToast('Password ber hasil direset!', 'success');
+            (jQuery as any)('#modal-reset-password').modal('hide');
+            setShowResetPasswordModal(false);
+        } catch (error: any) {
+            console.error('Error resetting password:', error);
+            showToast('Gagal reset password', 'error');
+        }
+    };
+
+    const handleDelete = async (id: number) => {
         Swal.fire({
-            title: "Apa Anda Yakin?",
-            text: "Setelah dihapus, anda tidak dapat mengembalikannya",
+            title: "Nonaktifkan User?",
+            text: "User akan dinonaktifkan (status = Inactive)",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#3085d6",
             cancelButtonColor: "#d33",
-            confirmButtonText: "Ya, Hapus",
-            cancelButtonText: "Tidak",
+            confirmButtonText: "Ya, Nonaktifkan",
+            cancelButtonText: "Batal",
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const response = await Model.delete(id);
-                if (response.success) {
-                    showToast("Berhasil di hapus", "success");
-                    listData(lastQuery);
+                try {
+                    await Model.delete(id);
+                    showToast("User berhasil dinonaktifkan", "success");
+                    listData();
+                } catch (error) {
+                    showToast("Gagal menonaktifkan user", "error");
                 }
             }
         });
-    }
+    };
 
+    const permissions = currentUser ? getUserPermissions(currentUser) : null;
 
-        const background_image = randomColor();
-    useEffect(() => {
-        if (!isInitialLoad) listData(lastQuery);
-    }, [currentPage]);
     return (
         <>
             <div className="flex-grow-1 container-p-y">
-                <h4 className="py-2 breadcrumb-wrapper mb-0">User</h4>
-                Halaman ini menampilkan data dari user
+                <h4 className="py-2 breadcrumb-wrapper mb-0">User Management</h4>
+                <p className="text-muted">Manage system users with role-based access control</p>
             </div>
-            <div className="card mb-2">
-                <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
-                    <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
-                        <Button variant="primary" onClick={() => create()}>
-                            <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
-                            <span className="d-none d-sm-inline-block">Tambah Data</span>
+
+            {/* Header with Add Button */}
+            <div className="card mb-3">
+                <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">Users List</h5>
+                    {/*{permissions?.canCreateUser && (*/}
+                        <Button variant="primary" onClick={create}>
+                            <i className="bx bx-plus me-1"></i>
+                            Add User
                         </Button>
-                    </div>
-                </h5>
+                    {/*)}*/}
+                </div>
             </div>
-            <Filter onSubmit={listData}/>
-            <div className="row mt-2">
-                {users.map((user: InUser, key) => (
-                    <div className="col-md-4 mt-3" key={key}>
-                        <div className="card h-100 shadow-sm">
-                            <div className="card-body text-center">
-                                <div
-                                    className="profile-initials text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
-                                    style={{
-                                        width: '100px',
-                                        height: '100px',
-                                        fontSize: '2rem',
-                                        backgroundColor: randomColor()
-                                    }}>
-                                    {fromText(user.fullname)}
-                                </div>
-                                <h5 className="card-title">{user.username}</h5>
-                                <p className="card-text">Role: {user.role?.name}</p>
-                                <p className="card-text">Fullname: {user.fullname}</p>
-                                <p className="card-text">Terdaftar: {convertUnixTimestampToDate(user.created_at)}</p>
-                                {/*<Link href={`/user/${user.id}`} passHref className="btn btn-primary">Profile</Link>*/}
 
-                            </div>
-                            <div className="card-footer">
-                                <div className="d-flex justify-content-center">
-                                    <Link href={`/user/${user.id}`} passHref className="btn btn-primary btn-md me-2">
-                                        <i className="fas fa-user me-1"></i> Profile
-                                    </Link>
-                                    <button className="btn btn-warning btn-md me-2" onClick={() => update(user) }>
-                                        <i className="fas fa-edit me-1"></i> Edit
-                                    </button>
-                                    <button className="btn btn-danger btn-md" onClick={() => remove(user.id)}>
-                                        <i className="fas fa-trash-alt me-1"></i> Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                ))}
-                <div className="col-12 mt-4">
-                    <div className="card">
-                        {pagination && (
-                            <div className="row mx-2 mt-4">
-                                <div className="col-sm-12 col-md-6">
-                                    <div className="dataTables_info" role="status" aria-live="polite">
-                                        Ditemukan {pagination.filtered_total} dari total {pagination.total} data,
-                                        ditampikan {users.length} data
-                                    </div>
-                                </div>
-                                {pagination.page_count && (
-                                        <div className="col-sm-12 col-md-6 d-flex justify-content-end">
-                                            <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
+            {/* Search and Filters */}
+            <div className="card mb-3">
+                <div className="card-body">
+                    <div className="row g-3">
+                        {/* Search */}
+                        <div className="col-md-4">
+                            <SearchBar
+                                onSearch={setSearchQuery}
+                                placeholder="Search username, name, or email..."
+                                className="w-100"
+                            />
                         </div>
 
+                        {/* Role Filter */}
+                        <div className="col-md-2">
+                            <select
+                                className="form-select"
+                                value={roleFilter}
+                                onChange={(e) => setRoleFilter(e.target.value)}
+                            >
+                                <option value="">All Roles</option>
+                                <option value="Super Admin">Super Admin</option>
+                                <option value="EO Owner">EO Owner</option>
+                                <option value="Admin">Admin</option>
+                                <option value="EO Staff">EO Staff</option>
+                            </select>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="col-md-2">
+                            <select
+                                className="form-select"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Suspended">Suspended</option>
+                            </select>
+                        </div>
+
+                        {/* Per Page */}
+                        <div className="col-md-2">
+                            <select
+                                className="form-select"
+                                value={perPage}
+                                onChange={(e) => setPerPage(Number(e.target.value))}
+                            >
+                                <option value="10">10 per page</option>
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+
+                        {/* Clear Filters */}
+                        <div className="col-md-2">
+                            <button
+                                className="btn btn-outline-secondary w-100"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setRoleFilter('');
+                                    setStatusFilter('');
+                                    setEOFilter('');
+                                }}
+                            >
+                                <i className="bx bx-reset me-1"></i>
+                                Clear Filters
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
 
+            {/* Users Table */}
+            <div className="card">
+                <div className="table-responsive">
+                    <table className="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('username')}>
+                                    Username {getSortIcon('username')}
+                                </th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                                    Name {getSortIcon('name')}
+                                </th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('email')}>
+                                    Email {getSortIcon('email')}
+                                </th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Events Organizer</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('last_login')}>
+                                    Last Login {getSortIcon('last_login')}
+                                </th>
+                                <th className="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="text-center py-4">
+                                        <i className="bx bx-info-circle fs-3 text-muted d-block mb-2"></i>
+                                        <p className="text-muted mb-0">No users found</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                users.map((user) => (
+                                    <tr key={user.id}>
+                                        <td>
+                                            <strong>{user.username}</strong>
+                                        </td>
+                                        <td>{user.name}</td>
+                                        <td>{user.email}</td>
+                                        <td>
+                                            <UserRoleBadge role={user.role} />
+                                        </td>
+                                        <td>
+                                            <UserStatusBadge status={user.status} />
+                                        </td>
+                                        <td>
+                                            {user.eo_detail ? user.eo_detail.eo_name : '-'}
+                                        </td>
+                                        <td>
+                                            {user.last_login
+                                                ? convertUnixTimestampToDate(user.last_login)
+                                                : '-'
+                                            }
+                                        </td>
+                                        <td>
+                                            <div className="d-flex gap-1 justify-content-center">
+                                                <Link href={`/user/${user.id}`} className="btn btn-sm btn-info">
+                                                    <i className="bx bx-show"></i>
+                                                </Link>
+                                                {/*{currentUser && canEditUser(currentUser, user) && (*/}
+                                                <button
+                                                    className="btn btn-sm btn-warning"
+                                                    onClick={() => edit(user)}
+                                                    title="Edit User"
+                                                >
+                                                    <i className="bx bx-edit"></i>
+                                                </button>
+                                                {/*)}*/}
+                                                {/*{currentUser && canChangeStatus(currentUser, user) && (*/}
+                                                <button
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleChangeStatus(user)}
+                                                    title="Change Status"
+                                                >
+                                                    <i className="bx bx-check-circle"></i>
+                                                </button>
+                                                {/*)}*/}
+                                                {/*{currentUser && canResetPassword(currentUser, user) && (*/}
+                                                <button
+                                                    className="btn btn-sm btn-primary"
+                                                    onClick={() => handleResetPassword(user)}
+                                                    title="Reset Password"
+                                                >
+                                                    <i className="bx bx-lock"></i>
+                                                </button>
+                                                {/*)}*/}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination */}
+                {pagination && (
+                    <div className="card-footer">
+                        <div className="row align-items-center">
+                            <div className="col-sm-12 col-md-6">
+                                <div className="dataTables_info">
+                                    Showing {users.length} of {pagination.total || 0} users
+                                    {pagination.filtered_total !== pagination.total && (
+                                        <span> (filtered from {pagination.total} total users)</span>
+                                    )}
+                                </div>
+                            </div>
+                            {pagination.page_count > 1 && (
+                                <div className="col-sm-12 col-md-6 d-flex justify-content-end">
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        pageCount={pagination.page_count}
+                                        onPageChange={setCurrentPage}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+
+            {/* User Form Modal */}
             <Form
-                title={formData.id ? 'Update User' : 'Tambah User'}
+                title={formData.id ? 'Edit User' : 'Add User'}
                 show={showForm}
                 onClose={() => setShowForm(false)}
                 data={formData}
@@ -211,6 +486,30 @@ export default function UserPage() {
                 validationError={validationError}
             />
 
+            {/* Change Status Modal */}
+            <ChangeStatusModal
+                show={showChangeStatusModal}
+                user={selectedUser}
+                currentUserId={currentUser?.id}
+                onClose={() => {
+                    jQuery('#modal-change-status').modal('hide');
+                    setShowChangeStatusModal(false);
+                    setSelectedUser(null);
+                }}
+                onConfirm={confirmChangeStatus}
+            />
+
+            {/* Reset Password Modal */}
+            <ResetPasswordModal
+                show={showResetPasswordModal}
+                user={selectedUser}
+                onClose={() => {
+                    (jQuery as any)('#modal-reset-password').modal('hide');
+                    setShowResetPasswordModal(false);
+                    setSelectedUser(null);
+                }}
+                onConfirm={confirmResetPassword}
+            />
         </>
     );
 }

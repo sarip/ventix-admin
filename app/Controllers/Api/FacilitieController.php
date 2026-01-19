@@ -41,7 +41,7 @@ class FacilitieController extends ApiController
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['events_organizer_id'],
+            'search' => ['name', 'category', 'description', 'is_available'],
         ];
 
         // Execute search filter

@@ -1,50 +1,68 @@
 /**
+ * Role Model - API Client
  * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
- * @copyright Sarip Hidayat 2024
- * @date 02/08/24
+ * @date 2026-01-19
  */
 
 import APIClient from '../lib/ApiClient';
-import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
+import {
+    InRole,
+    InRoleForm,
+    RoleListQuery,
+    RolePermissions,
+    UpdatePermissionsRequest,
+    UpdateMenuAccessRequest
+} from '@/types/role';
 
-export interface InRoleForm {
-    id?: number;
-    name: string;
-    scope: string;
+interface ListResponse<T> {
+    roles: T;
+    pagination: {
+        page: number;
+        per_page: number;
+        total: number;
+        page_count: number;
+        filtered_total: number;
+    };
 }
-
-export interface InRole {
-    id: number;
-    name: string;
-    scope: string;
-    total_users: 101
-    created_at: number;
-    updated_at?: number;
-}
-
 
 class Role {
-    async list(query: Record<string, any> = {}): Promise<ListResponse<InRole[]>> {
+    async list(query: RoleListQuery = {}): Promise<ListResponse<InRole[]>> {
         return await APIClient.get('roles', query);
     }
 
-    async create(item: InRoleForm): Promise<PostResponse> {
-        return await APIClient.post('/role', item);
+    async show(id: number): Promise<{ role: InRole }> {
+        return await APIClient.get(`role/${id}`);
     }
 
-    async update(id: number, item: InRoleForm) : Promise<PutResponse<InRole>>{
-        return await APIClient.put(`/role/${id}`, item);
+    async create(role: InRoleForm): Promise<{ role: InRole }> {
+        return await APIClient.post('role', role);
     }
 
-    async delete(id: number) : Promise<DeleteResponse> {
-        return await APIClient.delete(`/role/${id}`);
+    async update(id: number, role: Partial<InRoleForm>): Promise<{ role: InRole }> {
+        return await APIClient.put(`role/${id}`, role);
     }
 
-    async scope() {
+    async delete(id: number): Promise<{ success: boolean }> {
+        return await APIClient.delete(`role/${id}`);
+    }
 
+    async getPermissions(id: number): Promise<{ permissions: RolePermissions }> {
+        return await APIClient.get(`role/${id}/permissions`);
+    }
+
+    async updatePermissions(id: number, permissions: UpdatePermissionsRequest): Promise<{ success: boolean }> {
+        return await APIClient.put(`role/${id}/permissions`, permissions);
+    }
+
+    async getMenuAccess(id: number): Promise<{ menu_access: string[] }> {
+        return await APIClient.get(`role/${id}/menu-access`);
+    }
+
+    async updateMenuAccess(id: number, menuAccess: UpdateMenuAccessRequest): Promise<{ success: boolean }> {
+        return await APIClient.put(`role/${id}/menu-access`, menuAccess);
     }
 }
 
-
-export type {InRoleForm, InRole}
+export default Role;
 export { Role };
+export type { InRole, InRoleForm };

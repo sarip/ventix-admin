@@ -5,10 +5,17 @@ interface FilterProps {
     onSubmit: (query: any) => void;
 }
 
+export interface QueryParamsProps {
+    search?: string;
+    filter?: string;
+    sort_by?: string;
+    per_page?: number;
+    page?: number;
+}
 const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
     const [search, setSearch] = useState<string>('');
     const [sortBy, setSortBy] = useState<string>('created_at:desc');
-    const [perPage, setPerPage] = useState<number>(11);
+    const [perPage, setPerPage] = useState<number>(10);
     const [typing, setTyping] = useState<NodeJS.Timeout | null>(null);
 
     const getQuery = useCallback(() => {
@@ -52,7 +59,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
         <div className="card">
             <div className="card-header d-flex border-top rounded-0 flex-wrap p-3">
                 <div className="me-4 pe-4">
-                    <label className="form-label">Pencarian</label>
+                    <label className="form-label">Searching</label>
                     <div className="input-group input-group-merge">
                         <span className="input-group-text" id="basic-addon-search31">
                             <i className="bx bx-search"></i>
@@ -60,7 +67,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
                         <input
                             type="search"
                             className="form-control"
-                            placeholder="Cari..."
+                            placeholder="Search..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -68,16 +75,16 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
                 </div>
                 <div className="d-flex flex-column flex-md-row align-items-start align-items-md-end ms-auto gap-3">
                     <div>
-                        <label className="form-label">Urutkan</label>
+                        <label className="form-label">Sort</label>
                         <select className="form-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                            <option value="created_at:desc">Terbaru</option>
-                            <option value="created_at:asc">Terlama</option>
+                            <option value="created_at:desc">Newest</option>
+                            <option value="created_at:asc">Oldest</option>
                         </select>
                     </div>
                     <div>
-                        <label className="form-label">Tampilkan</label>
+                        <label className="form-label">Show</label>
                         <select className="form-select" value={perPage} onChange={(e) => setPerPage(parseInt(e.target.value))}>
-                            <option value="11">11</option>
+                            <option value="10">10</option>
                             <option value="20">20</option>
                             <option value="50">50</option>
                             <option value="70">70</option>

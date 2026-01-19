@@ -14,6 +14,8 @@ import { User } from '@/models/User';
 import Select2Component from '@/pages/_components/Select2';
 import { EventTicket } from '@/models/EventTicket';
 import SingleDateTimePicker from '@/pages/_components/SingleDateTimePicker';
+import OptionOrderStatus from "@/pages/_components/OptionOrderStatus";
+import { OrderStatus, InOrderStatus } from "@/models/OrderStatus";
 
 interface OrderFormData extends Partial<InTicketOrder> {
     order_items?: InOrderItem[];
@@ -33,6 +35,10 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const UserModel = new User();
     const EventTicketModel = new EventTicket();
+
+
+    const [statusOptions, setStatusOptions] = useState<InOrderStatus[]>([]);
+    const [statusLoaded, setStatusLoaded] = useState(false);
 
     useEffect(() => {
         setFormData(data);
@@ -119,6 +125,17 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
         });
     };
 
+    useEffect(() => {
+        const model = new OrderStatus();
+        model.list({ per_page: 1000000 })
+            .then(res => {
+                setStatusOptions(res.orders_status ?? []);
+                setStatusLoaded(true);
+            })
+            .catch(console.error);
+    }, []);
+
+
     return (
         <div className="modal fade show d-block" id='modal-ticket-order' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-xl modal-dialog-scrollable">
@@ -187,14 +204,19 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                     <select
                                         name="status"
                                         className={`form-select ${errors.status ? 'is-invalid' : ''}`}
-                                        value={formData.status || 'pending'}
+                                        value={statusLoaded ? formData.status ?? "" : ""}
                                         onChange={handleInputChange}
+                                        disabled={!statusLoaded}
                                     >
-                                        <option value="pending">Pending</option>
-                                        <option value="paid">Paid</option>
-                                        <option value="cancelled">Cancelled</option>
-                                        <option value="refunded">Refunded</option>
+                                        <option value="">-- Pilih Status --</option>
+
+                                        {statusOptions.map((s) => (
+                                            <option key={s.name} value={s.name.toLowerCase()}>
+                                                {s.display_name}
+                                            </option>
+                                        ))}
                                     </select>
+
                                     {errors.status && <div className="invalid-feedback">{errors.status}</div>}
                                 </Col>
 

@@ -4,7 +4,7 @@
  * @date 2026-01-14
  */
 
-import React, { useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import { Badge, Modal, Button } from 'react-bootstrap';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
@@ -12,6 +12,10 @@ import { TicketUser, InTicketUser } from '@/models/TicketUser';
 import { showToast } from '@/utils/toast';
 import QRCode from 'qrcode';
 import PrintTicket from './PrintTicket';
+import Filter, {QueryParamsProps} from "./_filter";
+import Swal from "sweetalert2";
+import moment from "moment/moment";
+import {getCookie} from "cookies-next";
 
 interface PaginationProps {
     current_page: number;
@@ -28,41 +32,32 @@ const TicketUserPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+    const [pageCount, setPageCount] = useState<number>(0);
+    const [lastQuery, setLastQuery] = useState<any>({});
     const [showQRModal, setShowQRModal] = useState(false);
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<InTicketUser | null>(null);
     const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
     const TicketUserModel = new TicketUser();
 
-    useEffect(() => {
-        loadTickets();
-    }, [currentPage, searchQuery, statusFilter]);
 
-    const loadTickets = async () => {
-        blockUI();
+    const loadTickets = async (query: QueryParamsProps = {}) => {
+        if (isInitialLoad) blockUI();
         try {
-            const query: any = {
-                page: currentPage,
-                per_page: 10,
-                sort_by: 'created_at',
-                sort_order: 'desc'
-            };
-
-            if (searchQuery) {
-                query.search = searchQuery;
-            }
-
-            if (statusFilter !== 'all') {
-                query.filter = `status=${statusFilter}`;
-            }
-
+            query.page = currentPage;
             const response = await TicketUserModel.list(query);
+            setLastQuery(query);
             setTickets(response.user_tickets || []);
             setPagination(response.pagination);
+            setPageCount(response.pagination.page_count);
         } catch (error) {
             showToast('Failed to load tickets', 'error');
         } finally {
-            unblockUI();
+            if (isInitialLoad) {
+                unblockUI();
+                setIsInitialLoad(false);
+            }
         }
     };
 
@@ -80,7 +75,7 @@ const TicketUserPage: React.FC = () => {
         }
     };
 
-    const handleCheckIn = async (ticket: InTicketUser) => {
+    const handleCheckIn =  useCallback(async (ticket: InTicketUser) => {
         if (ticket.check_in_at) {
             showToast('Ticket already checked in', 'info');
             return;
@@ -91,25 +86,33 @@ const TicketUserPage: React.FC = () => {
             return;
         }
 
-        // Confirmation
-        const confirmed = await new Promise((resolve) => {
-            const result = confirm(`Check in ticket ${ticket.ticket_code} for ${ticket.user?.name}?`);
-            resolve(result);
+        Swal.fire({
+            title: "Are you sure?",
+            text: `Check in ticket ${ticket.ticket_code} for ${ticket.user?.name}?`,
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const data = {
+                    ...ticket,
+                    status: 'USED',
+                    check_in_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+                    check_in_by: getCookie('id')
+                }
+                console.log({'ticket' : data})
+                await TicketUserModel.update(ticket.id, data);
+                showToast('Ticket checked in successfully', 'success');
+                await loadTickets(lastQuery); // Reload to get updated data
+            }
         });
 
-        if (!confirmed) return;
+        unblockUI();
 
-        blockUI();
-        try {
-            await TicketUserModel.checkIn(ticket.id);
-            showToast('Ticket checked in successfully', 'success');
-            loadTickets(); // Reload to get updated data
-        } catch (error) {
-            showToast('Failed to check in ticket', 'error');
-        } finally {
-            unblockUI();
-        }
-    };
+
+    }, [TicketUserModel, lastQuery, loadTickets]);
 
     const showPrint = (ticket: InTicketUser) => {
         setSelectedTicket(ticket);
@@ -136,55 +139,28 @@ const TicketUserPage: React.FC = () => {
         return <Badge bg={statusMap[status] || 'secondary'}>{status}</Badge>;
     };
 
+
+    useEffect(() => {
+        if (!isInitialLoad) loadTickets(lastQuery);
+    }, [currentPage]);
+
     return (
-        <div className="container-fluid">
-            <div className="card">
+        <>
+            <div className="container-p-y">
+                <h4 className="py-2 breadcrumb-wrapper mb-0">User Tickets</h4>
+                Manage your User Tickets
+            </div>
+           <Filter onSubmit={loadTickets} />
+            <div className="card mt-2">
                 <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">
-                        <i className="bx bx-barcode me-2"></i>
-                        User Tickets
-                    </h5>
+                    <h5 className="mb-0"></h5>
                     <small className="text-muted">
                         View all user tickets and check-in status
                     </small>
                 </div>
 
                 <div className="card-body">
-                    {/* FILTERS */}
-                    <div className="row mb-3">
-                        <div className="col-md-6">
-                            <div className="input-group">
-                                <span className="input-group-text">
-                                    <i className="bx bx-search"></i>
-                                </span>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search ticket code or user..."
-                                    value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div className="col-md-3">
-                            <select
-                                className="form-select"
-                                value={statusFilter}
-                                onChange={(e) => {
-                                    setStatusFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            >
-                                <option value="all">All Status</option>
-                                <option value="VALID">Valid</option>
-                                <option value="USED">Used</option>
-                                <option value="CANCELLED">Cancelled</option>
-                            </select>
-                        </div>
-                    </div>
+
 
                     {/* TABLE */}
                     <div className="table-responsive">
@@ -226,7 +202,9 @@ const TicketUserPage: React.FC = () => {
                                                 <div className="fw-semibold">{ticket.ticket?.name || 'N/A'}</div>
                                                 <small className="text-muted">Event ID: {ticket.event_ticket_id}</small>
                                             </td>
-                                            <td>{getStatusBadge(ticket.status)}</td>
+                                            <td dangerouslySetInnerHTML={{
+                                                __html: ticket.status_badge,
+                                            }}/>
                                             <td>
                                                 {ticket.check_in_at ? (
                                                     <div>
@@ -280,17 +258,21 @@ const TicketUserPage: React.FC = () => {
                         </table>
                     </div>
 
-                    {/* PAGINATION */}
+
+
                     {pagination && (
-                        <div className="d-flex justify-content-between align-items-center mt-3">
-                            <div className="text-muted">
-                                Showing {tickets.length} of {pagination.filtered_total} tickets
+                        <div className="row mx-2 mt-4">
+                            <div className="col-sm-12 col-md-6">
+                                <div className="dataTables_info" role="status" aria-live="polite">
+                                    Found {pagination.filtered_total} of {pagination.total} data,
+                                    displaying {tickets.length} data
+                                </div>
                             </div>
-                            <Pagination
-                                currentPage={currentPage}
-                                pageCount={pagination.page_count}
-                                onPageChange={setCurrentPage}
-                            />
+                            {pagination.page_count && (
+                                <div className="col-sm-12 col-md-6 d-flex justify-content-end">
+                                    <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -340,7 +322,7 @@ const TicketUserPage: React.FC = () => {
                     onHide={() => setShowPrintModal(false)}
                 />
             )}
-        </div>
+        </>
     );
 };
 

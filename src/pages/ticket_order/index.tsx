@@ -12,6 +12,7 @@ import Pagination from '@/pages/_components/Pagination';
 import { TicketOrder, InTicketOrder, InOrderItem } from '@/models/TicketOrder';
 import { showToast } from '@/utils/toast';
 import TicketOrderForm from './_form';
+import Filter, {QueryParamsProps} from "./_filter";
 
 interface PaginationProps {
     current_page: number;
@@ -31,6 +32,9 @@ const TicketOrderPage: React.FC = () => {
     const [orders, setOrders] = useState<InTicketOrder[]>([]);
     const [pagination, setPagination] = useState<PaginationProps | null>(null);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+    const [pageCount, setPageCount] = useState<number>(0);
+    const [lastQuery, setLastQuery] = useState<any>({});
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -46,35 +50,23 @@ const TicketOrderPage: React.FC = () => {
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
     const TicketOrderModel = new TicketOrder();
 
-    useEffect(() => {
-        loadOrders();
-    }, [currentPage, searchQuery, statusFilter]);
 
-    const loadOrders = async () => {
-        blockUI();
+    const loadOrders = async (query: QueryParamsProps = {}) => {
+        if (isInitialLoad) blockUI();
         try {
-            const query: any = {
-                page: currentPage,
-                per_page: 10,
-                sort_by: 'created_at',
-                sort_order: 'desc'
-            };
-
-            if (searchQuery) {
-                query.search = searchQuery;
-            }
-
-            if (statusFilter !== 'all') {
-                query.filter = `status=${statusFilter}`;
-            }
-
+            query.page = currentPage;
             const response = await TicketOrderModel.list(query);
+            setLastQuery(query);
             setOrders(response.orders || []);
             setPagination(response.pagination);
+            setPageCount(response.pagination.page_count);
         } catch (error) {
             showToast('Failed to load orders', 'error');
         } finally {
-            unblockUI();
+            if (isInitialLoad) {
+                unblockUI();
+                setIsInitialLoad(false);
+            }
         }
     };
 
@@ -94,6 +86,7 @@ const TicketOrderPage: React.FC = () => {
     const update = (order: InTicketOrder) => {
         setFormData({
             ...order,
+            status: order.status?.toLowerCase(),
             order_items: order.order_item || []
         });
         setValidationError([]);
@@ -109,7 +102,7 @@ const TicketOrderPage: React.FC = () => {
             }
             showToast(`Order successfully ${data.id ? 'updated' : 'created'}`, 'success');
             setShowForm(false);
-            loadOrders();
+            loadOrders(lastQuery);
         } catch (error: any) {
             let lines = error.message.trim().split('\n');
             let result: ValidationErrorProps[] = lines.map((line: string) => {
@@ -118,7 +111,7 @@ const TicketOrderPage: React.FC = () => {
             });
             setValidationError(result);
         }
-    }, []);
+    }, [TicketOrderModel, lastQuery, loadOrders]);
 
     const remove = async (id: number) => {
         Swal.fire({
@@ -135,7 +128,7 @@ const TicketOrderPage: React.FC = () => {
                 const response = await TicketOrderModel.delete(id);
                 if (response.success) {
                     showToast("Order successfully deleted", "success");
-                    loadOrders();
+                    loadOrders(lastQuery);
                 }
             }
         });
@@ -179,189 +172,153 @@ const TicketOrderPage: React.FC = () => {
         return <Badge bg={statusMap[status.toLowerCase()] || 'secondary'}>{status}</Badge>;
     };
 
+    useEffect(() => {
+        if (!isInitialLoad) loadOrders(lastQuery);
+    }, [currentPage]);
+
     return (
-        <div className="container-fluid">
-            <div className="card">
-                <div className="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 className="mb-0">
-                            <i className="bx bx-receipt me-2"></i>
-                            Ticket Orders
-                        </h5>
-                        <small className="text-muted">
-                            Manage all ticket orders
-                        </small>
+        <>
+            <div className=" container-p-y">
+                <h4 className="py-2 breadcrumb-wrapper mb-0">Orders</h4>
+                Manage your Order
+            </div>
+            <Filter onSubmit={loadOrders} />
+            <div className="card mt-2">
+                <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
+                    <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
+                        <Button variant="primary" onClick={create}>
+                            <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
+                            <span className="d-none d-sm-inline-block">Add Data</span>
+                        </Button>
                     </div>
-                    <Button variant="primary" onClick={create}>
-                        <i className="bx bx-plus me-1"></i>
-                        Create Order
-                    </Button>
-                </div>
+                </h5>
 
-                <div className="card-body">
-                    {/* FILTERS */}
-                    <div className="row mb-3">
-                        <div className="col-md-6">
-                            <div className="input-group">
-                                <span className="input-group-text">
-                                    <i className="bx bx-search"></i>
-                                </span>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search order code or user..."
-                                    value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div className="col-md-3">
-                            <select
-                                className="form-select"
-                                value={statusFilter}
-                                onChange={(e) => {
-                                    setStatusFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            >
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="paid">Paid</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="refunded">Refunded</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* TABLE */}
-                    <div className="table-responsive">
-                        <table className="table table-hover">
-                            <thead className="table-light">
+                {/* TABLE */}
+                <div className="table-responsive">
+                    <table className="table table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th style={{ width: '50px' }}></th>
+                                <th style={{ width: '100px' }}>Actions</th>
+                                <th>Order Code</th>
+                                <th>User</th>
+                                <th>Total Amount</th>
+                                <th>Payment Method</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {orders.length === 0 ? (
                                 <tr>
-                                    <th style={{ width: '50px' }}></th>
-                                    <th style={{ width: '100px' }}>Actions</th>
-                                    <th>#</th>
-                                    <th>Order Code</th>
-                                    <th>User</th>
-                                    <th>Total Amount</th>
-                                    <th>Payment Method</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
+                                    <td colSpan={9} className="text-center py-4 text-muted">
+                                        <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
+                                        No orders found
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {orders.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="text-center py-4 text-muted">
-                                            <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
-                                            No orders found
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    orders.map((order, index) => (
-                                        <React.Fragment key={order.id}>
-                                            <tr>
-                                                <td>
-                                                    <button
-                                                        className="btn btn-sm btn-link p-0"
-                                                        onClick={() => toggleRow(order.id)}
-                                                    >
-                                                        <i className={`bx ${expandedRows.has(order.id) ? 'bx-chevron-down' : 'bx-chevron-right'}`}></i>
+                            ) : (
+                                orders.map((order, index) => (
+                                    <React.Fragment key={order.id}>
+                                        <tr>
+                                            <td>
+                                                <button
+                                                    className="btn btn-sm btn-link p-0"
+                                                    onClick={() => toggleRow(order.id)}
+                                                >
+                                                    <i className={`bx ${expandedRows.has(order.id) ? 'bx-chevron-down' : 'bx-chevron-right'}`}></i>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex gap-1">
+                                                    <button className="btn btn-sm btn-icon btn-warning" onClick={() => update(order)} title="Edit">
+                                                        <i className="bx bx-edit"></i>
                                                     </button>
-                                                </td>
-                                                <td>
-                                                    <div className="d-flex gap-1">
-                                                        <button className="btn btn-sm btn-icon btn-warning" onClick={() => update(order)} title="Edit">
-                                                            <i className="bx bx-edit"></i>
-                                                        </button>
-                                                        <button className="btn btn-sm btn-icon btn-danger" onClick={() => remove(order.id)} title="Delete">
-                                                            <i className="bx bx-trash"></i>
-                                                        </button>
+                                                    <button className="btn btn-sm btn-icon btn-danger" onClick={() => remove(order.id)} title="Delete">
+                                                        <i className="bx bx-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className="font-monospace fw-bold">{order.order_code}</span>
+                                            </td>
+                                            <td>
+                                                <div className="fw-semibold">{order.user?.name || 'N/A'}</div>
+                                                <small className="text-muted">{order.user?.email}</small>
+                                            </td>
+                                            <td className="fw-bold text-primary">
+                                                {formatCurrency(order.total_amount)}
+                                            </td>
+                                            <td>{order.payment_method}</td>
+
+                                            <td  dangerouslySetInnerHTML={{
+                                                __html: order.status_badge,
+                                            }} />
+                                            <td>
+                                                <small>{formatDate(order.created_at)}</small>
+                                            </td>
+                                        </tr>
+                                        {expandedRows.has(order.id) && order.order_item && (
+                                            <tr>
+                                                <td colSpan={9} className="bg-light">
+                                                    <div className="p-3">
+                                                        <h6 className="mb-3">
+                                                            <i className="bx bx-list-ul me-1"></i>
+                                                            Order Items
+                                                        </h6>
+                                                        <table className="table table-sm table-bordered bg-white">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Ticket</th>
+                                                                    <th>Event Date</th>
+                                                                    <th>Quantity</th>
+                                                                    <th>Unit Price</th>
+                                                                    <th>Subtotal</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {order.order_item.map((item: InOrderItem) => (
+                                                                    <tr key={item.id}>
+                                                                        <td>Ticket #{item.event_ticket_id}</td>
+                                                                        <td>{formatDate(item.event_date)}</td>
+                                                                        <td>
+                                                                            <Badge bg="info">{item.quantity}x</Badge>
+                                                                        </td>
+                                                                        <td>{formatCurrency(item.unit_price)}</td>
+                                                                        <td className="fw-bold">{formatCurrency(item.subtotal)}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 </td>
-                                                <td>{((currentPage - 1) * 10) + index + 1}</td>
-                                                <td>
-                                                    <span className="font-monospace fw-bold">{order.order_code}</span>
-                                                </td>
-                                                <td>
-                                                    <div className="fw-semibold">{order.user?.name || 'N/A'}</div>
-                                                    <small className="text-muted">{order.user?.email}</small>
-                                                </td>
-                                                <td className="fw-bold text-primary">
-                                                    {formatCurrency(order.total_amount)}
-                                                </td>
-                                                <td>{order.payment_method}</td>
-                                                <td>{getStatusBadge(order.status)}</td>
-                                                <td>
-                                                    <small>{formatDate(order.created_at)}</small>
-                                                </td>
                                             </tr>
-                                            {expandedRows.has(order.id) && order.order_item && (
-                                                <tr>
-                                                    <td colSpan={9} className="bg-light">
-                                                        <div className="p-3">
-                                                            <h6 className="mb-3">
-                                                                <i className="bx bx-list-ul me-1"></i>
-                                                                Order Items
-                                                            </h6>
-                                                            <table className="table table-sm table-bordered bg-white">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>Ticket</th>
-                                                                        <th>Event Date</th>
-                                                                        <th>Quantity</th>
-                                                                        <th>Unit Price</th>
-                                                                        <th>Subtotal</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {order.order_item.map((item: InOrderItem) => (
-                                                                        <tr key={item.id}>
-                                                                            <td>Ticket #{item.event_ticket_id}</td>
-                                                                            <td>{formatDate(item.event_date)}</td>
-                                                                            <td>
-                                                                                <Badge bg="info">{item.quantity}x</Badge>
-                                                                            </td>
-                                                                            <td>{formatCurrency(item.unit_price)}</td>
-                                                                            <td className="fw-bold">{formatCurrency(item.subtotal)}</td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* PAGINATION */}
-                    {pagination && (
-                        <div className="row mx-2 mt-4">
-                            <div className="col-sm-12 col-md-6">
-                                <div className="dataTables_info" role="status" aria-live="polite">
-                                    Found {pagination.filtered_total} of {pagination.total} data,
-                                    displaying {orders.length} data
-                                </div>
-                            </div>
-                            {pagination.page_count && (
-                                <div className="col-sm-12 col-md-6 d-flex justify-content-end">
-                                    <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
-                                </div>
+                                        )}
+                                    </React.Fragment>
+                                ))
                             )}
-                        </div>
-                    )}
+                        </tbody>
+                    </table>
                 </div>
+
+                {/* PAGINATION */}
+                {pagination && (
+                    <div className="row mx-2 mt-4">
+                        <div className="col-sm-12 col-md-6">
+                            <div className="dataTables_info" role="status" aria-live="polite">
+                                Found {pagination.filtered_total} of {pagination.total} data,
+                                displaying {orders.length} data
+                            </div>
+                        </div>
+                        {pagination.page_count && (
+                            <div className="col-sm-12 col-md-6 d-flex justify-content-end">
+                                <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* FORM MODAL */}
+                {/* FORM MODAL */}
             {showForm && (
                 <TicketOrderForm
                     title={formData.id ? 'Edit Order' : 'Create Order'}
@@ -371,7 +328,7 @@ const TicketOrderPage: React.FC = () => {
                     validationError={validationError}
                 />
             )}
-        </div>
+        </>
     );
 };
 

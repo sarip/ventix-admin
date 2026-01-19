@@ -6,6 +6,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Form as BootstrapForm, Row, Col } from 'react-bootstrap';
+import $ from "jquery";
+import 'select2/dist/js/select2.min.js';
+import 'select2/dist/css/select2.min.css';
 import { InEventTicketForm } from '@/models/EventTicket';
 import { Event } from '@/models/Event';
 import Select2Component from '@/pages/_components/Select2';

@@ -35,12 +35,12 @@ interface PaginationProps {
 const TenantPage: React.FC = () => {
     const router = useRouter();
     const { blockUI, unblockUI } = useBlockUI();
-    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [tenants, setTenants] = useState<InTenant[]>([]);
     const [pagination, setPagination] = useState<PaginationProps | null>(null);
+    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
-    const [currentPage, setCurrentPage] = useState<number>(1);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [currentPage, setCurrentPage] = useState<number>(1);
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InTenantForm>({
         id: undefined,

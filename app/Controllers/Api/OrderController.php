@@ -42,7 +42,7 @@ class OrderController extends ApiController
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['user_id'],
+            'search' => ['user_id', 'order_code', 'total_amount', 'status', 'payment_method'],
         ];
 
         // Execute search filter
@@ -87,13 +87,26 @@ class OrderController extends ApiController
         $Order = new Order();
         $create_data = [
             'user_id' => $this->request->getJsonVar('user_id'),
-            'order_code' => $this->request->getJsonVar('order_code'),
+            'order_code' => generate_order_code(),
             'total_amount' => $this->request->getJsonVar('total_amount'),
             'status' => $this->request->getJsonVar('status'),
             'payment_method' => $this->request->getJsonVar('payment_method')
         ];
-
         $id = $Order->insert($create_data);
+        $order_items = $this->request->getJsonVar('order_items') ?? [];
+        $OrderItem = new OrderItem();
+        foreach($order_items as $order_item) {
+            $OrderItem->insert([
+                'order_id'          => $id,
+                'event_ticket_id'   => $order_item->event_ticket_id,
+                'event_date'        => $order_item->event_date,
+                'quantity'          => $order_item->quantity,
+                'unit_price'        => $order_item->unit_price,
+                'subtotal'         => $order_item->subtotal,
+            ]);
+        }
+
+
 
         return $this->successOutput(['id' => $id], 201);
     }
@@ -120,6 +133,7 @@ class OrderController extends ApiController
      *
      */
     public function update($id) {
+
         $Order = new Order();
         $update_data = [
             'user_id' => $this->request->getJsonVar('user_id'),
@@ -128,6 +142,23 @@ class OrderController extends ApiController
             'status' => $this->request->getJsonVar('status'),
             'payment_method' => $this->request->getJsonVar('payment_method')
         ];
+
+        $order_items = $this->request->getJsonVar('order_items') ?? [];
+        $OrderItem = new OrderItem();
+        $OrderItem
+            ->builder()
+            ->where('order_id', $id)
+            ->delete();
+        foreach($order_items as $order_item) {
+            $OrderItem->insert([
+                'order_id'          => $id,
+                'event_ticket_id'   => $order_item->event_ticket_id,
+                'event_date'        => $order_item->event_date,
+                'quantity'          => $order_item->quantity,
+                'unit_price'        => $order_item->unit_price,
+                'subtotal'         => $order_item->subtotal,
+            ]);
+        }
 
         $Order->update($id, $update_data);
 
@@ -152,6 +183,11 @@ class OrderController extends ApiController
      */
     public function delete($id) {
         $Order = new Order();
+        $OrderItem = new OrderItem();
+        $OrderItem
+            ->builder()
+            ->where('order_id', $id)
+            ->delete();
         $Order->delete($id);
 
         return $this->successOutput([], 200);

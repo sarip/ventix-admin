@@ -10,6 +10,7 @@ namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
 use App\Models\SysUsersRole;
+use App\Models\SysUsersRolePermission;
 
 class SysUsersRoleController extends ApiController
 {
@@ -43,6 +44,12 @@ class SysUsersRoleController extends ApiController
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'sys_users_role', []);
+//        array_walk($output['sys_users_role'], function(&$item) {
+//            $RolePermission = new SysUsersRolePermission();
+//
+//            $item->sys_users_role_permission = $RolePermission->where('role_name', $item->role_name)->findAll();
+//
+//        });
 
         // Return output
         return $this->successOutput($output);

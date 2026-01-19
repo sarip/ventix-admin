@@ -13,6 +13,8 @@ import { EventTicket, InEventTicket, InEventTicketForm } from '@/models/EventTic
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import Form from './_form';
+import Filter from "@/pages/ticket_event/_filter";
+import {QueryParamsProps} from "@/pages/tenant/_filter";
 
 interface PaginationProps {
     current_page: number;
@@ -32,8 +34,11 @@ const TicketEventPage: React.FC = () => {
     const { blockUI, unblockUI } = useBlockUI();
     const [tickets, setTickets] = useState<InEventTicket[]>([]);
     const [pagination, setPagination] = useState<PaginationProps | null>(null);
+    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [pageCount, setPageCount] = useState<number>(0);
+    const [lastQuery, setLastQuery] = useState<any>({});
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<InEventTicket | null>(null);
@@ -54,38 +59,29 @@ const TicketEventPage: React.FC = () => {
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
     const EventTicketModel = new EventTicket();
 
-    useEffect(() => {
-        loadTickets();
-    }, [currentPage, searchQuery, statusFilter]);
+    // useEffect(() => {
+    //     loadTickets();
+    // }, [currentPage, searchQuery, statusFilter]);
 
-    const loadTickets = async () => {
-        blockUI();
+    const loadTickets = async (query: QueryParamsProps = {}) => {
+        if (isInitialLoad) blockUI();
         try {
-            const query: any = {
-                page: currentPage,
-                per_page: 10,
-                sort_by: 'created_at',
-                sort_order: 'desc'
-            };
-
-            if (searchQuery) {
-                query.search = searchQuery;
-            }
-
-            if (statusFilter !== 'all') {
-                query.filter = `is_active=${statusFilter}`;
-            }
-
+            query.page = currentPage;
             const response = await EventTicketModel.list(query);
+            setLastQuery(query);
             setTickets(response.event_ticket || []);
             setPagination(response.pagination);
+            setPageCount(response.pagination.page_count);
         } catch (error) {
             if (error.status === 403) {
                 router.push('/403');
             }
             showToast('Failed to load tickets', 'error');
         } finally {
-            unblockUI();
+            if (isInitialLoad) {
+                unblockUI();
+                setIsInitialLoad(false);
+            }
         }
     };
 
@@ -123,7 +119,7 @@ const TicketEventPage: React.FC = () => {
             }
             showToast(`Successfully ${data.id ? 'updated' : 'added'}`, 'success');
             jQuery("#modal-eventTicket").modal('hide');
-            loadTickets();
+            await loadTickets(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
             let result: ValidationErrorProps[] = lines.map(line => {
@@ -132,7 +128,7 @@ const TicketEventPage: React.FC = () => {
             });
             setValidationError(result);
         }
-    }, []);
+    }, [EventTicketModel, lastQuery, loadTickets]);
 
     const remove = async (id: number) => {
         Swal.fire({
@@ -149,7 +145,7 @@ const TicketEventPage: React.FC = () => {
                 const response = await EventTicketModel.delete(id);
                 if (response.success) {
                     showToast("Successfully Deleted", "success");
-                    loadTickets();
+                    await loadTickets(lastQuery);
                 }
             }
         });
@@ -178,60 +174,27 @@ const TicketEventPage: React.FC = () => {
         });
     };
 
-    return (
-        <div className="container-fluid">
-            <div className="card">
-                <div className="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 className="mb-0">
-                            <i className="bx bx-ticket me-2"></i>
-                            Event Tickets
-                        </h5>
-                        <small className="text-muted">
-                            Manage all event tickets
-                        </small>
-                    </div>
-                    <Button variant="primary" onClick={create}>
-                        <i className="bx bx-plus me-1"></i>
-                        Add Data
-                    </Button>
-                </div>
+    useEffect(() => {
+        if (!isInitialLoad) loadTickets(lastQuery);
+    }, [currentPage]);
 
-                <div className="card-body">
-                    {/* FILTERS */}
-                    <div className="row mb-3">
-                        <div className="col-md-6">
-                            <div className="input-group">
-                                <span className="input-group-text">
-                                    <i className="bx bx-search"></i>
-                                </span>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search ticket name or event..."
-                                    value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div className="col-md-3">
-                            <select
-                                className="form-select"
-                                value={statusFilter}
-                                onChange={(e) => {
-                                    setStatusFilter(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            >
-                                <option value="all">All Status</option>
-                                <option value="1">Active</option>
-                                <option value="0">Inactive</option>
-                            </select>
-                        </div>
+
+    return (
+        <>
+            <div className=" container-p-y">
+                <h4 className="py-2 breadcrumb-wrapper mb-0">Ticket Event</h4>
+                Manage your ticket event
+            </div>
+            <Filter onSubmit={loadTickets} />
+            <div className="card mt-2">
+                <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
+                    <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
+                        <Button variant="primary" onClick={create}>
+                            <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
+                            <span className="d-none d-sm-inline-block">Add Data</span>
+                        </Button>
                     </div>
+                </h5>
 
                     {/* TABLE */}
                     <div className="table-responsive">
@@ -239,7 +202,6 @@ const TicketEventPage: React.FC = () => {
                             <thead className="table-light">
                                 <tr>
                                     <th width="120">Actions</th>
-                                    <th>#</th>
                                     <th>Event</th>
                                     <th>Ticket Name</th>
                                     <th>Price</th>
@@ -271,7 +233,6 @@ const TicketEventPage: React.FC = () => {
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td>{((currentPage - 1) * 10) + index + 1}</td>
                                             <td>
                                                 <div className="fw-semibold">{(ticket as any).event?.title || 'N/A'}</div>
                                                 <small className="text-muted">{(ticket as any).event?.event_category}</small>
@@ -317,7 +278,7 @@ const TicketEventPage: React.FC = () => {
                             )}
                         </div>
                     )}
-                </div>
+
             </div>
 
             {/* FORM MODAL */}
@@ -427,7 +388,7 @@ const TicketEventPage: React.FC = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
-        </div>
+        </>
     );
 };
 

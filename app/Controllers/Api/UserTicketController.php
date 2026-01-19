@@ -10,6 +10,8 @@ namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
 use App\Models\EventTicket;
+use App\Models\OrdersStatu;
+use App\Models\SysUserticketStatu;
 use App\Models\User;
 use App\Models\UserTicket;
 
@@ -40,7 +42,7 @@ class UserTicketController extends ApiController
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['user_id'],
+            'search' => ['ticket_code', 'status', 'check_in_at', 'check_in_by'],
         ];
 
         // Execute search filter
@@ -51,6 +53,11 @@ class UserTicketController extends ApiController
 
             $EventTicket = new EventTicket();
             $item->ticket = $EventTicket->find($item->event_ticket_id);
+
+            $item->status_badge = status_badge(
+                $item->status,
+                SysUserticketStatu::class
+            );
         });
 
         // Return output

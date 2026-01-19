@@ -6,6 +6,7 @@
 
 import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
+import {InEventCat, InEventCatForm} from "@/models/EventCat";
 
 export interface InTicketUser {
     id: number;
@@ -50,8 +51,8 @@ class TicketUser {
         return await APIClient.get(`user_ticket/${id}`);
     }
 
-    async checkIn(id: number): Promise<PutResponse<InTicketUser>> {
-        return await APIClient.put(`user_ticket/${id}/checkin`, {});
+    async update(id: any, data: InTicketUser) : Promise<PutResponse<InEventCat>>{
+        return await APIClient.put(`/userticket/${id}`, data);
     }
 }
 
