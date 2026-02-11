@@ -13,6 +13,7 @@ import { InTicketOrder, InOrderItem } from '@/models/TicketOrder';
 import { User } from '@/models/User';
 import Select2Component from '@/pages/_components/Select2';
 import { EventTicket } from '@/models/EventTicket';
+import { Event } from '@/models/Event';
 import SingleDateTimePicker from '@/pages/_components/SingleDateTimePicker';
 import OptionOrderStatus from "@/pages/_components/OptionOrderStatus";
 import { OrderStatus, InOrderStatus } from "@/models/OrderStatus";
@@ -34,6 +35,7 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
     const [orderItems, setOrderItems] = useState<InOrderItem[]>(data.order_items || []);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const UserModel = new User();
+    const EventModel = new Event();
     const EventTicketModel = new EventTicket();
 
 
@@ -60,6 +62,7 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
 
     const addOrderItem = () => {
         const newItem: Partial<InOrderItem> = {
+            event_id: 0,
             event_ticket_id: 0,
             event_date: '',
             quantity: 1,
@@ -73,16 +76,29 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
         const updated = [...orderItems];
         updated[index] = { ...updated[index], [field]: value };
 
+        if (field === 'event_id') {
+            updated[index] = {
+                ...updated[index],
+                event_id: value,
+                event_ticket_id: 0,
+                unit_price: '0',
+                subtotal: '0'
+            };
+
+            setOrderItems(updated);
+            return;
+        }
+
         // Auto-fill price when ticket is selected
         if (field === 'event_ticket_id' && value) {
             try {
-                const ticketData = await EventTicketModel.list({ filter: `id=${value}` });
+                const ticketData = await EventTicketModel.list({ filter: `id:${value}` });
                 if (ticketData.event_ticket && ticketData.event_ticket.length > 0) {
                     const ticket = ticketData.event_ticket[0];
-                    updated[index].unit_price = ticket.price.toString();
+                    updated[index].unit_price = ticket.final_price.toString();
                     // Auto-calculate subtotal
                     const qty = updated[index].quantity || 1;
-                    const price = parseFloat(ticket.price.toString());
+                    const price = parseFloat(ticket.final_price.toString());
                     updated[index].subtotal = (qty * price).toString();
                 }
             } catch (error) {
@@ -136,9 +152,10 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
     }, []);
 
 
+
     return (
         <div className="modal fade show d-block" id='modal-ticket-order' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="modal-dialog modal-xl modal-dialog-scrollable">
+            <div className="modal-dialog modal-fullscreen modal-dialog-scrollable">
                 <div className="modal-content">
                     <div className="modal-header">
                         <h5 className="modal-title">
@@ -157,7 +174,7 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                 <Col md={6}>
                                     <label className="form-label">User *</label>
                                     <Select2Component
-                                        fetchData={UserModel.list}
+                                        fetchData={UserModel.member}
                                         dropdownParent="#modal-ticket-order"
                                         placeholder="Select User"
                                         name="user_id"
@@ -165,7 +182,8 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                         validation={errors.user_id}
                                         selectedId={formData.user_id}
                                         dataKey="users"
-                                        showKey="name"
+                                        filterKey=""
+                                        showKey="username"
                                     />
                                 </Col>
 
@@ -234,31 +252,58 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                             <p className="text-muted mb-0">No items yet. Click "Add Item" to start.</p>
                                         </div>
                                     ) : (
-                                        <Table bordered hover size="sm">
+                                        <Table bordered hover size="md">
                                             <thead className="table-light">
-                                                <tr>
-                                                    <th width="30%">Ticket</th>
-                                                    <th width="20%">Event Date</th>
-                                                    <th width="10%">Qty</th>
-                                                    <th width="15%">Unit Price</th>
-                                                    <th width="15%">Subtotal</th>
-                                                    <th width="10%">Actions</th>
-                                                </tr>
+                                            <tr>
+                                                <th width="20%">Event</th>
+                                                <th width="30%">Ticket</th>
+                                                <th width="20%">Event Date</th>
+                                                <th width="10%">Qty</th>
+                                                <th width="15%">Unit Price</th>
+                                                <th width="15%">Subtotal</th>
+                                                <th width="5%">Actions</th>
+                                            </tr>
                                             </thead>
                                             <tbody>
                                                 {orderItems.map((item, index) => (
                                                     <tr key={index}>
                                                         <td>
                                                             <Select2Component
+                                                                fetchData={EventModel.list}
+                                                                dropdownParent="#modal-ticket-order"
+                                                                placeholder="Select Event"
+                                                                name={`ticket_${index}`}
+                                                                onChange={(e) => updateOrderItem(index, 'event_id', parseInt(e.target.value))}
+                                                                selectedId={item.event_id}
+                                                                dataKey="events"
+                                                                showKey="title"
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <Select2Component
+                                                                key={`ticket-${index}-${item.event_id}`}
                                                                 fetchData={EventTicketModel.list}
                                                                 dropdownParent="#modal-ticket-order"
-                                                                placeholder="Select Ticket"
+                                                                placeholder={
+                                                                    item.event_id
+                                                                        ? 'Select Ticket'
+                                                                        : 'Select Event first'
+                                                                }
                                                                 name={`ticket_${index}`}
-                                                                onChange={(e) => updateOrderItem(index, 'event_ticket_id', parseInt(e.target.value))}
+                                                                onChange={(e) =>
+                                                                    updateOrderItem(
+                                                                        index,
+                                                                        'event_ticket_id',
+                                                                        Number(e.target.value)
+                                                                    )
+                                                                }
                                                                 selectedId={item.event_ticket_id}
                                                                 dataKey="event_ticket"
                                                                 showKey="name"
+                                                                filterKey={`event_id:${item.event_id}`}
+                                                                disabled={!item.event_id}
                                                             />
+
                                                         </td>
                                                         <td>
                                                             <input
@@ -310,17 +355,17 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                                 ))}
                                             </tbody>
                                             <tfoot className="table-light">
-                                                <tr>
-                                                    <td colSpan={4} className="text-end fw-bold">Total:</td>
-                                                    <td className="fw-bold text-primary">
-                                                        {new Intl.NumberFormat('id-ID', {
-                                                            style: 'currency',
-                                                            currency: 'IDR',
-                                                            minimumFractionDigits: 0
-                                                        }).format(calculateTotal())}
-                                                    </td>
-                                                    <td></td>
-                                                </tr>
+                                            <tr>
+                                                <td colSpan={5} className="text-end fw-bold">Total:</td>
+                                                <td className="fw-bold text-primary" colSpan={2}>
+                                                    {new Intl.NumberFormat('id-ID', {
+                                                        style: 'currency',
+                                                        currency: 'IDR',
+                                                        minimumFractionDigits: 0
+                                                    }).format(calculateTotal())}
+                                                </td>
+                                                {/*<td></td>*/}
+                                            </tr>
                                             </tfoot>
                                         </Table>
                                     )}

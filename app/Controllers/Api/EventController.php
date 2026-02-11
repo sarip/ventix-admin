@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Models\EventsAgenda;
 use App\Models\EventsGuest;
 use App\Models\EventsOrganizer;
+use App\Models\EventsSponsor;
 use App\Models\EventTicket;
 use App\Models\User;
 
@@ -38,17 +39,18 @@ class EventController extends ApiController
      * @apiQuery {String} page Page
      *
      */
-    public function index() {
+    public function index()
+    {
         $Model = new Event();
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['events_organizer_id'],
+            'search' => ['events_organizer_id', 'title'],
         ];
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'events', []);
-        array_walk($output['events'], function(&$item) {
+        array_walk($output['events'], function (&$item) {
             $User = new User();
             $EventOrganizer = new EventsOrganizer();
             $item->user = $User->find($item->user_id_pic);
@@ -62,6 +64,13 @@ class EventController extends ApiController
 
             $EventTicket = new EventTicket();
             $item->events_tickets = $EventTicket->where('event_id', $item->id)->findAll();
+
+            $EventSponsor = new EventsSponsor();
+            $item->events_sponsors = $EventSponsor->where('events_id', $item->id)->findAll();
+            // Map logo_url to full URL for frontend preview
+            array_walk($item->events_sponsors, function (&$sponsor) {
+                $sponsor->url = base_url('uploads/sponsor/' . $sponsor->logo_url);
+            });
 
 
         });
@@ -99,7 +108,8 @@ class EventController extends ApiController
 
      *
      */
-    public function create() {
+    public function create()
+    {
         $Event = new Event();
         $create_data = [
             'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
@@ -135,6 +145,7 @@ class EventController extends ApiController
             $eventModel = new Event();
             $agendaModel = new EventsAgenda();
             $ticketModel = new EventTicket();
+            $sponsorModel = new EventsSponsor();
 
 
             // ======================
@@ -188,11 +199,11 @@ class EventController extends ApiController
                     $agenda['events_id'] = $eventId;
 
                     $agenda_data = [
-                        'events_id'     => $eventId,
-                        'start_time'    =>  $agenda['start_time'],
-                        'end_time'      =>  $agenda['end_time'],
-                        'activity_name' =>  $agenda['activity_name'],
-                        'notes'         =>  $agenda['notes'],
+                        'events_id' => $eventId,
+                        'start_time' => $agenda['start_time'],
+                        'end_time' => $agenda['end_time'],
+                        'activity_name' => $agenda['activity_name'],
+                        'notes' => $agenda['notes'],
                     ];
 
                     if (!empty($agenda['_isNew'])) {
@@ -215,17 +226,20 @@ class EventController extends ApiController
 
                     $ticket['event_id'] = $eventId;
                     $ticket_data = [
-                        'event_id'                  => $eventId,
-                        'name'                      =>  $ticket['name'],
-                        'description'               =>  $ticket['description'],
-                        'price'                     =>  $ticket['price'],
-                        'total_capacity'            =>  $ticket['total_capacity'],
-                        'remaining_capacity'        =>  $ticket['remaining_capacity'],
-                        'max_per_order'             =>  $ticket['max_per_order'] ?? 5,
-                        'sales_start_date'          =>  $ticket['sales_start_date'],
-                        'sales_end_date'            =>  $ticket['sales_end_date'],
-                        'is_active'                 =>  $ticket['is_active']  ?? 1,
-                        'sort_order'                =>  $ticket['sort_order'] ?? 0,
+                        'event_id' => $eventId,
+                        'name' => $ticket['name'],
+                        'description' => $ticket['description'],
+                        'price' => $ticket['price'],
+                        'is_taxable' => $ticket['is_taxable'],
+                        'tax_id' => $ticket['tax_id'],
+                        'final_price' => $ticket['final_price'],
+                        'total_capacity' => $ticket['total_capacity'],
+                        'remaining_capacity' => $ticket['remaining_capacity'],
+                        'max_per_order' => $ticket['max_per_order'] ?? 5,
+                        'sales_start_date' => $ticket['sales_start_date'],
+                        'sales_end_date' => $ticket['sales_end_date'],
+                        'is_active' => $ticket['is_active'] ?? 1,
+                        'sort_order' => $ticket['sort_order'] ?? 0,
                     ];
 
 
@@ -233,6 +247,40 @@ class EventController extends ApiController
                         $ticketModel->insert($ticket_data);
                     } else {
                         $ticketModel->update($ticket['id'], $ticket_data);
+                    }
+                }
+            }
+
+            // ======================
+            // STEP 4: SPONSORS
+            // ======================
+            $sponsors_info = json_decode($this->request->getPost('sponsors_info'), true) ?? [];
+            $sponsor_files = $this->request->getFiles();
+
+            if (!empty($sponsors_info)) {
+                foreach ($sponsors_info as $index => $info) {
+                    if (!empty($info['_isDeleted']) && !empty($info['id'])) {
+                        $sponsorModel->delete($info['id']);
+                        continue;
+                    }
+
+                    if (!empty($info['_isNew'])) {
+                        // Check for corresponding file in sponsor_logos array
+                        // Frontend sends as sponsor_logos[0], sponsor_logos[1]...
+                        $file = null;
+                        if (isset($sponsor_files['sponsor_logos'][$index])) {
+                            $file = $sponsor_files['sponsor_logos'][$index];
+                        }
+
+                        if ($file && $file->isValid() && !$file->hasMoved()) {
+                            $logo_url = $file->getRandomName();
+                            $file->move(FCPATH . 'uploads/sponsor', $logo_url);
+
+                            $sponsorModel->insert([
+                                'events_id' => $eventId,
+                                'logo_url' => $logo_url
+                            ]);
+                        }
                     }
                 }
             }
@@ -293,7 +341,8 @@ class EventController extends ApiController
 
      *
      */
-    public function update($id) {
+    public function update($id)
+    {
         $Event = new Event();
         $update_data = [
             'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
@@ -333,7 +382,8 @@ class EventController extends ApiController
      * @apiHeader {String} key Token
      * @apiParam {Number} id Event id
      */
-    public function delete($id) {
+    public function delete($id)
+    {
         $Event = new Event();
         $Event->delete($id);
 

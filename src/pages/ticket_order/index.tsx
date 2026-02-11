@@ -84,10 +84,21 @@ const TicketOrderPage: React.FC = () => {
     };
 
     const update = (order: InTicketOrder) => {
+        const order_items = order.order_item?.map(row => {
+            const event_id = row?.event_ticket?.event_id;
+
+            delete row.event_ticket; // ❗ cara benar hapus properti
+
+            row.event_id = event_id;
+            return row;
+        });
+
+
+
         setFormData({
             ...order,
             status: order.status?.toLowerCase(),
-            order_items: order.order_item || []
+            order_items: order_items || [],
         });
         setValidationError([]);
         setShowForm(true);
@@ -267,21 +278,23 @@ const TicketOrderPage: React.FC = () => {
                                                         </h6>
                                                         <table className="table table-sm table-bordered bg-white">
                                                             <thead>
-                                                                <tr>
-                                                                    <th>Ticket</th>
-                                                                    <th>Event Date</th>
-                                                                    <th>Quantity</th>
-                                                                    <th>Unit Price</th>
-                                                                    <th>Subtotal</th>
-                                                                </tr>
+                                                            <tr>
+                                                                <th>Event</th>
+                                                                <th>Ticket</th>
+                                                                <th>Event Date</th>
+                                                                <th>Quantity</th>
+                                                                <th>Unit Price</th>
+                                                                <th>Subtotal</th>
+                                                            </tr>
                                                             </thead>
                                                             <tbody>
                                                                 {order.order_item.map((item: InOrderItem) => (
                                                                     <tr key={item.id}>
-                                                                        <td>Ticket #{item.event_ticket_id}</td>
+                                                                        <td>{item.event_ticket?.event.title}</td>
+                                                                        <td>{item.event_ticket?.name}</td>
                                                                         <td>{formatDate(item.event_date)}</td>
                                                                         <td>
-                                                                            <Badge bg="info">{item.quantity}x</Badge>
+                                                                            <Badge bg="info">{item.quantity}</Badge>
                                                                         </td>
                                                                         <td>{formatCurrency(item.unit_price)}</td>
                                                                         <td className="fw-bold">{formatCurrency(item.subtotal)}</td>

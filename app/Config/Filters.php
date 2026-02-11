@@ -3,6 +3,7 @@
 namespace Config;
 
 use App\Filters\ApiLogFilter;
+use App\Filters\TokenFeFilter;
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\Filters\CSRF;
 use CodeIgniter\Filters\DebugToolbar;
@@ -20,6 +21,8 @@ class Filters extends BaseConfig
      */
     public $aliases = [
 //        'csrf'          => CSRF::class,
+        'TokenFeFilter' => TokenFeFilter::class,
+        'cors' => \App\Filters\CorsFilter::class,
         'toolbar'       => DebugToolbar::class, // stupid memory hogger !
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
@@ -41,6 +44,7 @@ class Filters extends BaseConfig
      */
     public $globals = [
         'before' => [
+//            'cors',
         'OptionFilter'
 //         'cors' => ['before' => ['api/*']],
 //             'cors' => ['except' => ['api/*']],

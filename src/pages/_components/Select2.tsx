@@ -15,6 +15,7 @@ interface Select2ComponentProps {
     showKey: string;
     filterKey?: string;
     id?: string; // optional
+    disabled?: boolean
 }
 
 const Select2Component: React.FC<Select2ComponentProps> = ({
@@ -29,6 +30,7 @@ const Select2Component: React.FC<Select2ComponentProps> = ({
                                                                showKey,
                                                                filterKey = "name",
                                                                id="id",
+                                                               disabled = false
                                                            }) => {
     const selectRef = useRef<HTMLSelectElement>(null);
     const autoId = useId(); // ✅ generate unique ID per component
@@ -131,6 +133,7 @@ const Select2Component: React.FC<Select2ComponentProps> = ({
 
     return (
         <select
+            disabled={disabled}
             id={autoId}
             ref={selectRef}
             name={name}

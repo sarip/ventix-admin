@@ -49,6 +49,7 @@ const DashboardPage: React.FC = () => {
         blockUI();
         try {
             const response = await APIClient.get('dashboard/facility');
+            console.log({'response' : response})
             setData(response as DashboardData);
         } catch (error) {
             showToast('Failed to load dashboard', 'error');
@@ -204,7 +205,6 @@ const DashboardPage: React.FC = () => {
 
                     <Col xl={2} lg={4} md={6} sm={6}>
                         <Card className="card-border-shadow-danger h-100 bg-danger" style={{
-                            backgroundColor: '#ff3e1d',
                             borderRadius: '1rem',
                             overflow: 'hidden'
                         }}>

@@ -7,6 +7,26 @@ $routes = Services::routes(true);
 // Login and Authentication
 
 $routes->get('items', 'Home::coba');
+
+$routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'], function ($routes) {
+    $routes->get('events_cat', 'EventsCatController::index', ['filter' => 'TokenFeFilter']);
+    $routes->get('events', 'EventController::index', ['filter' => 'TokenFeFilter']);
+    $routes->get('events/(:num)', 'EventController::find/$1', ['filter' => 'TokenFeFilter']);
+
+
+    $routes->get('facilities', 'FacilitieController::index', ['filter' => 'TokenFeFilter']);
+    $routes->get('facility-booking-status', 'FacilitieController::bookingStatus', ['filter' => 'TokenFeFilter']);
+    $routes->get('facility-bookings', 'FacilitieController::myBooking', ['filter' => 'TokenFeFilter']);
+    $routes->post('facilities/book', 'FacilitieController::booking', ['filter' => 'TokenFeFilter']);
+    $routes->get('facilities/(:num)', 'FacilitieController::find/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('reg_provinces', 'RegProvinceController::index', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('orders', 'OrderController::index', ['filter' => 'TokenFeFilter']);
+    $routes->post('orders', 'OrderController::create', ['filter' => 'TokenFeFilter']);
+    $routes->get('orders/(:any)', 'OrderController::findByOrderCode/$1', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('tickets/my', 'TicketController::index', ['filter' => 'TokenFeFilter']);
+});
 // API V1
 $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($routes) {
 
@@ -29,6 +49,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->get('dashboard/facility', 'DashboardController::facilityDashboard', ['filter' => 'PermissionFilter']);
 
     $routes->get('users', 'UserController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('users-member', 'UserController::member', ['filter' => 'PermissionFilter']);
     $routes->get('user/(:num)', 'UserController::show/$1', ['filter' => 'PermissionFilter']);
     $routes->get('users-lists', 'UserController::lists', ['filter' => 'PermissionFilter']);
     $routes->post('user', 'UserController::create', ['filter' => 'PermissionFilter']);
@@ -208,5 +229,23 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->put('userpointrule/(:num)', 'UserpointRuleController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('userpointrule/(:num)', 'UserpointRuleController::delete/$1', ['filter' => 'PermissionFilter']);
 
+
+
+    // HANYA UNTUK TESTING
+    $routes->get('point/earn', 'PointTestingController::earn', ['filter' => 'PermissionFilter']);
+    $routes->get('point/redeem', 'PointTestingController::redeem', ['filter' => 'PermissionFilter']);
+
+    $routes->get('master_taxes', 'MasterTaxeController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('mastertaxe', 'MasterTaxeController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('mastertaxe/(:num)', 'MasterTaxeController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('mastertaxe/(:num)', 'MasterTaxeController::delete/$1', ['filter' => 'PermissionFilter']);
+
+
+    $routes->get('reg_provinces', 'RegProvinceController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('regprovince', 'RegProvinceController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('regprovince/(:num)', 'RegProvinceController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('regprovince/(:num)', 'RegProvinceController::delete/$1', ['filter' => 'PermissionFilter']);
+
     // OTHER API REQUEST //
+
 });

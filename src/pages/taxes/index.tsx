@@ -12,10 +12,11 @@ import Pagination from '@/pages/_components/Pagination';
 import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
 import Filter, {QueryParamsProps} from './_filter';
 import Form from './_form';
-import { Event, InEvent, InEventForm } from '@/models/Event';
+import { MasterTaxe, InMasterTaxe, InMasterTaxeForm } from '@/models/MasterTaxe';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import {ListResponse} from "@/types/apiTypes";
+import {StatusBadgeColors} from "@/types/user";
 
 interface ValidationErrorProps {
     field: string;
@@ -32,42 +33,32 @@ interface PaginationProps {
 
 
 
-const EventPage: React.FC = () => {
+const MasterTaxePage: React.FC = () => {
     const router = useRouter();
     const { blockUI, unblockUI } = useBlockUI();
-    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-    const [events, setEvents] = useState<InEvent[]>([]);
+    const [MasterTaxes, setMasterTaxes] = useState<InMasterTaxe[]>([]);
     const [pagination, setPagination] = useState<PaginationProps | null>(null);
+    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
-    const [currentPage, setCurrentPage] = useState<number>(1);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [currentPage, setCurrentPage] = useState<number>(1);
     const [showForm, setShowForm] = useState<boolean>(false);
-    const [formData, setFormData] = useState<InEventForm>({
+    const [formData, setFormData] = useState<InMasterTaxeForm>({
         id: null,
-        events_organizer_id: null,
-        user_id_pic: null,
-        event_category: "",
-        title: "",
-        description: "",
-        start_date: "",
-        end_date: "",
-        location_name: "",
-        latitude: "",
-        longitude: "",
-        price_pool: "",
-        registration_fee: "",
-        thumbnail_url:  null,
-        events_status: "",
+        code: "",
+        name: "",
+        rate: "",
+        is_active: 0,
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
-    const Model = new Event();
+    const Model = new MasterTaxe();
     const listData = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
-            const response:ListResponse<InEvent[]> = await Model.list(query);
+            const response:ListResponse<InMasterTaxe[]> = await Model.list(query);
             setLastQuery(query);
-            setEvents(response.events);
+            setMasterTaxes(response.master_taxes);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
         } catch (e){
@@ -86,52 +77,37 @@ const EventPage: React.FC = () => {
     const create = () => {
         clearFormData();
         SetValidationError([]);
-        jQuery("#modal-Event").modal('show');
+        jQuery("#modal-MasterTaxe").modal('show');
     };
 
     const clearFormData = () => {
         setFormData({
             id: null,
-            events_organizer_id: null,
-            user_id_pic: null,
-            event_category: "",
-            title: "",
-            description: "",
-            start_date: "",
-            end_date: "",
-            location_name: "",
-            latitude: "",
-            longitude: "",
-            price_pool: "",
-            registration_fee: "",
-            thumbnail_url:  null,
-            events_status: "",
+            code: "",
+            name: "",
+            rate: "",
+            is_active: 0,
         });
     }
 
-    const update = (data: InEventForm) => {
+    const update = (data: InMasterTaxeForm) => {
         clearFormData();
         SetValidationError([]);
         setFormData(data);
-        jQuery("#modal-Event").modal('show');
+        jQuery("#modal-MasterTaxe").modal('show');
     };
 
 
 
-    const save = useCallback(async (data: InEventForm) => {
-        console.log({'save' : data})
+    const save = useCallback(async (data: InMasterTaxeForm) => {
         try {
-            // if (data.id) {
-            //     await Model.update(data.id, data);
-            // } else {
-            //     await Model.create(data);
-            // }
-
-
-            await Model.saveAll(data);
-
+            if (data.id) {
+                await Model.update(data.id, data);
+            } else {
+                await Model.create(data);
+            }
             showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
-            // jQuery("#modal-Event").modal('hide');
+            jQuery("#modal-MasterTaxe").modal('hide');
             listData(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
@@ -167,6 +143,22 @@ const EventPage: React.FC = () => {
         });
     };
 
+    const UserStatusBadge = ( status) => {
+        if(status == '1') {
+            return (
+                <span className={`badge bg-success`}>
+                    Active
+                </span>
+            );
+        }else{
+            return (
+                <span className={`badge bg-danger`}>
+                    Inactive
+                </span>
+            );
+        }
+    };
+
 
 
     useEffect(() => {
@@ -177,8 +169,8 @@ const EventPage: React.FC = () => {
     return (
         <>
             <div className=" container-p-y">
-                <h4 className="py-2 breadcrumb-wrapper mb-0">Events</h4>
-                Manage your Events
+                <h4 className="py-2 breadcrumb-wrapper mb-0">Master Taxes</h4>
+                Manage your Master Taxes
             </div>
             <Filter onSubmit={listData} />
             <div className="card mt-2">
@@ -195,22 +187,17 @@ const EventPage: React.FC = () => {
                         <thead className="border-top">
                         <tr>
                             <th style={{width: '10%'}}>Actions</th>
-                            <th>EO</th>
-                            <th>PIC</th>
-                            <th>Title</th>
-                            <th>Description</th>
-                            <th>Date</th>
-                            <th>Location</th>
-                            <th>Price Pool</th>
-                            <th>Registration Fee</th>
-                            <th>Event Status</th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Rate</th>
+                            <th>Is Active</th>
                             <th>Created At</th>
                             <th>Updated At</th>
 
                         </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                        {events.map((item:InEvent, key:number) => (
+                        {MasterTaxes.map((item:InMasterTaxe, key:number) => (
                             <tr className="odd" key={key}>
                                 <td>
                                     <div className="d-flex align-items-sm-center justify-content-sm-center">
@@ -221,15 +208,11 @@ const EventPage: React.FC = () => {
                                                 onClick={() => update(item)}><i className="bx bx-edit"></i></button>
                                     </div>
                                 </td>
-                                <td>{item.event_organizer?.eo_name}</td>
-                                <td>{item.user?.name}</td>
-                                <td>{item.title}</td>
-                                <td>{item.description}</td>
-                                <td>{item.start_date} - {item.end_date}</td>
-                                <td>{item.location_name}</td>
-                                <td>{item.price_pool}</td>
-                                <td>{item.registration_fee}</td>
-                                <td>{item.events_status}</td>
+                                <td>{item.code}</td>
+                                <td>{item.name}</td>
+                                <td>{item.rate}%</td>
+                                <td>{UserStatusBadge(item.is_active)}</td>
+                                {/*<td>{item.unit_code}</td>*/}
                                 <td>{item.created_at}</td>
                                 <td>{item.updated_at}</td>
                             </tr>
@@ -241,7 +224,7 @@ const EventPage: React.FC = () => {
                             <div className="col-sm-12 col-md-6">
                                 <div className="dataTables_info" role="status" aria-live="polite">
                                     Found {pagination.filtered_total} of {pagination.total} data,
-                                    displaying {events.length} data
+                                    displaying {MasterTaxes.length} data
                                 </div>
                             </div>
                             {pagination.page_count && (
@@ -263,4 +246,4 @@ const EventPage: React.FC = () => {
     );
 };
 
-export default EventPage;
+export default MasterTaxePage;

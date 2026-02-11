@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Controllers\Api;
+namespace App\Controllers\Frontend;
 
 
+use App\Controllers\Api\ApiController;
 use App\Models\ApiToken;
 use App\Models\Appuser;
 use App\Models\Module;
@@ -94,10 +95,8 @@ class AuthController extends ApiController
 //            'ip_address' => $this->request->getIPAddress(),
 //        ]);
 
-        unset($user->password);
         return $this->successOutput([
             'key' => $token,
-            'user' => $user
         ]);
     }
 
@@ -105,8 +104,9 @@ class AuthController extends ApiController
     private function findUser(string $username, string $password): ?object
     {
         // 1. users table
-        $db = \Config\Database::connect();
-        $user = $db->table('users')->where(['username' => $username])->get()->getRow();
+        $user = (new User())
+            ->where('username', $username)
+            ->first();
 
         if ($user && password_verify($password, $user->password)) {
             $user->source = 'users';

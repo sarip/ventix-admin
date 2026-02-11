@@ -21,6 +21,7 @@ import EventTicketsStep from "./_tickets";
 import { InEventAgendaForm, EventAgenda } from "@/models/EventAgenda";
 import { InEventTicketForm, EventTicket } from "@/models/EventTicket";
 import { showToast } from '@/utils/toast';
+import EventSponsorsStep from "./_sponsors";
 
 import dynamic from "next/dynamic";
 
@@ -32,7 +33,8 @@ const MapPicker = dynamic(
 enum FormStep {
     EVENT_INFO = 'event-info',
     EVENT_AGENDA = 'event-agenda',
-    EVENT_TICKETS = 'event-tickets'
+    EVENT_TICKETS = 'event-tickets',
+    EVENT_SPONSORS = 'event-sponsors'
 }
 
 
@@ -41,7 +43,7 @@ enum FormStep {
 interface FormProps {
     title: string,
     data: InEventForm,
-    onSave: (data: InEventForm) => void,
+    onSave: (data: any) => void,
     validationError?: { field: string; message: string }[]
 }
 
@@ -68,6 +70,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
     const [savedEventId, setSavedEventId] = useState<number | null>(null);
     const [agendas, setAgendas] = useState<any[]>([]);
     const [tickets, setTickets] = useState<any[]>([]);
+    const [sponsors, setSponsors] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const EventModel = new Event();
     const EventAgendaModel = new EventAgenda();
@@ -79,11 +82,12 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
         // Load existing agendas and tickets when editing
         setAgendas((data as any).events_agendas || []);
         setTickets((data as any).events_tickets || []);
+        setSponsors((data as any).events_sponsors || []); // Mock or actual related data
         setCurrentStep(FormStep.EVENT_INFO);
     }, [data]);
 
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<any>) => {
         const { name, value } = e.target;
         setFormData(prevData => ({
             ...prevData,
@@ -108,6 +112,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
             setCurrentStep(FormStep.EVENT_AGENDA);
         } else if (currentStep === FormStep.EVENT_AGENDA) {
             setCurrentStep(FormStep.EVENT_TICKETS);
+        } else if (currentStep === FormStep.EVENT_TICKETS) {
+            setCurrentStep(FormStep.EVENT_SPONSORS);
         }
     };
 
@@ -170,7 +176,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
             const data = {
                 ...formData,
                 agendas,
-                tickets
+                tickets,
+                sponsors
             };
 
             const fd = new FormData();
@@ -184,21 +191,34 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
             fd.append('agendas', JSON.stringify(agendas));
             fd.append('tickets', JSON.stringify(tickets));
 
-            console.log({'data' : data})
+            // Append sponsor logos
+            sponsors.forEach((sponsor, index) => {
+                if (sponsor.file) {
+                    fd.append(`sponsor_logos[${index}]`, sponsor.file);
+                }
+            });
+            // If we need to send information about deleted or existing logos:
+            fd.append('sponsors_info', JSON.stringify(sponsors.map(s => ({
+                id: s.id,
+                _isDeleted: s._isDeleted,
+                _isNew: s._isNew
+            }))));
+
+            console.log({ 'data': data })
             onSave(fd);
 
-        } catch (error) {
+        } catch (error: any) {
             let lines = error.message.trim().split('\n');
-            let result = lines.map(line => {
+            let result = lines.map((line: string) => {
                 let [field, ...message] = line.split(' ');
                 return { field, message: message.join(' ') };
             });
-            const errorMap = result.reduce((acc: { [key: string]: string }, error) => {
+            const errorMap = result.reduce((acc: { [key: string]: string }, error: any) => {
                 acc[error.field] = error.message;
                 return acc;
             }, {});
             setErrors(errorMap);
-            console.log({'error' : error})
+            console.log({ 'error': error })
             showToast('Failed to save. Please check errors.', 'error');
         } finally {
             setIsSaving(false);
@@ -230,7 +250,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
     const UserModel = new User();
     const EventCatModel = new EventCat();
 
-    const handleFileChange = (e) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
         setFormData(prev => ({
             ...prev,
@@ -268,6 +288,12 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                     <Nav.Link eventKey={FormStep.EVENT_TICKETS}>
                                         <i className="bx bx-ticket me-1"></i>
                                         Step 3: Tickets
+                                    </Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey={FormStep.EVENT_SPONSORS}>
+                                        <i className="bx bx-image me-1"></i>
+                                        Step 4: Sponsors
                                     </Nav.Link>
                                 </Nav.Item>
                             </Nav>
@@ -489,6 +515,14 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                         onChange={setTickets}
                                     />
                                 </Tab.Pane>
+
+                                <Tab.Pane eventKey={FormStep.EVENT_SPONSORS}>
+                                    <EventSponsorsStep
+                                        eventId={savedEventId}
+                                        logos={sponsors}
+                                        onChange={setSponsors}
+                                    />
+                                </Tab.Pane>
                             </Tab.Content>
                         </Tab.Container>
                     </div>
@@ -504,7 +538,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                 type="button"
                                 className="btn btn-outline-secondary"
                                 onClick={() => {
-                                    if (currentStep === FormStep.EVENT_TICKETS) setCurrentStep(FormStep.EVENT_AGENDA);
+                                    if (currentStep === FormStep.EVENT_SPONSORS) setCurrentStep(FormStep.EVENT_TICKETS);
+                                    else if (currentStep === FormStep.EVENT_TICKETS) setCurrentStep(FormStep.EVENT_AGENDA);
                                     else if (currentStep === FormStep.EVENT_AGENDA) setCurrentStep(FormStep.EVENT_INFO);
                                 }}
                             >
@@ -513,7 +548,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                             </button>
                         )}
 
-                        {currentStep !== FormStep.EVENT_TICKETS ? (
+                        {currentStep !== FormStep.EVENT_SPONSORS ? (
                             <button type="button" className="btn btn-primary" onClick={nextStep}>
                                 Next
                                 <i className="bx bx-arrow-right ms-1"></i>

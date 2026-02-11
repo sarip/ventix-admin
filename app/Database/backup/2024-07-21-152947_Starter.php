@@ -1,11 +1,9 @@
 <?php
 
-namespace App\Database\Migrations;
+namespace App\Database\backup;
 
 use CodeIgniter\Database\Migration;
 
-use App\Models\User;
-use App\Models\Role;
 class Starter extends Migration
 {
     public function up()

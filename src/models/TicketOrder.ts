@@ -6,15 +6,18 @@
 
 import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
+import {InEventTicket} from "@/models/EventTicket";
 
 export interface InOrderItem {
     id: number;
     order_id: number;
+    event_id?: number;
     event_ticket_id: number;
     event_date: string;
     quantity: number;
     unit_price: string;
     subtotal: string;
+    event_ticket?: InEventTicket
 }
 
 export interface InTicketOrder {

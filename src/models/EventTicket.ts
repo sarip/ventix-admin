@@ -6,7 +6,8 @@
 
 import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
-import {InEvent} from "@/models/Event";
+import { InEvent } from "@/models/Event";
+import { InMasterTaxe } from "@/models/MasterTaxe";
 
 export interface InEventTicketForm {
     id?: number | null;
@@ -14,6 +15,9 @@ export interface InEventTicketForm {
     name: string;
     description?: string | null;
     price: number;
+    final_price: number;
+    is_taxable: 'Y' | 'N',
+    tax_id: number | string,
     total_capacity: number;
     remaining_capacity: number;
     max_per_order?: number;
@@ -21,6 +25,7 @@ export interface InEventTicketForm {
     sales_end_date?: string | null;
     is_active?: boolean;
     sort_order?: number;
+    events_sponsors?: any[];
 }
 
 export interface InEventTicket {
@@ -29,6 +34,9 @@ export interface InEventTicket {
     name: string;
     description: string | null;
     price: number;
+    final_price: number;
+    is_taxable: 'Y' | 'N',
+    tax_id: number | string,
     total_capacity: number;
     remaining_capacity: number;
     max_per_order: number;
@@ -38,6 +46,8 @@ export interface InEventTicket {
     sort_order: number;
     created_at: string;
     event: InEvent;
+    tax: InMasterTaxe;
+    events_sponsors?: any[];
 }
 
 class EventTicket {
@@ -45,11 +55,11 @@ class EventTicket {
         return await APIClient.get('event_ticket', query);
     }
 
-    async create(ticket: InEventTicketForm): Promise<PostResponse> {
+    async create(ticket: any): Promise<PostResponse> {
         return await APIClient.post('/eventticket', ticket);
     }
 
-    async update(id: number, ticket: InEventTicketForm): Promise<PutResponse<InEventTicket>> {
+    async update(id: number, ticket: any): Promise<PutResponse<InEventTicket>> {
         return await APIClient.put(`/eventticket/${id}`, ticket);
     }
 
@@ -58,5 +68,5 @@ class EventTicket {
     }
 }
 
-export type { InEventTicketForm, InEventTicket };
+// export type { InEventTicketForm, InEventTicket };
 export { EventTicket };

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import { Table, Button, Form as BootstrapForm, Row, Col } from 'react-bootstrap';
 import { InEventTicketForm } from '@/models/EventTicket';
 import SingleDateTimePicker from '@/pages/_components/SingleDateTimePicker';
+import {InMasterTaxe, MasterTaxe} from "@/models/MasterTaxe";
 
 interface TicketRow extends InEventTicketForm {
     _isNew?: boolean;
@@ -17,6 +18,7 @@ interface EventTicketsStepProps {
 
 const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, onChange }) => {
     const nextTempId = React.useRef(1);
+    const [taxes, setTaxes] = useState<InMasterTaxe[]>([]);
 
     const addNewRow = () => {
         const newRow: TicketRow = {
@@ -24,6 +26,9 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
             name: '',
             description: null,
             price: 0,
+            final_price: 0,
+            is_taxable: 'N',
+            tax_id: "",
             total_capacity: 0,
             remaining_capacity: 0,
             max_per_order: 5,
@@ -46,6 +51,15 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
             updated[index].remaining_capacity = value;
         }
 
+
+        const ticket = updated[index];
+        if (ticket.is_taxable === 'Y') {
+            ticket.final_price = calculateFinalPrice(ticket.price, ticket.tax_id);
+        } else {
+            ticket.final_price = ticket.price;
+            ticket.tax_id = '';
+        }
+
         onChange(updated);
     };
 
@@ -61,6 +75,25 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
     };
 
     const activeTickets = tickets.filter(t => !t._isDeleted);
+
+    const calculateFinalPrice = (price: number, taxId?: number) => {
+        if (!taxId) return price;
+        const tax = taxes.find(t => t.id === Number(taxId));
+        if (!tax) return price;
+        return price + price * (tax.rate / 100);
+    };
+
+
+    const TaxesModel = new MasterTaxe();
+    const loadtaxes = () => {
+        TaxesModel.list({per_page: `1000000000000`}).then(response => {
+            setTaxes(response.master_taxes);
+        })
+    }
+
+    useEffect(() => {
+        loadtaxes();
+    }, []);
 
     return (
         <div className="event-tickets-step">
@@ -103,7 +136,7 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                     </div>
 
                                     <Row className="g-3">
-                                        <Col md={6}>
+                                        <Col md={12}>
                                             <BootstrapForm.Group>
                                                 <BootstrapForm.Label>Ticket Name *</BootstrapForm.Label>
                                                 <BootstrapForm.Control
@@ -115,7 +148,7 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                             </BootstrapForm.Group>
                                         </Col>
 
-                                        <Col md={6}>
+                                        <Col md={3}>
                                             <BootstrapForm.Group>
                                                 <BootstrapForm.Label>Price (IDR) *</BootstrapForm.Label>
                                                 <BootstrapForm.Control
@@ -125,6 +158,49 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                                     value={ticket.price}
                                                     onChange={(e) => updateRow(actualIndex, 'price', parseFloat(e.target.value) || 0)}
                                                     placeholder="0"
+                                                />
+                                            </BootstrapForm.Group>
+                                        </Col>
+                                        <Col md={2}>
+                                            <BootstrapForm.Group>
+                                                <BootstrapForm.Label>Is Taxable ? *</BootstrapForm.Label>
+                                                <BootstrapForm.Select
+                                                    value={ticket.is_taxable}
+                                                    onChange={(e) => updateRow(actualIndex, 'is_taxable', e.target.value)}
+                                                >
+                                                    <option value="N">No</option>
+                                                    <option value="Y">Yes</option>
+                                                </BootstrapForm.Select>
+                                            </BootstrapForm.Group>
+                                        </Col>
+                                        {ticket.is_taxable === 'Y' && (
+                                            <Col md={3}>
+                                                <BootstrapForm.Group>
+                                                    <BootstrapForm.Label>Tax *</BootstrapForm.Label>
+                                                    <BootstrapForm.Select
+                                                        value={ticket.tax_id || ''}
+                                                        onChange={(e) => updateRow(actualIndex, 'tax_id', e.target.value)}
+                                                    >
+                                                        <option value="">-- Select Tax --</option>
+                                                        {taxes.map(tax => (
+                                                            <option key={tax.id} value={tax.id}>
+                                                                {tax.name} ({tax.rate}%)
+                                                            </option>
+                                                        ))}
+                                                    </BootstrapForm.Select>
+                                                </BootstrapForm.Group>
+                                            </Col>
+                                        )}
+
+
+                                        <Col md={4}>
+                                            <BootstrapForm.Group>
+                                                <BootstrapForm.Label>Final Price (IDR) *</BootstrapForm.Label>
+                                                <BootstrapForm.Control
+                                                    type="number"
+                                                    readOnly={true}
+                                                    disabled={true}
+                                                    value={ticket.final_price}
                                                 />
                                             </BootstrapForm.Group>
                                         </Col>

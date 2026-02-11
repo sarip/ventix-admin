@@ -7,8 +7,8 @@
 
 import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
-import {InEventOrganizer} from "@/models/EventOrganizer";
-import {InUser} from "@/models/User";
+import { InEventOrganizer } from "@/models/EventOrganizer";
+import { InUser } from "@/models/User";
 
 export interface InEventForm {
     id: number | null;
@@ -26,6 +26,7 @@ export interface InEventForm {
     registration_fee: string;
     thumbnail_url?: string | null;
     events_status: string;
+    sponsor_logos?: any[]; // For frontend state
 }
 
 export interface InEvent {
@@ -65,15 +66,15 @@ class Event {
         return await APIClient.post('/event/saveAll', Event);
     }
 
-    async update(id: number, Event: InEventForm) : Promise<PutResponse<InEvent>>{
+    async update(id: number, Event: InEventForm): Promise<PutResponse<InEvent>> {
         return await APIClient.put(`/event/${id}`, Event);
     }
 
-    async delete(id: number) : Promise<DeleteResponse> {
+    async delete(id: number): Promise<DeleteResponse> {
         return await APIClient.delete(`/event/${id}`);
     }
 }
 
 
-export type {InEventForm, InEvent}
+// export type { InEventForm, InEvent }
 export { Event };

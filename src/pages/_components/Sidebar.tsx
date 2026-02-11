@@ -75,7 +75,7 @@ const Sidebar: FC = () => {
         <aside id="layout-menu" className="layout-menu menu-vertical menu bg-menu-theme">
             <div className="app-brand demo">
                 <a href="/" className="app-brand-link text-center">
-                    <span className="app-brand-text demo menu-text fw-bolder">Ventix</span><br/>
+                    <span className="app-brand-text demo menu-text fw-bolder">Veentix</span><br/>
                     &nbsp;&nbsp;<span className="text-danger fw-semibold">Management</span>
                 </a>
                 <a href="#" className="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">

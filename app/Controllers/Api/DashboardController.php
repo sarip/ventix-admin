@@ -13,6 +13,7 @@ use App\Models\Certification;
 use App\Models\ScheduleRun;
 use App\Models\User;
 use App\Models\WorkOrder;
+use Config\Database;
 
 class DashboardController extends ApiController
 {
@@ -150,15 +151,26 @@ class DashboardController extends ApiController
             ->findAll();
 
         // 6. TOP FACILITIES (by booking count this month)
-        $topFacilities = $FacilityBooking
-            ->select('facilities.id, facilities.name, facilities.category, COUNT(facility_bookings.id) as booking_count, SUM(facility_bookings.total_price) as total_revenue')
-            ->join('facilities', 'facilities.id = facility_bookings.facility_id', 'left')
+        $db = Database::connect();
+        $topFacilities = $db->table('facility_bookings')
+            ->select('
+        facilities.id,
+        facilities.name,
+        facilities.category,
+        COUNT(*) AS booking_count,
+        COALESCE(SUM(facility_bookings.total_price), 0) AS total_revenue
+    ')
+            ->join(
+                'facilities',
+                "facilities.id = facility_bookings.facility_id"
+            )
             ->where('facility_bookings.booking_date >=', $start_current_month)
             ->where('facility_bookings.booking_date <=', $end_current_month)
             ->groupBy('facilities.id')
             ->orderBy('booking_count', 'DESC')
             ->limit(5)
-            ->findAll();
+            ->get()
+            ->getResultArray();
 
         // 7. MONTHLY TREND (last 6 months)
         $monthlyTrend = [];

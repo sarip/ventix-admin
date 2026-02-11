@@ -2,6 +2,7 @@
 
 namespace App\Filters;
 
+
 use App\Models\Appuser;
 use App\Models\User;
 use CodeIgniter\Filters\FilterInterface;
@@ -11,7 +12,7 @@ use Config\Services;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-class AuthFilter implements FilterInterface
+class TokenFeFilter implements FilterInterface
 {
     /**
      * Do whatever processing this filter needs to do.
@@ -31,13 +32,7 @@ class AuthFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
 
-        if ($request->getMethod() === 'options') {
-            return null; // BIARKAN PREFLIGHT LEWAT
-        }
-
-        $key = getenv('JWT_SECRET');
         $token = $request->getHeaderLine("key");
-
         // check if token is null or empty
         if(is_null($token) || empty($token)) {
             $response = service('response');
@@ -45,31 +40,43 @@ class AuthFilter implements FilterInterface
             $response->setStatusCode(401);
             return $response;
         }
-
+//
         try {
-            // $decoded = JWT::decode($token, $key, array("HS256"));
-            $decoded = JWT::decode($token, new Key($key, 'HS256'));
-            if($decoded->source === "users") {
+            $key = getenv('API_KEY_DEFAULT');
+
+
+            if($token === $key) {
+                $request->current_user = null;
+                $request->id = null;
+                return  $request;
+            }else{
+                $key = getenv('JWT_SECRET');
+                $decoded = JWT::decode($token, new Key($key, 'HS256'));
                 $User = new User();
                 $user = $User->find($decoded->id);
-            }else{
-                $User = new Appuser();
-                $user = $User->find($decoded->id);
-
+                Services::request()->current_user = (array) $user;
+                Services::request()->id = $user->id;
+                $GLOBALS['endpoint'] = $request->getServer()['PATH_INFO'];
+                $GLOBALS['user_role'] = $user->role;
+                return $request;
             }
 
-            Services::request()->current_user = (array) $user;
-            Services::request()->id = $user->id;
-            $GLOBALS['endpoint'] = $request->getServer()['PATH_INFO'];
-            $GLOBALS['user_role'] = $user->role;
+            $response = service('response');
+            $response->setBody('Access denied 2');
+            $response->setStatusCode(401);
+            return $response;
         } catch (\Exception $ex) {
             $response = service('response');
-            $response->setBody('Access denied');
+            $response->setBody('Access denied 3');
             $response->setStatusCode(401);
             return $response;
         }
     }
 
+    function Permission()
+    {
+
+    }
     /**
      * Allows After filters to inspect and modify the response
      * object as needed. This method does not allow any way

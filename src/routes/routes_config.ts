@@ -207,6 +207,13 @@ const routes: Route[] = [
         group: 'Users',
         childrens: [
             {
+                path: '/taxes',
+                side_menu: true,
+                tooltip: "Taxes",
+                title: 'Taxes',
+                endpoint: 'api/v1/users',
+            },
+            {
                 path: '/sys_userpoint_cat',
                 side_menu: true,
                 tooltip: "User Point Category",

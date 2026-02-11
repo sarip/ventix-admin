@@ -9,8 +9,11 @@
 namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
+use App\Models\Role;
+use App\Models\SysUsersRole;
 use App\Models\User;
 use App\Models\EventsOrganizer;
+use App\Models\UserLog;
 
 class UserController extends ApiController
 {
@@ -40,6 +43,7 @@ class UserController extends ApiController
      * @apiQuery {Number} per_page Items per page
      * @apiQuery {Number} page Page number
      */
+
     public function index()
     {
         // Get current user from session/request
@@ -131,6 +135,43 @@ class UserController extends ApiController
             ]
         ];
 
+        return $this->successOutput($output);
+    }
+
+
+    public function member() {
+        $Model = new User();
+
+        // Define searchable column on this model
+        $searchable_column = [
+            'search' => [
+                'eo_id',
+                'username',
+                'name',
+                'email',
+                'password',
+                'phone',
+                'role',
+                'profile_picture',
+                'refferalcode',
+                'status',
+                'last_login',
+                'updated_at'
+            ],
+        ];
+
+        // Execute search filter
+        $output = SearchFilter::execute($Model, $searchable_column, 'users', ['eo_id' => null]);
+
+        array_walk($output['users'], function(&$item) {
+            $Role = new SysUsersRole();
+            $item->role_detail = $Role->where('role_name', $item->role)->first() ?? [];
+
+            $EventsOrganizer = new EventsOrganizer();
+            $item->eo_detail = $EventsOrganizer->find($item->eo_id) ?? [];
+        });
+
+        // Return output
         return $this->successOutput($output);
     }
 

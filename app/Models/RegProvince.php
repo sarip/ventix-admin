@@ -2,17 +2,17 @@
 /**
  * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
  * @copyright Sarip Hidayat 2023
- * @date 2026-01-11
+ * @date 2026-02-04
  */
 
 namespace App\Models;
 
 use CodeIgniter\Model;
 
-class EventTicket extends Model
+class RegProvince extends Model
 {
     protected $DBGroup          = 'default';
-    protected $table            = 'event_ticket';
+    protected $table            = 'reg_provinces';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $insertID         = 0;
@@ -20,14 +20,14 @@ class EventTicket extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'event_id', 'name', 'description', 'price', 'final_price', 'is_taxable', 'tax_id', 'total_capacity', 'remaining_capacity', 'max_per_order', 'sales_start_date', 'sales_end_date', 'is_active', 'sort_order'
+        'name'
     ];
 
     // Dates
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
-    protected $updatedField  = null;
+    protected $updatedField  = 'updated_at';
     protected $deletedField  = null;
 
     // Validation
@@ -46,46 +46,6 @@ class EventTicket extends Model
     protected $afterInsert = ['logAfterInsert'];
     protected $afterUpdate = ['logAfterUpdate'];
     protected $afterDelete = [];
-
-    protected function calculateFinalPrice(array $data)
-    {
-        if (!isset($data['data']['price'])) {
-            return $data;
-        }
-
-        $price     = (float) $data['data']['price'];
-        $isTaxable = $data['data']['is_taxable'] ?? 'N';
-
-        // Default: tanpa pajak
-        $finalPrice = $price;
-        $taxId      = null;
-
-        if ($isTaxable === 'Y') {
-            if (empty($data['data']['tax_id'])) {
-                throw new \RuntimeException('Tax ID wajib diisi jika ticket kena pajak.');
-            }
-
-            $tax = $this->db->table('master_taxes')
-                ->select('rate')
-                ->where('id', $data['data']['tax_id'])
-                ->where('is_active', 1)
-                ->get()
-                ->getRowArray();
-
-            if (!$tax) {
-                throw new \RuntimeException('Pajak tidak ditemukan atau tidak aktif.');
-            }
-
-            $taxAmount = $price * ($tax['rate'] / 100);
-            $finalPrice = $price + $taxAmount;
-            $taxId = $data['data']['tax_id'];
-        }
-
-        $data['data']['final_price'] = round($finalPrice, 2);
-        $data['data']['tax_id']      = $taxId;
-
-        return $data;
-    }
 
 
      private function logUser($action, $note = '', $data = []) {

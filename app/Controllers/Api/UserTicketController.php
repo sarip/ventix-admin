@@ -12,6 +12,7 @@ use App\Filters\SearchFilter;
 use App\Models\EventTicket;
 use App\Models\OrdersStatu;
 use App\Models\SysUserticketStatu;
+use App\Models\EventsSponsor;
 use App\Models\User;
 use App\Models\UserTicket;
 
@@ -37,7 +38,8 @@ class UserTicketController extends ApiController
      * @apiQuery {String} page Page
      *
      */
-    public function index() {
+    public function index()
+    {
         $Model = new UserTicket();
 
         // Define searchable column on this model
@@ -47,7 +49,7 @@ class UserTicketController extends ApiController
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'user_tickets', []);
-        array_walk($output['user_tickets'], function(&$item) {
+        array_walk($output['user_tickets'], function (&$item) {
             $User = new User();
             $item->user = $User->find($item->user_id);
 
@@ -58,6 +60,18 @@ class UserTicketController extends ApiController
                 $item->status,
                 SysUserticketStatu::class
             );
+
+
+
+            // Map logo_url to full URL for frontend preview
+            if ($item->ticket) {
+                $EventSponsor = new EventsSponsor();
+                $item->ticket->events_sponsors = $EventSponsor->where('events_id', $item->ticket->event_id)->findAll();
+                array_walk($item->ticket->events_sponsors, function (&$sponsor) {
+                    $sponsor->url = base_url('uploads/sponsor/' . $sponsor->logo_url);
+                });
+            }
+
         });
 
         // Return output
@@ -85,7 +99,8 @@ class UserTicketController extends ApiController
 
      *
      */
-    public function create() {
+    public function create()
+    {
         $UserTicket = new UserTicket();
         $create_data = [
             'user_id' => $this->request->getJsonVar('user_id'),
@@ -123,7 +138,8 @@ class UserTicketController extends ApiController
 
      *
      */
-    public function update($id) {
+    public function update($id)
+    {
         $UserTicket = new UserTicket();
         $update_data = [
             'user_id' => $this->request->getJsonVar('user_id'),
@@ -155,7 +171,8 @@ class UserTicketController extends ApiController
      * @apiHeader {String} key Token
      * @apiParam {Number} id UserTicket id
      */
-    public function delete($id) {
+    public function delete($id)
+    {
         $UserTicket = new UserTicket();
         $UserTicket->delete($id);
 

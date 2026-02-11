@@ -11,6 +11,8 @@ namespace App\Controllers\Api;
 use App\Filters\SearchFilter;
 use App\Models\Event;
 use App\Models\EventTicket;
+use App\Models\EventsSponsor;
+use App\Models\MasterTaxe;
 use App\Models\User;
 
 class EventTicketController extends ApiController
@@ -35,7 +37,8 @@ class EventTicketController extends ApiController
      * @apiQuery {String} page Page
      *
      */
-    public function index() {
+    public function index()
+    {
         $Model = new EventTicket();
 
         // Define searchable column on this model
@@ -45,9 +48,20 @@ class EventTicketController extends ApiController
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'event_ticket', []);
-        array_walk($output['event_ticket'], function(&$item) {
+        array_walk($output['event_ticket'], function (&$item) {
             $Event = new Event();
             $item->event = $Event->find($item->event_id);
+
+
+            $MasterTaxe = new MasterTaxe();
+            $item->tax = $item->is_taxable === "Y" ? $MasterTaxe->find($item->tax_id) : [];
+
+            // Add sponsors to ticket event
+            $EventSponsor = new EventsSponsor();
+            $item->events_sponsors = $EventSponsor->where('events_id', $item->event_id)->findAll();
+            array_walk($item->events_sponsors, function (&$sponsor) {
+                $sponsor->url = base_url('uploads/sponsor/' . $sponsor->logo_url);
+            });
         });
 
         // Return output
@@ -80,25 +94,42 @@ class EventTicketController extends ApiController
 
      *
      */
-    public function create() {
+    public function create()
+    {
         $EventTicket = new EventTicket();
-        $create_data = [
-            'event_id' => $this->request->getJsonVar('event_id'),
-            'name' => $this->request->getJsonVar('name'),
-            'description' => $this->request->getJsonVar('description'),
-            'price' => $this->request->getJsonVar('price'),
-            'total_capacity' => $this->request->getJsonVar('total_capacity'),
-            'remaining_capacity' => $this->request->getJsonVar('remaining_capacity'),
-            'max_per_order' => $this->request->getJsonVar('max_per_order'),
-            'sales_start_date' => $this->request->getJsonVar('sales_start_date'),
-            'sales_end_date' => $this->request->getJsonVar('sales_end_date'),
-            'is_active' => $this->request->getJsonVar('is_active'),
-            'sort_order' => $this->request->getJsonVar('sort_order')
-        ];
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        $id = $EventTicket->insert($create_data);
+        try {
+            $create_data = [
+                'event_id' => $this->request->getPost('event_id'),
+                'name' => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description'),
+                'price' => $this->request->getPost('price'),
+                'total_capacity' => $this->request->getPost('total_capacity'),
+                'remaining_capacity' => $this->request->getPost('remaining_capacity'),
+                'max_per_order' => $this->request->getPost('max_per_order'),
+                'sales_start_date' => $this->request->getPost('sales_start_date'),
+                'sales_end_date' => $this->request->getPost('sales_end_date'),
+                'is_active' => $this->request->getPost('is_active'),
+                'sort_order' => $this->request->getPost('sort_order')
+            ];
 
-        return $this->successOutput(['id' => $id], 201);
+            $id = $EventTicket->insert($create_data, true);
+
+            if (!$id) {
+                throw new \Exception('Failed to create ticket');
+            }
+
+            // Handle Sponsors
+            $this->handleSponsors($id);
+
+            $db->transCommit();
+            return $this->successOutput(['id' => $id], 201);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->errorOutput($e->getMessage(), 400);
+        }
     }
 
 
@@ -128,27 +159,76 @@ class EventTicketController extends ApiController
 
      *
      */
-    public function update($id) {
+    public function update($id)
+    {
         $EventTicket = new EventTicket();
-        $update_data = [
-            'event_id' => $this->request->getJsonVar('event_id'),
-            'name' => $this->request->getJsonVar('name'),
-            'description' => $this->request->getJsonVar('description'),
-            'price' => $this->request->getJsonVar('price'),
-            'total_capacity' => $this->request->getJsonVar('total_capacity'),
-            'remaining_capacity' => $this->request->getJsonVar('remaining_capacity'),
-            'max_per_order' => $this->request->getJsonVar('max_per_order'),
-            'sales_start_date' => $this->request->getJsonVar('sales_start_date'),
-            'sales_end_date' => $this->request->getJsonVar('sales_end_date'),
-            'is_active' => $this->request->getJsonVar('is_active'),
-            'sort_order' => $this->request->getJsonVar('sort_order')
-        ];
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        $EventTicket->update($id, $update_data);
+        try {
+            $update_data = [
+                'event_id' => $this->request->getPost('event_id'),
+                'name' => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description'),
+                'price' => $this->request->getPost('price'),
+                'total_capacity' => $this->request->getPost('total_capacity'),
+                'remaining_capacity' => $this->request->getPost('remaining_capacity'),
+                'max_per_order' => $this->request->getPost('max_per_order'),
+                'sales_start_date' => $this->request->getPost('sales_start_date'),
+                'sales_end_date' => $this->request->getPost('sales_end_date'),
+                'is_active' => $this->request->getPost('is_active'),
+                'sort_order' => $this->request->getPost('sort_order')
+            ];
 
-        $data = $EventTicket->find($id);
+            $EventTicket->update($id, $update_data);
 
-        return $this->successOutput(['eventticket' => $data]);
+            // Handle Sponsors
+            $this->handleSponsors($id, true);
+
+            $db->transCommit();
+            $data = $EventTicket->find($id);
+            return $this->successOutput(['eventticket' => $data]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->errorOutput($e->getMessage(), 400);
+        }
+    }
+
+    private function handleSponsors($ticketId, $isUpdate = false)
+    {
+        $EventTicket = new EventTicket();
+        $ticket = $EventTicket->find($ticketId);
+        $eventId = $ticket->event_id;
+
+        $sponsorModel = new EventsSponsor();
+        $sponsors_info = json_decode($this->request->getPost('sponsors_info'), true) ?? [];
+        $sponsor_files = $this->request->getFiles();
+
+        if (!empty($sponsors_info)) {
+            foreach ($sponsors_info as $index => $info) {
+                if (!empty($info['_isDeleted']) && !empty($info['id'])) {
+                    $sponsorModel->delete($info['id']);
+                    continue;
+                }
+
+                if (!empty($info['_isNew'])) {
+                    $file = null;
+                    if (isset($sponsor_files['sponsor_logos'][$index])) {
+                        $file = $sponsor_files['sponsor_logos'][$index];
+                    }
+
+                    if ($file && $file->isValid() && !$file->hasMoved()) {
+                        $logo_url = $file->getRandomName();
+                        $file->move(FCPATH . 'uploads/sponsor', $logo_url);
+
+                        $sponsorModel->insert([
+                            'events_id' => $eventId,
+                            'logo_url' => $logo_url
+                        ]);
+                    }
+                }
+            }
+        }
     }
 
 
@@ -165,7 +245,8 @@ class EventTicketController extends ApiController
      * @apiHeader {String} key Token
      * @apiParam {Number} id EventTicket id
      */
-    public function delete($id) {
+    public function delete($id)
+    {
         $EventTicket = new EventTicket();
         $EventTicket->delete($id);
 

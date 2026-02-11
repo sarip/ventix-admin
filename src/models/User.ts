@@ -110,6 +110,10 @@ class User {
         return await APIClient.get('users', query);
     }
 
+    async member(query: UserListQuery = {}): Promise<ListResponse<InUser[]>> {
+        return await APIClient.get('users-member', query);
+    }
+
     /**
      * Get single user detail
      */

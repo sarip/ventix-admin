@@ -11,6 +11,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import QRCode from 'qrcode';
 import { InTicketUser } from '@/models/TicketUser';
+import {useReactToPrint} from "react-to-print";
 
 interface PrintTicketProps {
     ticket: InTicketUser;
@@ -44,9 +45,13 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
         }
     };
 
-    const handlePrint = () => {
-        window.print();
-    };
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        onAfterPrint: onHide,
+    });
+
+
+
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('id-ID', {
@@ -75,12 +80,12 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                             {/* Header */}
                             <div className="ticket-header">
                                 <h2 className="ticket-title">EVENT TICKET</h2>
-                                <div className="ticket-code-display">{ticket.ticket_code}</div>
+                                <div className={`ticket-code-display status-${ticket.status.toLowerCase()}`}>{ticket.ticket_code}</div>
                             </div>
 
                             {/* Main Content */}
                             <div className="ticket-body">
-                                <div className="row">
+                            <div className="row">
                                     {/* Left Side - Details */}
                                     <div className="col-8">
                                         <div className="ticket-section">
@@ -151,6 +156,31 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                                 </div>
                             </div>
 
+                            {/* Sponsor Section */}
+                            <div className="ticket-sponsors">
+                                <div className="sponsor-title">Sponsored By</div>
+                                <div className="sponsor-list">
+                                    {ticket.ticket?.events_sponsors?.length > 0 ? (
+                                        ticket.ticket.events_sponsors.map((row, index) => (
+                                            <img
+                                                key={index}
+                                                src={row.url}
+                                                alt={`Sponsor ${index + 1}`}
+                                            />
+                                        ))
+                                    ) : (
+                                        <>
+                                            <img src="/uploads/sponsor/garuda.png" alt="Sponsor 1" />
+                                            <img src="/uploads/sponsor/finnet.png" alt="Sponsor 2" />
+                                            <img src="/uploads/sponsor/pertamina.png" alt="Sponsor 3" />
+                                            <img src="/uploads/sponsor/tokped.png" alt="Sponsor 4" />
+                                            <img src="/uploads/sponsor/starbucks.png" alt="Sponsor 5" />
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+
                             {/* Footer */}
                             <div className="ticket-footer">
                                 <div className="footer-content">
@@ -178,13 +208,33 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                             <div className="stub-content">
                                 <div className="stub-qr">
                                     {qrCodeUrl && (
-                                        <img src={qrCodeUrl} alt="QR" width="80" />
+                                        <img src={qrCodeUrl} alt="QR" width="80"/>
                                     )}
                                 </div>
                                 <div className="stub-details">
                                     <strong>{ticket.event_ticket?.name}</strong>
                                     <div className="stub-code">{ticket.ticket_code}</div>
                                     <div className="stub-name">{ticket.user?.name}</div>
+                                </div>
+
+                                <div className="stub-sponsor">
+                                    {ticket.ticket?.events_sponsors?.length > 0 ? (
+                                        ticket.ticket.events_sponsors.map((row, index) => (
+                                            <img
+                                                key={index}
+                                                src={row.url}
+                                                alt={`Sponsor ${index + 1}`}
+                                            />
+                                        ))
+                                    ) : (
+                                        <>
+                                            <img src="/uploads/sponsor/garuda.png" alt="Sponsor 1" />
+                                            <img src="/uploads/sponsor/finnet.png" alt="Sponsor 2" />
+                                            <img src="/uploads/sponsor/pertamina.png" alt="Sponsor 3" />
+                                            <img src="/uploads/sponsor/tokped.png" alt="Sponsor 4" />
+                                            <img src="/uploads/sponsor/starbucks.png" alt="Sponsor 5" />
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -195,7 +245,7 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                         Close
                     </Button>
                     <Button variant="primary" onClick={handlePrint}>
-                        <i className="bx bx-printer me-1"></i>
+                    <i className="bx bx-printer me-1"></i>
                         Print Ticket
                     </Button>
                 </Modal.Footer>
@@ -222,6 +272,7 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                     color: white;
                     padding: 30px;
                     text-align: center;
+                    position: relative;
                 }
 
                 .ticket-title {
@@ -339,6 +390,19 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                     color: #667eea;
                 }
 
+                .stub-sponsor {
+                    margin-left: auto;
+                }
+
+                .stub-sponsor img {
+                    max-height: 30px;
+                    max-width: 70px;
+                    object-fit: contain;
+                    opacity: 0.85;
+                    //filter: grayscale(100%);
+                }
+
+
                 .tear-line {
                     height: 20px;
                     background-image: repeating-linear-gradient(
@@ -380,6 +444,40 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                     color: #888;
                 }
 
+
+                .ticket-sponsors {
+                    border-top: 2px dashed #dee2e6;
+                    padding: 20px 30px;
+                    background: #fff;
+                    text-align: center;
+                }
+
+                .sponsor-title {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #666;
+                    margin-bottom: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+
+                .sponsor-list {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 25px;
+                    flex-wrap: wrap;
+                }
+
+                .sponsor-list img {
+                    max-height: 45px;
+                    max-width: 120px;
+                    object-fit: contain;
+                    //filter: grayscale(100%);
+                    opacity: 0.85;
+                }
+
+
                 /* PRINT STYLES */
                 @media print {
                     /* Force color printing */
@@ -387,7 +485,29 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                         color-adjust: exact !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+
                     }
+
+                    .ticket-container {
+                        height: 297mm;
+                        max-height: 297mm;
+                        overflow: hidden;
+                    }
+
+                    .stub-sponsor {
+                        display: flex !important;
+                        gap: 6pt !important;
+                        flex-wrap: nowrap !important;
+                    }
+
+                    .stub-sponsor img {
+                        max-height: 16pt !important;
+                        max-width: 40pt !important;
+                        object-fit: contain !important;
+                    }
+
 
                     .no-print {
                         display: none !important;
@@ -414,8 +534,8 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
 
                     /* Page setup */
                     @page {
-                        size: A4;
-                        margin: 10mm;
+                        size: 180mm 260mm;
+                        margin: 0mm;
                     }
 
                     body {
@@ -441,11 +561,11 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                     .ticket-header {
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
                         color: white !important;
-                        padding: 20pt !important;
+                        padding: 14pt !important;
                     }
 
                     .ticket-title {
-                        font-size: 20pt !important;
+                        font-size: 18pt !important;
                         color: white !important;
                     }
 
@@ -603,6 +723,8 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                     h1, h2, h3, h4, h5, h6 {
                         page-break-after: avoid;
                     }
+                    
+                    
                 }
             `}</style>
         </>

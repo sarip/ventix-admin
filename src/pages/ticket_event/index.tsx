@@ -14,7 +14,7 @@ import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import Form from './_form';
 import Filter from "@/pages/ticket_event/_filter";
-import {QueryParamsProps} from "@/pages/tenant/_filter";
+import { QueryParamsProps } from "@/pages/tenant/_filter";
 
 interface PaginationProps {
     current_page: number;
@@ -48,6 +48,9 @@ const TicketEventPage: React.FC = () => {
         name: '',
         description: '',
         price: 0,
+        final_price: 0,
+        is_taxable: 'N',
+        tax_id: "",
         total_capacity: 0,
         remaining_capacity: 0,
         max_per_order: 5,
@@ -92,6 +95,9 @@ const TicketEventPage: React.FC = () => {
             name: '',
             description: '',
             price: 0,
+            final_price: 0,
+            is_taxable: 'N',
+            tax_id: "",
             total_capacity: 0,
             remaining_capacity: 0,
             max_per_order: 5,
@@ -196,88 +202,105 @@ const TicketEventPage: React.FC = () => {
                     </div>
                 </h5>
 
-                    {/* TABLE */}
-                    <div className="table-responsive">
-                        <table className="table table-hover">
-                            <thead className="table-light">
+                {/* TABLE */}
+                <div className="table-responsive">
+                    <table className="table table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th width="120">Actions</th>
+                                <th>Event</th>
+                                <th>Ticket Name</th>
+                                <th>Price</th>
+                                <th>Taxes</th>
+                                <th>Final Price</th>
+                                <th>Capacity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tickets.length === 0 ? (
                                 <tr>
-                                    <th width="120">Actions</th>
-                                    <th>Event</th>
-                                    <th>Ticket Name</th>
-                                    <th>Price</th>
-                                    <th>Capacity</th>
-                                    <th>Status</th>
+                                    <td colSpan={7} className="text-center py-4 text-muted">
+                                        <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
+                                        No tickets found
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {tickets.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-4 text-muted">
-                                            <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
-                                            No tickets found
+                            ) : (
+                                tickets.map((ticket, index) => (
+                                    <tr key={ticket.id}>
+                                        <td>
+                                            <div className="d-flex gap-1">
+                                                <button className="btn btn-sm btn-icon btn-info"
+                                                    onClick={() => showDetail(ticket)} title="View Details">
+                                                    <i className="bx bx-show"></i>
+                                                </button>
+                                                <button className="btn btn-sm btn-icon btn-warning"
+                                                    onClick={() => update(ticket)} title="Edit">
+                                                    <i className="bx bx-edit"></i>
+                                                </button>
+                                                <button className="btn btn-sm btn-icon btn-danger"
+                                                    onClick={() => remove(ticket.id)} title="Delete">
+                                                    <i className="bx bx-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div
+                                                className="fw-semibold">{(ticket as any).event?.title || 'N/A'}</div>
+                                            <small
+                                                className="text-muted">{(ticket as any).event?.event_category}</small>
+                                        </td>
+                                        <td>
+                                            <div className="fw-semibold">{ticket.name}</div>
+                                            <small className="text-muted">{ticket.description}</small>
+                                        </td>
+                                        <td className="fw-bold text-primary">
+                                            {formatCurrency(ticket.price)}
+                                        </td>
+                                        <td>
+                                            <div
+                                                className="fw-semibold">{ticket.is_taxable === "Y" ? ticket.tax.rate + "%" : '-'}</div>
+                                            <small
+                                                className="text-muted">{ticket.is_taxable === "Y" ? ticket.tax.name : '-'}</small>
+                                        </td>
+                                        <td className="fw-bold text-primary">
+                                            {formatCurrency(ticket.final_price)}
+                                        </td>
+                                        <td>
+                                            <span
+                                                className={`badge ${ticket.remaining_capacity > 0 ? 'bg-success' : 'bg-danger'}`}>
+                                                {ticket.remaining_capacity}
+                                            </span>
+                                            <span className="text-muted"> / {ticket.total_capacity}</span>
+                                        </td>
+                                        <td>
+                                            <Badge bg={ticket.is_active ? 'success' : 'secondary'}>
+                                                {ticket.is_active ? 'Active' : 'Inactive'}
+                                            </Badge>
                                         </td>
                                     </tr>
-                                ) : (
-                                    tickets.map((ticket, index) => (
-                                        <tr key={ticket.id}>
-                                            <td>
-                                                <div className="d-flex gap-1">
-                                                    <button className="btn btn-sm btn-icon btn-info" onClick={() => showDetail(ticket)} title="View Details">
-                                                        <i className="bx bx-show"></i>
-                                                    </button>
-                                                    <button className="btn btn-sm btn-icon btn-warning" onClick={() => update(ticket)} title="Edit">
-                                                        <i className="bx bx-edit"></i>
-                                                    </button>
-                                                    <button className="btn btn-sm btn-icon btn-danger" onClick={() => remove(ticket.id)} title="Delete">
-                                                        <i className="bx bx-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="fw-semibold">{(ticket as any).event?.title || 'N/A'}</div>
-                                                <small className="text-muted">{(ticket as any).event?.event_category}</small>
-                                            </td>
-                                            <td>
-                                                <div className="fw-semibold">{ticket.name}</div>
-                                                <small className="text-muted">{ticket.description}</small>
-                                            </td>
-                                            <td className="fw-bold text-primary">
-                                                {formatCurrency(ticket.price)}
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${ticket.remaining_capacity > 0 ? 'bg-success' : 'bg-danger'}`}>
-                                                    {ticket.remaining_capacity}
-                                                </span>
-                                                <span className="text-muted"> / {ticket.total_capacity}</span>
-                                            </td>
-                                            <td>
-                                                <Badge bg={ticket.is_active ? 'success' : 'secondary'}>
-                                                    {ticket.is_active ? 'Active' : 'Inactive'}
-                                                </Badge>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* PAGINATION */}
-                    {pagination && (
-                        <div className="row mx-2 mt-4">
-                            <div className="col-sm-12 col-md-6">
-                                <div className="dataTables_info" role="status" aria-live="polite">
-                                    Found {pagination.filtered_total} of {pagination.total} data,
-                                    displaying {tickets.length} data
-                                </div>
-                            </div>
-                            {pagination.page_count && (
-                                <div className="col-sm-12 col-md-6 d-flex justify-content-end">
-                                    <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
-                                </div>
+                                ))
                             )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* PAGINATION */}
+                {pagination && (
+                    <div className="row mx-2 mt-4">
+                        <div className="col-sm-12 col-md-6">
+                            <div className="dataTables_info" role="status" aria-live="polite">
+                                Found {pagination.filtered_total} of {pagination.total} data,
+                                displaying {tickets.length} data
+                            </div>
                         </div>
-                    )}
+                        {pagination.page_count && (
+                            <div className="col-sm-12 col-md-6 d-flex justify-content-end">
+                                <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
+                            </div>
+                        )}
+                    </div>
+                )}
 
             </div>
 
@@ -379,6 +402,23 @@ const TicketEventPage: React.FC = () => {
                                 <label className="text-muted small">Created At</label>
                                 <div><small>{formatDate(selectedTicket.created_at)}</small></div>
                             </div>
+
+                            {(selectedTicket as any).events_sponsors && (selectedTicket as any).events_sponsors.length > 0 && (
+                                <div className="col-12 mt-3">
+                                    <h6 className="border-bottom pb-2">Sponsors</h6>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        {(selectedTicket as any).events_sponsors.map((sponsor: any) => (
+                                            <div key={sponsor.id} className="border rounded p-1" style={{ width: '80px', height: '80px' }}>
+                                                <img
+                                                    src={sponsor.url}
+                                                    alt="Sponsor Logo"
+                                                    className="img-fluid h-100 w-100 object-fit-contain"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </Modal.Body>

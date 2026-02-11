@@ -6,16 +6,19 @@
  */
 
 
-namespace App\Controllers\Api;
+namespace App\Controllers\Frontend;
 
+use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
 use App\Models\Event;
+use App\Models\EventsSponsor;
 use App\Models\EventTicket;
 use App\Models\FacilitybookingStatu;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrdersStatu;
 use App\Models\User;
+use Config\Services;
 
 class OrderController extends ApiController
 {
@@ -41,14 +44,16 @@ class OrderController extends ApiController
      */
     public function index() {
         $Model = new Order();
+        $current_user = Services::request()->current_user ?? null;
 
         // Define searchable column on this model
         $searchable_column = [
             'search' => ['user_id', 'order_code', 'total_amount', 'status', 'payment_method'],
         ];
 
+
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'orders', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'orders', ['user_id' => $current_user['id']]);
         array_walk($output['orders'], function(&$item) {
             $User = new User();
             $item->user = $User->find($item->user_id);
@@ -65,6 +70,9 @@ class OrderController extends ApiController
                     $item2->event_ticket->event = $Event->find($item2->event_ticket->event_id);
                 }
 
+                $EventSponsor = new EventsSponsor();
+                $item2->events_sponsors = $EventSponsor->where('events_id', $item2->event_ticket->event_id)->findAll();
+
             });
 
             $item->status_badge = status_badge(
@@ -75,6 +83,32 @@ class OrderController extends ApiController
 
         // Return output
         return $this->successOutput($output);
+    }
+
+    public function findByOrderCode($order_code) {
+        $Model = new Order();
+        $data = $Model->where('order_code', $order_code)->first();
+        if(empty($data)) {
+            return $this->errorOutput('order not found');
+        }
+
+        $OrderItem = new OrderItem();
+        $data->order_item = $OrderItem->where('order_id', $data->id)->findAll();
+
+        $User = new User();
+        $data->user = $User->find($data->user_id);
+
+        array_walk($data->order_item, function(&$item) {
+            $EventTicket = new EventTicket();
+            $item->event_ticket = $EventTicket->find($item->event_ticket_id);
+
+            if($item->event_ticket) {
+                $Event = new Event();
+                $item->event_ticket->event = $Event->find($item->event_ticket->event_id);
+            }
+        });
+        return $this->successOutput(['data' => $data]);
+
     }
 
     /**
@@ -100,29 +134,38 @@ class OrderController extends ApiController
     public function create() {
         $Order = new Order();
         $create_data = [
-            'user_id' => $this->request->getJsonVar('user_id'),
+            'user_id' => $this->request->getJsonVar('user_id') ?? 1,
             'order_code' => generate_order_code(),
-            'total_amount' => $this->request->getJsonVar('total_amount'),
-            'status' => $this->request->getJsonVar('status'),
+            'total_amount' => 0,
+            'status' => 'Pending',
             'payment_method' => $this->request->getJsonVar('payment_method')
         ];
+
         $id = $Order->insert($create_data);
         $order_items = $this->request->getJsonVar('order_items') ?? [];
         $OrderItem = new OrderItem();
+        $EventTicket = new EventTicket();
+        $total_amount = 0;
         foreach($order_items as $order_item) {
+            $item = $EventTicket->find($order_item->event_ticket_id);
+            $subtotal = $order_item->quantity * $item->price;
+            $total_amount += $subtotal;
             $OrderItem->insert([
                 'order_id'          => $id,
                 'event_ticket_id'   => $order_item->event_ticket_id,
                 'event_date'        => $order_item->event_date,
                 'quantity'          => $order_item->quantity,
-                'unit_price'        => $order_item->unit_price,
-                'subtotal'         => $order_item->subtotal,
+                'unit_price'        => $item->final_price,
+                'subtotal'         => $subtotal,
             ]);
         }
 
+        $Order->update($id, ['total_amount' => $total_amount]);
 
 
-        return $this->successOutput(['id' => $id], 201);
+
+        $order = $Order->find($id);
+        return $this->successOutput(['id' => $id, 'data' => $order], 201);
     }
 
 
