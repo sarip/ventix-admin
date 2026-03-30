@@ -55,6 +55,10 @@ class EventTicket {
         return await APIClient.get('event_ticket', query);
     }
 
+    async find(query: Record<string, any> = {}): Promise<ListResponse<InEventTicket[]>> {
+        return await APIClient.get('event_ticket/find', query);
+    }
+
     async create(ticket: any): Promise<PostResponse> {
         return await APIClient.post('/eventticket', ticket);
     }

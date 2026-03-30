@@ -10,6 +10,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
+use App\Libraries\CommissionEngine;
 use App\Models\Event;
 use App\Models\EventsSponsor;
 use App\Models\EventTicket;
@@ -131,41 +132,122 @@ class OrderController extends ApiController
 
      *
      */
-    public function create() {
-        $Order = new Order();
-        $create_data = [
-            'user_id' => $this->request->getJsonVar('user_id') ?? 1,
-            'order_code' => generate_order_code(),
-            'total_amount' => 0,
-            'status' => 'Pending',
-            'payment_method' => $this->request->getJsonVar('payment_method')
-        ];
+    public function create()
+    {
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        $id = $Order->insert($create_data);
-        $order_items = $this->request->getJsonVar('order_items') ?? [];
-        $OrderItem = new OrderItem();
-        $EventTicket = new EventTicket();
-        $total_amount = 0;
-        foreach($order_items as $order_item) {
-            $item = $EventTicket->find($order_item->event_ticket_id);
-            $subtotal = $order_item->quantity * $item->price;
-            $total_amount += $subtotal;
-            $OrderItem->insert([
-                'order_id'          => $id,
-                'event_ticket_id'   => $order_item->event_ticket_id,
-                'event_date'        => $order_item->event_date,
-                'quantity'          => $order_item->quantity,
-                'unit_price'        => $item->final_price,
-                'subtotal'         => $subtotal,
+        try {
+            $Order       = new Order();
+            $OrderItem   = new OrderItem();
+            $EventTicket = new EventTicket();
+
+            // 1. Create Order
+            $orderData = [
+                'user_id'        => $this->request->getJsonVar('user_id'),
+                'order_code'     => generate_order_code(),
+                'total_amount'   => 0,
+                'status'         => 'Pending',
+                'payment_method' => $this->request->getJsonVar('payment_method')
+            ];
+
+            $orderId = $Order->insert($orderData);
+            if (!$orderId) {
+                throw new \Exception('Failed create order');
+            }
+
+            $orderItems  = $this->request->getJsonVar('order_items') ?? [];
+            $totalAmount = 0;
+
+            foreach ($orderItems as $orderItem) {
+
+                // 2. Lock ticket row
+                $ticket = $db->query(
+                    'SELECT * FROM event_ticket WHERE id = ? FOR UPDATE',
+                    [$orderItem->event_ticket_id]
+                )->getRow();
+
+
+                if (!$ticket) {
+                    throw new \Exception('Ticket not found');
+                }
+
+                // 3. Validate stock
+                if ($ticket->total_capacity < $orderItem->quantity) {
+                    throw new \Exception('Stock not enough for ticket ID ' . $ticket->id);
+                }
+
+                $subtotal = $ticket->final_price * $orderItem->quantity;
+                $totalAmount += $subtotal;
+
+                // 4. Insert order item
+                $OrderItem->insert([
+                    'order_id'        => $orderId,
+                    'event_ticket_id' => $ticket->id,
+                    'event_date'      => $orderItem->event_date,
+                    'quantity'        => $orderItem->quantity,
+                    'unit_price'      => $ticket->final_price,
+                    'subtotal'        => $subtotal,
+                ]);
+
+                // 5. Update stock
+                $EventTicket->update($ticket->id, [
+                    'total_capacity' => $ticket->total_capacity - $orderItem->quantity
+                ]);
+            }
+
+            // 6. Update order total
+            $Order->update($orderId, [
+                'total_amount' => $totalAmount
             ]);
+
+
+            // Integrate Commission Engine
+            $commissionEngine = new CommissionEngine();
+            $commissions = $commissionEngine->processOrder($orderId, 'event', $totalAmount);
+
+//            // Adjust total_amount if there's a guest fee
+//            if (isset($commissions['guest_fee'])) {
+//                $totalAmountWithFee = $totalAmount + $commissions['guest_fee'];
+//                $Order->update($id, [
+//                    'total_amount' => $totalAmountWithFee
+//                ]);
+//            }
+
+            // 7. Commit
+            $db->transCommit();
+
+
+            $order = $Order->find($orderId);
+            return $this->successOutput(['data' => $order], 201);
+
+        } catch (\Throwable $e) {
+
+            $db->transRollback();
+
+            return $this->errorOutput($e->getMessage(), 400);
+        }
+    }
+
+    public function uploadPayment($order_code)
+    {
+        $Order = new Order();
+        $order = $Order->where('order_code', $order_code)->first();
+        if(empty($order)) {
+            return $this->errorOutput('order not found');
         }
 
-        $Order->update($id, ['total_amount' => $total_amount]);
+        // Upload foto
+        $file = $this->request->getFile('payment_proof');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $thumbnail_url = $file->getRandomName();
+            $file->move(FCPATH . 'uploads/payment_proof', $thumbnail_url);
+            $Order->update($order->id, ['payment_proof' => $thumbnail_url]);
+        }
+
+        return $this->successOutput(['data' => $order]);
 
 
-
-        $order = $Order->find($id);
-        return $this->successOutput(['id' => $id, 'data' => $order], 201);
     }
 
 

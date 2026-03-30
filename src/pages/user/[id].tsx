@@ -291,14 +291,14 @@ export default function UserDetailPage() {
                                 <div className="col-md-6">
                                     <small className="text-muted">Account Created</small>
                                     <p className="mb-0 fw-semibold">
-                                        {convertUnixTimestampToDate(user.created_at)}
+                                        {user.created_at}
                                     </p>
                                 </div>
                                 <div className="col-md-6">
                                     <small className="text-muted">Last Login</small>
                                     <p className="mb-0 fw-semibold">
                                         {user.last_login
-                                            ? convertUnixTimestampToDate(user.last_login)
+                                            ? user.last_login
                                             : 'Never logged in'
                                         }
                                     </p>
@@ -309,7 +309,7 @@ export default function UserDetailPage() {
                                     <div className="col-md-6">
                                         <small className="text-muted">Last Updated</small>
                                         <p className="mb-0 fw-semibold">
-                                            {convertUnixTimestampToDate(user.updated_at)}
+                                            {user.updated_at}
                                         </p>
                                     </div>
                                 </div>

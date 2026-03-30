@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 
 use App\Models\ApiToken;
 use App\Models\Appuser;
+use App\Models\EventsOrganizer;
 use App\Models\Module;
 use App\Models\RoleAction;
 use App\Models\Role;
@@ -183,20 +184,26 @@ class AuthController extends ApiController
 //        });
 
 
+
+
+        $fullname = "";
         if($this->request->source === "users") {
             $User = new User();
             $user = $User->find($this->request->id);
+            $fullname = $user->name;
         }else{
             $User = new Appuser();
             $user = $User->find($this->request->id);
+            $fullname = $user->full_name;
 
         }
 
         return $this->successOutput([
             'id' => $user->id,
+            'source' => $this->request->source,
             'username' => $user->username,
 //            'scope' => $user->role_id,
-            'fullname' => $user->full_name,
+            'fullname' => $fullname,
             'user' => $user,
 //            'role_actions' => $role_actions,
         ]);
@@ -289,6 +296,143 @@ class AuthController extends ApiController
         ]); 
         
         return $this->successOutput(['user' => $user]);
+    }
+
+    public function registerMember()
+    {
+        helper(['form']);
+
+        // =============================
+        // Validation Rules
+        // =============================
+        $rules = [
+            'username'      => 'required|min_length[4]|max_length[30]|alpha_numeric',
+            'name'          => 'required|min_length[3]',
+            'email'         => 'required|valid_email',
+            'password'      => 'required|min_length[8]',
+            'phone'         => 'required|min_length[6]',
+
+
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->errorOutput(json_encode($this->validator->getErrors()), 400);
+        }
+        $UserModel = new User();
+        $userId = $UserModel->insert([
+            'username'   => $this->request->getJsonVar('username'),
+            'name'       => $this->request->getJsonVar('name'),
+            'email'      => $this->request->getJsonVar('email'),
+            'password'   => $this->request->getJsonVar('password'),
+            'phone'      => $this->request->getJsonVar('phone'),
+            'role'      => $this->request->getJsonVar('role'),
+            'status'      => $this->request->getJsonVar('status'),
+            'created_at'=> date('Y-m-d H:i:s')
+        ], true);
+        if ($userId === false) {
+            return  $this->errorOutput(json_encode($UserModel->errors(), true), 400);
+
+        }
+        $user = $UserModel->find($userId);
+
+        return $this->successOutput(['user' => $user]);
+    }
+
+
+
+
+    public function registerEo()
+    {
+        helper(['form']);
+
+        // =============================
+        // Validation Rules
+        // =============================
+        $rules = [
+            'username'      => 'required|min_length[4]|max_length[30]|alpha_numeric',
+            'name'          => 'required|min_length[3]',
+            'email'         => 'required|valid_email',
+            'password'      => 'required|min_length[8]',
+            'phone'         => 'required|min_length[6]',
+            'eo_name'       => 'required',
+            'company_name'  => 'required',
+            'website'       => 'permit_empty|valid_url',
+            'address'       => 'required',
+//            'tax_id'        => 'required',
+            'description'  => 'permit_empty|max_length[500]',
+//            'logo'          => [
+//                'rules' => 'uploaded[logo]|max_size[logo,2048]|is_image[logo]|mime_in[logo,image/png,image/jpg,image/jpeg]',
+//                'errors' => [
+//                    'uploaded' => 'Logo wajib diupload',
+//                    'max_size' => 'Ukuran logo maksimal 2MB',
+//                    'is_image' => 'File harus berupa gambar',
+//                ]
+//            ]
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->errorOutput(json_encode($this->validator->getErrors()), 400);
+        }
+
+        $db = db_connect();
+        $db->transBegin();
+
+        try {
+            // =============================
+            // Upload Logo
+            // =============================
+            $logo      = $this->request->getFile('logo');
+            $logoName  = $logo->getRandomName();
+            $uploadPath = FCPATH . 'uploads/event_organizer';
+            $logo->move($uploadPath, $logoName);
+
+            // =============================
+            // Create User
+            // =============================
+            $userModel = new User();
+
+            if ($userModel->where('email', $this->request->getPost('email'))->first()) {
+                throw new \Exception('Email sudah terdaftar');
+            }
+
+
+            $eoModel = new EventsOrganizer();
+            $eo_id = $eoModel->insert([
+                'eo_name'       => $this->request->getPost('eo_name'),
+                'company_name'  => $this->request->getPost('company_name'),
+                'website'       => $this->request->getPost('website'),
+                'address'       => $this->request->getPost('address'),
+//                'tax_id'        => $this->request->getPost('tax_id'),
+                'eo_slug'       => generate_slug($this->request->getPost('eo_name')),
+                'email'      => $this->request->getPost('email'),
+                'phone'      => $this->request->getPost('phone'),
+                'description'  => $this->request->getPost('description'),
+                'logo_path'          => $logoName,
+                'created_at'    => date('Y-m-d H:i:s')
+            ], true);
+
+            $userId = $userModel->insert([
+                'eo_id'     => $eo_id,
+                'username'   => $this->request->getPost('username'),
+                'name'       => $this->request->getPost('name'),
+                'email'      => $this->request->getPost('email'),
+                'password'   => $this->request->getPost('password'),
+                'phone'      => $this->request->getPost('phone'),
+                'role'       => 'EO Admin',
+                'is_active'  => 1,
+                'created_at'=> date('Y-m-d H:i:s')
+            ], true);
+
+
+
+
+            $db->transCommit();
+            return $this->successOutput(['data' => $userId]);
+
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            return $this->errorOutput($e->getMessage());
+        }
     }
 
 }

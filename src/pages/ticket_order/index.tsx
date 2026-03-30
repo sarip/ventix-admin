@@ -12,7 +12,7 @@ import Pagination from '@/pages/_components/Pagination';
 import { TicketOrder, InTicketOrder, InOrderItem } from '@/models/TicketOrder';
 import { showToast } from '@/utils/toast';
 import TicketOrderForm from './_form';
-import Filter, {QueryParamsProps} from "./_filter";
+import Filter, { QueryParamsProps } from "./_filter";
 
 interface PaginationProps {
     current_page: number;
@@ -43,7 +43,7 @@ const TicketOrderPage: React.FC = () => {
         user_id: 0,
         order_code: '',
         total_amount: '0',
-        status: 'pending',
+        status: '',
         payment_method: '',
         order_items: []
     });
@@ -97,7 +97,7 @@ const TicketOrderPage: React.FC = () => {
 
         setFormData({
             ...order,
-            status: order.status?.toLowerCase(),
+            status: order.status,
             order_items: order_items || [],
         });
         setValidationError([]);
@@ -261,8 +261,8 @@ const TicketOrderPage: React.FC = () => {
                                             </td>
                                             <td>{order.payment_method}</td>
 
-                                            <td  dangerouslySetInnerHTML={{
-                                                __html: order.status_badge,
+                                            <td dangerouslySetInnerHTML={{
+                                                __html: order.status_badge as string,
                                             }} />
                                             <td>
                                                 <small>{formatDate(order.created_at)}</small>
@@ -272,36 +272,78 @@ const TicketOrderPage: React.FC = () => {
                                             <tr>
                                                 <td colSpan={9} className="bg-light">
                                                     <div className="p-3">
-                                                        <h6 className="mb-3">
-                                                            <i className="bx bx-list-ul me-1"></i>
-                                                            Order Items
+                                                        <div className="row">
+                                                            <div className="col-md-12">
+                                                                <h6 className="mb-3">
+                                                                    <i className="bx bx-list-ul me-1"></i>
+                                                                    Order Items
+                                                                </h6>
+                                                                <table className="table table-sm table-bordered bg-white shadow-sm">
+                                                                    <thead className="table-light">
+                                                                        <tr>
+                                                                            <th>Event</th>
+                                                                            <th>Ticket</th>
+                                                                            <th>Date</th>
+                                                                            <th>Qty</th>
+                                                                            <th>Price</th>
+                                                                            <th>Subtotal</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {order.order_item.map((item: InOrderItem) => (
+                                                                            <tr key={item.id}>
+                                                                                <td>{item.event_ticket?.event.title}</td>
+                                                                                <td>{item.event_ticket?.name}</td>
+                                                                                <td>{formatDate(item.event_date)}</td>
+                                                                                <td><Badge bg="info">{item.quantity}</Badge></td>
+                                                                                <td>{formatCurrency(item.unit_price)}</td>
+                                                                                <td className="fw-bold">{formatCurrency(item.subtotal)}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {expandedRows.has(order.id) && (
+                                            <tr>
+                                                <td colSpan={9} className="bg-light border-top-0 pt-0">
+                                                    <div className="px-3 pb-3">
+                                                        <h6 className="mb-2">
+                                                            <i className="bx bx-image me-1"></i>
+                                                            Payment Proof
                                                         </h6>
-                                                        <table className="table table-sm table-bordered bg-white">
-                                                            <thead>
-                                                            <tr>
-                                                                <th>Event</th>
-                                                                <th>Ticket</th>
-                                                                <th>Event Date</th>
-                                                                <th>Quantity</th>
-                                                                <th>Unit Price</th>
-                                                                <th>Subtotal</th>
-                                                            </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {order.order_item.map((item: InOrderItem) => (
-                                                                    <tr key={item.id}>
-                                                                        <td>{item.event_ticket?.event.title}</td>
-                                                                        <td>{item.event_ticket?.name}</td>
-                                                                        <td>{formatDate(item.event_date)}</td>
-                                                                        <td>
-                                                                            <Badge bg="info">{item.quantity}</Badge>
-                                                                        </td>
-                                                                        <td>{formatCurrency(item.unit_price)}</td>
-                                                                        <td className="fw-bold">{formatCurrency(item.subtotal)}</td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
+                                                        {order.payment_proof ? (
+                                                            <div>
+                                                                <a href={`/uploads/payment_proof/${order.payment_proof}`} target="_blank" rel="noreferrer">
+                                                                    <img
+                                                                        src={`/uploads/payment_proof/${order.payment_proof}`}
+                                                                        alt="Payment Proof"
+                                                                        style={{
+                                                                            maxHeight: '120px',
+                                                                            borderRadius: '6px',
+                                                                            border: '1px solid #dee2e6',
+                                                                            objectFit: 'cover',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    />
+                                                                </a>
+                                                                <div className="mt-1">
+                                                                    <small className="text-muted">
+                                                                        <i className="bx bx-link-external me-1"></i>
+                                                                        Click to view full size
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="badge bg-secondary">
+                                                                <i className="bx bx-image-alt me-1"></i>
+                                                                No proof uploaded
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -331,7 +373,7 @@ const TicketOrderPage: React.FC = () => {
                 )}
             </div>
 
-                {/* FORM MODAL */}
+            {/* FORM MODAL */}
             {showForm && (
                 <TicketOrderForm
                     title={formData.id ? 'Edit Order' : 'Create Order'}

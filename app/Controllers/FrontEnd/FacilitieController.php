@@ -10,6 +10,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
+use App\Libraries\CommissionEngine;
 use App\Models\EventsOrganizer;
 use App\Models\Facilitie;
 use App\Models\FacilityBooking;
@@ -86,7 +87,7 @@ class FacilitieController extends ApiController
         ];
 
         // Execute search filter
-        SearchFilter::executeOnly($Model, $searchable_column);
+        SearchFilter::executeOnly($Model, $searchable_column, ['id' => $id]);
 
         // Execute search filter
         $facilities = $Model->first();
@@ -139,8 +140,8 @@ class FacilitieController extends ApiController
         ];
 
         // Execute search filter
-//        $where = $current_user ?  ['user_id' => $current_user['id']] : [];
-        $output = SearchFilter::execute($Model, $searchable_column, 'data');
+        $where = $current_user ?  ['user_id' => $current_user['id']] : [];
+        $output = SearchFilter::execute($Model, $searchable_column, 'data', $where);
         array_walk($output['data'], function(&$item) {
 
             $Facility = new Facilitie();
@@ -160,6 +161,27 @@ class FacilitieController extends ApiController
         // Return output
         return $this->successOutput($output);
     }
+
+    public function findMyBook($id)
+    {
+        $Model = new FacilityBooking();
+        $item = $Model->find($id);
+
+        $Facility = new Facilitie();
+        $item->facility = $Facility->find($item->facility_id);
+
+        $EventOrganizer = new EventsOrganizer();
+        $item->facility->event_organizer = $EventOrganizer->find($item->facility->events_organizer_id);
+
+        $User = new User();
+        $item->facility->user_pic = $User->find($item->facility->user_id_pic);
+
+        $FacilityPricing = new FacilityPricing();
+        $item->facility->facility_pricing = $FacilityPricing->where('facility_id', $item->facility->id)->findAll();
+
+        return $this->successOutput(['data' => $item]);
+
+    }
     public function booking() {
         $Facilitie = new Facilitie();
         $booking_date = $this->request->getVar('date');
@@ -168,7 +190,7 @@ class FacilitieController extends ApiController
         $current_user = Services::request()->current_user ?? null;
         $create_data = [
             'facility_id' => $this->request->getJsonVar('facility_id'),
-            'date' => $booking_date,
+            'booking_date' => $booking_date,
             'start_time' => $start_time,
             'end_time' => $end_time,
             'facility_code' => generate_order_facility_code(),
@@ -182,14 +204,14 @@ class FacilitieController extends ApiController
         }
 
         // Gabungkan date + time
-        $start = strtotime($create_data['date'] . ' ' . $create_data['start_time']);
-        $end   = strtotime($create_data['date'] . ' ' . $create_data['end_time']);
+        $start = strtotime($create_data['booking_date'] . ' ' . $create_data['start_time']);
+        $end   = strtotime($create_data['booking_date'] . ' ' . $create_data['end_time']);
 
         if ($end <= $start) {
             return $this->errorOutput("End time must be greater than start time");
         }
 
-        $dayType = $this->getDayType($create_data['date']);
+        $dayType = $this->getDayType($create_data['booking_date']);
 
         $pricingModel = new FacilityPricing();
 
@@ -228,11 +250,40 @@ class FacilitieController extends ApiController
 
         $FacilityBooking = new FacilityBooking();
         $id = $FacilityBooking->insert($create_data);
+
+        $commissionEngine = new CommissionEngine();
+        $commissions = $commissionEngine->processOrder($id, 'facility', $totalPrice);
+
         $data = $FacilityBooking->find($id);
 
         return $this->successOutput(['id' => $id, 'data' => $data], 201);
     }
 
+
+    public function uploadPayment($booking_id)
+    {
+
+        $FacilityBooking = new FacilityBooking();
+        $facility_booking = $FacilityBooking->find($booking_id);
+        if(empty($facility_booking)) {
+            return $this->errorOutput("Booking not found");
+        }
+
+        // Upload foto
+        $file = $this->request->getFile('payment_proof');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $thumbnail_url = $file->getRandomName();
+            $file->move(FCPATH . 'uploads/payment_proof', $thumbnail_url);
+            $FacilityBooking->update($booking_id, ['payment_proof' => $thumbnail_url]);
+        }
+
+
+        return $this->successOutput([]);
+
+
+
+
+    }
     function getDayType(string $date): string
     {
         $day = date('N', strtotime($date)); // 1=Mon, 7=Sun

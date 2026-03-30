@@ -186,7 +186,7 @@ const FacilityBookingPage: React.FC = () => {
                             <tbody>
                                 {bookings.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="text-center py-4 text-muted">
+                                        <td colSpan={10} className="text-center py-4 text-muted">
                                             <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
                                             No bookings found
                                         </td>
@@ -215,6 +215,29 @@ const FacilityBookingPage: React.FC = () => {
                                             <td>{booking.total_hours} hours</td>
                                             <td className="fw-bold text-success">
                                                 {formatCurrency(booking.total_price)}
+                                            </td>
+                                            <td>
+                                                {booking.payment_proof ? (
+                                                    <a href={`/uploads/payment_proof/${booking.payment_proof}`} target="_blank" rel="noreferrer">
+                                                        <img
+                                                            src={`/uploads/payment_proof/${booking.payment_proof}`}
+                                                            alt="Proof"
+                                                            style={{
+                                                                height: '48px',
+                                                                width: '64px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #dee2e6',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                            title="Click to view full size"
+                                                        />
+                                                    </a>
+                                                ) : (
+                                                    <span className="badge bg-secondary" style={{ fontSize: '11px' }}>
+                                                        Not uploaded
+                                                    </span>
+                                                )}
                                             </td>
                                             <td>
                                                 {booking.status && (

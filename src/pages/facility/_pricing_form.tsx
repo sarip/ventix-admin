@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form as BootstrapForm, Row, Col } from 'react-bootstrap';
 import { InFacilityPricingForm } from '@/models/FacilityPricing';
+import { TicketOrder } from '@/models/TicketOrder';
 
 interface FormProps {
     title: string;
@@ -17,6 +18,10 @@ interface FormProps {
 const FacilityPricingForm: React.FC<FormProps> = ({ title, data, onHide, onSave, validationError = [] }) => {
     const [formData, setFormData] = useState<InFacilityPricingForm>(data);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [commissions, setCommissions] = useState<any[]>([]);
+    const [loadingCommission, setLoadingCommission] = useState<boolean>(false);
+
+    const TicketOrderModel = new TicketOrder();
 
     useEffect(() => {
         setFormData(data);
@@ -33,6 +38,29 @@ const FacilityPricingForm: React.FC<FormProps> = ({ title, data, onHide, onSave,
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    useEffect(() => {
+        const price = parseFloat(formData.price_per_hour?.toString() || '0');
+        if (price > 0) {
+            setLoadingCommission(true);
+            TicketOrderModel.previewCommission({ module: 'facility', base_amount: price })
+                .then((res: any) => {
+                    setCommissions(res.calculations || []);
+                })
+                .catch(err => console.error('Failed to fetch commission:', err))
+                .finally(() => setLoadingCommission(false));
+        } else {
+            setCommissions([]);
+        }
+    }, [formData.price_per_hour]);
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -129,6 +157,39 @@ const FacilityPricingForm: React.FC<FormProps> = ({ title, data, onHide, onSave,
                                         {errors.price_per_hour}
                                     </BootstrapForm.Control.Feedback>
                                 )}
+
+                                {/* Commission Preview */}
+                                <div className="mt-2 p-2 bg-light rounded border border-info" style={{ fontSize: '0.85rem' }}>
+                                    <div className="fw-bold mb-1 text-info">
+                                        <i className="bx bx-calculator me-1"></i>
+                                        Fee Breakdown
+                                    </div>
+                                    {loadingCommission ? (
+                                        <div className="text-muted italic small">Computing fees...</div>
+                                    ) : commissions.length > 0 ? (
+                                        <div className="d-flex flex-column gap-1">
+                                            {commissions.map((c: any, i: number) => (
+                                                <div key={i} className="d-flex justify-content-between">
+                                                    <span className="text-capitalize">{c.rule_key.replace(/_/g, ' ')}:</span>
+                                                    <span className="fw-semibold text-success">{formatCurrency(c.calculated_amount)}</span>
+                                                </div>
+                                            ))}
+                                            <div className="border-top pt-1 mt-1 d-flex justify-content-between fw-bold text-primary">
+                                                <span>Total Price for Guest:</span>
+                                                <span>
+                                                    {formatCurrency(
+                                                        parseFloat(formData.price_per_hour?.toString() || '0') +
+                                                        commissions.reduce((sum: number, c: any) =>
+                                                            sum + (c.rule_key === 'guest_fee' ? parseFloat(c.calculated_amount) : 0), 0
+                                                        )
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-muted small">Enter price to see estimated fees.</div>
+                                    )}
+                                </div>
                             </BootstrapForm.Group>
                         </Col>
                     </Row>

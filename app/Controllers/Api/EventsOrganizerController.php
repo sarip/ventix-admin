@@ -41,8 +41,15 @@ class EventsOrganizerController extends ApiController
             'search' => ['eo_name'],
         ];
 
+        $current_user = $this->request->current_user;
+        $where_eo = [];
+
+
+        if (!empty($current_user['eo_id'])) {
+            $where_eo['id'] = $current_user['eo_id'];
+        }
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'events_organizer', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'events_organizer', $where_eo);
 
         // Return output
         return $this->successOutput($output);

@@ -92,7 +92,7 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
         // Auto-fill price when ticket is selected
         if (field === 'event_ticket_id' && value) {
             try {
-                const ticketData = await EventTicketModel.list({ filter: `id:${value}` });
+                const ticketData = await EventTicketModel.find({ filter: `id:${value}` });
                 if (ticketData.event_ticket && ticketData.event_ticket.length > 0) {
                     const ticket = ticketData.event_ticket[0];
                     updated[index].unit_price = ticket.final_price.toString();
@@ -254,15 +254,15 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                     ) : (
                                         <Table bordered hover size="md">
                                             <thead className="table-light">
-                                            <tr>
-                                                <th width="20%">Event</th>
-                                                <th width="30%">Ticket</th>
-                                                <th width="20%">Event Date</th>
-                                                <th width="10%">Qty</th>
-                                                <th width="15%">Unit Price</th>
-                                                <th width="15%">Subtotal</th>
-                                                <th width="5%">Actions</th>
-                                            </tr>
+                                                <tr>
+                                                    <th width="20%">Event</th>
+                                                    <th width="30%">Ticket</th>
+                                                    <th width="20%">Event Date</th>
+                                                    <th width="10%">Qty</th>
+                                                    <th width="15%">Unit Price</th>
+                                                    <th width="15%">Subtotal</th>
+                                                    <th width="5%">Actions</th>
+                                                </tr>
                                             </thead>
                                             <tbody>
                                                 {orderItems.map((item, index) => (
@@ -282,7 +282,7 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                                         <td>
                                                             <Select2Component
                                                                 key={`ticket-${index}-${item.event_id}`}
-                                                                fetchData={EventTicketModel.list}
+                                                                fetchData={EventTicketModel.find}
                                                                 dropdownParent="#modal-ticket-order"
                                                                 placeholder={
                                                                     item.event_id
@@ -355,17 +355,17 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                                 ))}
                                             </tbody>
                                             <tfoot className="table-light">
-                                            <tr>
-                                                <td colSpan={5} className="text-end fw-bold">Total:</td>
-                                                <td className="fw-bold text-primary" colSpan={2}>
-                                                    {new Intl.NumberFormat('id-ID', {
-                                                        style: 'currency',
-                                                        currency: 'IDR',
-                                                        minimumFractionDigits: 0
-                                                    }).format(calculateTotal())}
-                                                </td>
-                                                {/*<td></td>*/}
-                                            </tr>
+                                                <tr>
+                                                    <td colSpan={5} className="text-end fw-bold">Total:</td>
+                                                    <td className="fw-bold text-primary" colSpan={2}>
+                                                        {new Intl.NumberFormat('id-ID', {
+                                                            style: 'currency',
+                                                            currency: 'IDR',
+                                                            minimumFractionDigits: 0
+                                                        }).format(calculateTotal())}
+                                                    </td>
+                                                    {/*<td></td>*/}
+                                                </tr>
                                             </tfoot>
                                         </Table>
                                     )}

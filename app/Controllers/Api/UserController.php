@@ -80,9 +80,9 @@ class UserController extends ApiController
             $builder->where('users.status', $status);
         }
 
-        $eoId = $this->request->getGet('eo_id');
-        if ($eoId && $currentUser->role === 'Super Admin') {
-            $builder->where('users.eo_id', $eoId);
+        $current_user = $this->request->current_user;
+        if (!empty($current_user['eo_id'])) {
+            $builder->where('users.eo_id', $current_user['eo_id']);
         }
 
         // Apply sorting

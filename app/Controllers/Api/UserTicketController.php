@@ -9,6 +9,7 @@
 namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
+use App\Models\Event;
 use App\Models\EventTicket;
 use App\Models\OrdersStatu;
 use App\Models\SysUserticketStatu;
@@ -47,8 +48,27 @@ class UserTicketController extends ApiController
             'search' => ['ticket_code', 'status', 'check_in_at', 'check_in_by'],
         ];
 
+
+        $current_user = $this->request->current_user;
+        $where_eo = [];
+        if (!empty($current_user['eo_id'])) {
+            $db = \Config\Database::connect();
+            $ticketIds = $db->table('event_ticket et')
+                ->select('et.id')
+                ->join('events e', 'e.id = et.event_id')
+                ->where('e.events_organizer_id', $current_user['eo_id'])
+                ->get()
+                ->getResultArray();
+
+
+            $where_eo['group_or'] = [
+                'event_ticket_id' => $ticketIds ? array_column($ticketIds, 'id') : [-1]
+            ];
+        }
+
+
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'user_tickets', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'user_tickets', $where_eo);
         array_walk($output['user_tickets'], function (&$item) {
             $User = new User();
             $item->user = $User->find($item->user_id);
@@ -70,6 +90,10 @@ class UserTicketController extends ApiController
                 array_walk($item->ticket->events_sponsors, function (&$sponsor) {
                     $sponsor->url = base_url('uploads/sponsor/' . $sponsor->logo_url);
                 });
+
+
+                $Event = new Event();
+                $item->ticket->event = $Event->find($item->ticket->event_id);
             }
 
         });

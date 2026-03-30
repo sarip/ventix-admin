@@ -1,0 +1,252 @@
+/**
+ * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
+ * @copyright Sarip Hidayat 2024
+ * @date 02/08/24
+ */
+
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Offcanvas, Button } from 'react-bootstrap';
+import Swal from 'sweetalert2';
+import useBlockUI from '@/pages/_components/useBlockUI';
+import Pagination from '@/pages/_components/Pagination';
+import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
+import Filter, {QueryParamsProps} from './_filter';
+import Form from './_form';
+import { CommisionRules, InCommisionRulesForm, InCommisionRules } from '@/models/CommisionRules';
+import { showToast } from '@/utils/toast';
+import { useRouter } from 'next/router';
+import {ListResponse} from "@/types/apiTypes";
+import {StatusBadgeColors} from "@/types/user";
+
+interface ValidationErrorProps {
+    field: string;
+    message: string;
+}
+
+interface PaginationProps {
+    current_page: number;
+    total: number;
+    filtered_total: number;
+    page_count: number;
+    per_page: number;
+}
+
+
+
+const commissionrulesPage: React.FC = () => {
+    const router = useRouter();
+    const { blockUI, unblockUI } = useBlockUI();
+    const [commissionruless, setcommissionruless] = useState<InCommisionRules[]>([]);
+    const [pagination, setPagination] = useState<PaginationProps | null>(null);
+    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+    const [pageCount, setPageCount] = useState<number>(0);
+    const [lastQuery, setLastQuery] = useState<any>({});
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [showForm, setShowForm] = useState<boolean>(false);
+    const [formData, setFormData] = useState<InCommisionRulesForm>({
+        id: null,
+        module: "",
+        rule_key: "",
+        percentage: "",
+        fixed_amount: "",
+        is_active: 0
+    });
+    const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
+    const Model = new CommisionRules();
+    const listData = async (query: QueryParamsProps = {}) => {
+        if (isInitialLoad) blockUI();
+        try {
+            query.page = currentPage;
+            const response:ListResponse<InCommisionRules[]> = await Model.list(query);
+            setLastQuery(query);
+            setcommissionruless(response.commission_rules);
+            setPagination(response.pagination);
+            setPageCount(response.pagination.page_count);
+        } catch (e){
+            if(e.status === 403){
+                router.push('/403');
+            }
+            unblockUI();
+        }finally {
+            if (isInitialLoad) {
+                unblockUI();
+                setIsInitialLoad(false);
+            }
+        }
+    };
+
+    const create = () => {
+        clearFormData();
+        SetValidationError([]);
+        jQuery("#modal-commision-rules").modal('show');
+    };
+
+    const clearFormData = () => {
+        setFormData({
+            id: null,
+            module: "",
+            rule_key: "",
+            percentage: "",
+            fixed_amount: "",
+            is_active: 0
+        });
+    }
+
+    const update = (data: InCommisionRulesForm) => {
+        clearFormData();
+        SetValidationError([]);
+        setFormData(data);
+        jQuery("#modal-commision-rules").modal('show');
+    };
+
+
+
+    const save = useCallback(async (data: InCommisionRulesForm) => {
+        try {
+            if (data.id) {
+                await Model.update(data.id, data);
+            } else {
+                await Model.create(data);
+            }
+            showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
+            jQuery("#modal-commision-rules").modal('hide');
+            listData(lastQuery);
+        } catch (error) {
+            let lines = error.message.trim().split('\n');
+            let result:ValidationErrorProps[] = lines.map(line => {
+                let [field, ...message] = line.split(' ');
+                return {
+                    field,
+                    message: message.join(' ')
+                };
+            });
+            SetValidationError(result)
+        }
+    }, [Model, lastQuery, listData]);
+
+    const remove = async (id:number) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Once deleted, you will not be able to recover this data",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const response = await Model.delete(id);
+                if(response.success) {
+                    showToast("Successfully Deleted", "success");
+                    listData(lastQuery);
+                }
+            }
+        });
+    };
+
+    const UserStatusBadge = ( status) => {
+        if(status == '1') {
+            return (
+                <span className={`badge bg-success`}>
+                    Active
+                </span>
+            );
+        }else{
+            return (
+                <span className={`badge bg-danger`}>
+                    Inactive
+                </span>
+            );
+        }
+    };
+
+
+
+    useEffect(() => {
+        if (!isInitialLoad) listData(lastQuery);
+    }, [currentPage]);
+
+
+    return (
+        <>
+            <div className=" container-p-y">
+                <h4 className="py-2 breadcrumb-wrapper mb-0">Master Taxes</h4>
+                Manage your Master Taxes
+            </div>
+            <Filter onSubmit={listData} />
+            <div className="card mt-2">
+                <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
+                    {/*<div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">*/}
+                    {/*    <Button variant="primary" onClick={create}>*/}
+                    {/*        <span><i className="bx bx-plus me-0 me-sm-1"></i></span>*/}
+                    {/*        <span className="d-none d-sm-inline-block">Add Data</span>*/}
+                    {/*    </Button>*/}
+                    {/*</div>*/}
+                </h5>
+                <div className="table-responsive text-nowrap">
+                    <table className="table">
+                        <thead className="border-top">
+                        <tr>
+                            <th style={{width: '10%'}}>Actions</th>
+                            <th>Module</th>
+                            <th>Rule Key</th>
+                            <th>Percentage</th>
+                            <th>Fixed Amount</th>
+                            <th>Is Active</th>
+                            <th>Created At</th>
+                            <th>Updated At</th>
+
+                        </tr>
+                        </thead>
+                        <tbody className="table-border-bottom-0">
+                        {commissionruless.map((item:InCommisionRules, key:number) => (
+                            <tr className="odd" key={key}>
+                                <td>
+                                    <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                        {/*<button className="btn btn-md btn-icon btn-danger me-2"*/}
+                                        {/*        onClick={() => remove(item.id)}><i className="bx bx-trash"></i>*/}
+                                        {/*</button>*/}
+                                        <button className="btn btn-md btn-icon btn-warning"
+                                                onClick={() => update(item)}><i className="bx bx-edit"></i></button>
+                                    </div>
+                                </td>
+                                <td>{item.module}</td>
+                                <td>{item.rule_key}</td>
+                                <td>{item.percentage}%</td>
+                                <td>{item.fixed_amount}</td>
+                                <td>{UserStatusBadge(item.is_active)}</td>
+                                <td>{item.created_at}</td>
+                                <td>{item.updated_at}</td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                    {pagination && (
+                        <div className="row mx-2 mt-4">
+                            <div className="col-sm-12 col-md-6">
+                                <div className="dataTables_info" role="status" aria-live="polite">
+                                    Found {pagination.filtered_total} of {pagination.total} data,
+                                    displaying {commissionruless.length} data
+                                </div>
+                            </div>
+                            {pagination.page_count && (
+                                <div className="col-sm-12 col-md-6 d-flex justify-content-end">
+                                    <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+            <Form
+                title={formData.id ? 'Update Data' : 'Add Data'}
+                data={formData}
+                onSave={save}
+                validationError={validationError}
+            />
+        </>
+    );
+};
+
+export default commissionrulesPage;

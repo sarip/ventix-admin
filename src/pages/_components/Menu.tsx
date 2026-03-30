@@ -49,7 +49,7 @@ const Menu: React.FC = () => {
                 localStorage.setItem('username', response.username);
                 setPermissions(response.role_actions);
                 // setMenu(filterMenuByPermissions(routes, response.role_actions));
-                setMenu(routes);
+                setMenu(filterRoutesByResource(routes, response.source));
             } catch (error) {
                 console.error('Failed to fetch permissions:', error);
             }
@@ -57,6 +57,29 @@ const Menu: React.FC = () => {
 
         fetchPermissions();
     }, []);
+
+    function filterRoutesByResource(routes, resource) {
+        // Jika resource = users, tampilkan semua
+        if (resource === 'appusers') {
+            return routes;
+        }
+
+        // Selain users → hapus is_superadmin = true
+        return routes
+            .filter(route => route.is_superadmin !== true)
+            .map(route => {
+                // Jika punya children, filter juga
+                if (Array.isArray(route.childrens)) {
+                    return {
+                        ...route,
+                        childrens: route.childrens.filter(
+                            child => child.is_superadmin !== true
+                        )
+                    };
+                }
+                return route;
+            });
+    }
 
     useEffect(() => {
         const menuElement = $(".menu-inner")[0];

@@ -44,8 +44,15 @@ class FacilitieController extends ApiController
             'search' => ['name', 'category', 'description', 'is_available'],
         ];
 
+        $current_user = $this->request->current_user;
+        $where_eo = [];
+
+        if(!empty($current_user['eo_id'])) {
+            $where_eo['events_organizer_id'] = $current_user['eo_id'];
+        }
+
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'facilities', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'facilities', $where_eo);
         array_walk($output['facilities'], function(&$item) {
 
             $EventOrganizer = new EventsOrganizer();

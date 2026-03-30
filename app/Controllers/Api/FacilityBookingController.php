@@ -13,6 +13,7 @@ use App\Models\Facilitie;
 use App\Models\FacilityBooking;
 use App\Models\FacilitybookingStatu;
 use App\Models\User;
+use App\Libraries\CommissionEngine;
 
 class FacilityBookingController extends ApiController
 {
@@ -42,11 +43,28 @@ class FacilityBookingController extends ApiController
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['user_id'],
+            'search' => ['facility_code', 'booking_date', 'start_time', 'end_time', 'total_hours', 'total_price', 'status'],
         ];
 
+        $current_user = $this->request->current_user;
+        $model_where = [];
+
+
+
+        if (!empty($current_user['eo_id'])) {
+
+            $Facilitie = new Facilitie();
+            $facilities = $Facilitie->select('id')->where('events_organizer_id', $current_user['eo_id'])->findAll();
+
+            $model_where['group_or'] = [
+                'facility_id' => $facilities ? array_column($facilities, 'id') : [-1]
+            ];
+        }
+
+        //        echo json_encode($model_where); die();
+
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'facility_bookings', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'facility_bookings', $model_where);
         array_walk($output['facility_bookings'], function (&$item) {
             $User = new User();
             $item->user = $User->find($item->user_id);
@@ -106,7 +124,19 @@ class FacilityBookingController extends ApiController
 
         $id = $FacilityBooking->insert($create_data);
 
-        return $this->successOutput(['id' => $id], 201);
+        // Integrate Commission Engine
+        $commissionEngine = new CommissionEngine();
+        $commissions = $commissionEngine->processOrder($id, 'facility', $create_data['total_price']);
+
+        // Adjust total_price if there's a guest fee
+//        if (isset($commissions['guest_fee'])) {
+//            $totalPriceWithFee = (float) $create_data['total_price'] + $commissions['guest_fee'];
+//            $FacilityBooking->update($id, [
+//                'total_price' => $totalPriceWithFee
+//            ]);
+//        }
+
+        return $this->successOutput(['id' => $id, 'commissions' => $commissions], 201);
     }
 
 
@@ -151,9 +181,25 @@ class FacilityBookingController extends ApiController
 
         $FacilityBooking->update($id, $update_data);
 
+        // Integrate Commission Engine
+        $commissionEngine = new CommissionEngine();
+        // Clear old commissions first
+        $orderCommissionModel = new \App\Models\OrderCommission();
+        $orderCommissionModel->where('order_id', $id)->where('module', 'facility')->delete();
+
+        $commissions = $commissionEngine->processOrder($id, 'facility', $update_data['total_price']);
+
+        // Adjust total_price if there's a guest fee
+        if (isset($commissions['guest_fee'])) {
+            $totalPriceWithFee = (float) $update_data['total_price'] + $commissions['guest_fee'];
+            $FacilityBooking->update($id, [
+                'total_price' => $totalPriceWithFee
+            ]);
+        }
+
         $data = $FacilityBooking->find($id);
 
-        return $this->successOutput(['facilitybooking' => $data]);
+        return $this->successOutput(['facilitybooking' => $data, 'commissions' => $commissions]);
     }
 
 

@@ -6,7 +6,7 @@
 
 import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
-import {InEventTicket} from "@/models/EventTicket";
+import { InEventTicket } from "@/models/EventTicket";
 
 export interface InOrderItem {
     id: number;
@@ -37,7 +37,18 @@ export interface InTicketOrder {
         role: string;
     };
     order_item?: InOrderItem[];
+    commissions?: {
+        id: number;
+        order_id: number;
+        module: string;
+        rule_key: string;
+        base_amount: string;
+        calculated_amount: string;
+        created_at: string;
+    }[];
     status_badge?: string;
+    payment_proof?: string;
+    order_items?: InOrderItem[];
 }
 
 class TicketOrder {
@@ -59,6 +70,10 @@ class TicketOrder {
 
     async delete(id: number): Promise<DeleteResponse> {
         return await APIClient.delete(`order/${id}`);
+    }
+
+    async previewCommission(data: { module: string, base_amount: number }) {
+        return await APIClient.post('order/preview-commission', data);
     }
 }
 

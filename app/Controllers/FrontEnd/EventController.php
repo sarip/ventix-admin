@@ -31,6 +31,7 @@ class EventController extends ApiController
         ];
 
         // Execute search filter
+        $Model->whereIn('events_status', ['ongoing', 'upcoming']);
         $output = SearchFilter::execute($Model, $searchable_column, 'events', []);
         array_walk($output['events'], function (&$item) {
             $EventTicket = new EventTicket();

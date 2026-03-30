@@ -46,8 +46,30 @@ class EventTicketController extends ApiController
             'search' => ['name', 'description', 'price', 'total_capacity', 'remaining_capacity', 'max_per_order', 'sales_start_date', 'sales_end_date', 'is_active', 'sort_order'],
         ];
 
+        $current_user = $this->request->current_user;
+        $where_eo = [];
+
+
+        $Model->join('events e', 'e.id = event_ticket.event_id');
+        $Model->select('event_ticket.*, e.events_organizer_id');
+        if (!empty($current_user['eo_id'])) {
+            $db = \Config\Database::connect();
+
+            $eventIds = $db->table('events')
+                ->select('id')
+                ->where('events_organizer_id', $current_user['eo_id'])
+                ->get()
+                ->getResultArray();
+
+
+            $where_eo['group_or'] = [
+                'event_ticket.event_id' =>  $eventIds ? array_column($eventIds, 'id') : [-1]
+            ];
+
+        }
+
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'event_ticket', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'event_ticket', $where_eo);
         array_walk($output['event_ticket'], function (&$item) {
             $Event = new Event();
             $item->event = $Event->find($item->event_id);
@@ -67,6 +89,61 @@ class EventTicketController extends ApiController
         // Return output
         return $this->successOutput($output);
     }
+
+
+    public function find()
+    {
+        $Model = new EventTicket();
+
+        // Define searchable column on this model
+        $searchable_column = [
+            'search' => ['name', 'description', 'price', 'total_capacity', 'remaining_capacity', 'max_per_order', 'sales_start_date', 'sales_end_date', 'is_active', 'sort_order'],
+        ];
+
+        $current_user = $this->request->current_user;
+        $where_eo = [];
+
+//        $Model->join('events e', 'e.id = event_ticket.event_id');
+//        $Model->select('event_ticket.*, e.events_organizer_id');
+//        if (!empty($current_user['eo_id'])) {
+//            $db = \Config\Database::connect();
+//
+//            $eventIds = $db->table('events')
+//                ->select('id')
+//                ->where('events_organizer_id', $current_user['eo_id'])
+//                ->get()
+//                ->getResultArray();
+//
+//            $where_eo['group_or'] = [
+//                'event_ticket.event_id' =>  array_column($eventIds, 'id')
+//            ];
+//
+//        }
+
+        // Execute search filter
+        $output = SearchFilter::execute($Model, $searchable_column, 'event_ticket');
+        array_walk($output['event_ticket'], function (&$item) {
+            $Event = new Event();
+            $item->event = $Event->find($item->event_id);
+
+
+            $MasterTaxe = new MasterTaxe();
+            $item->tax = $item->is_taxable === "Y" ? $MasterTaxe->find($item->tax_id) : [];
+
+            // Add sponsors to ticket event
+            $EventSponsor = new EventsSponsor();
+            $item->events_sponsors = $EventSponsor->where('events_id', $item->event_id)->findAll();
+            array_walk($item->events_sponsors, function (&$sponsor) {
+                $sponsor->url = base_url('uploads/sponsor/' . $sponsor->logo_url);
+            });
+        });
+
+        // Return output
+        return $this->successOutput($output);
+    }
+
+
+
 
     /**
      * Create EventTicket

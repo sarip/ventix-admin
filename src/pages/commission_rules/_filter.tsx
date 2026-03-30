@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { buildQuery } from '@/lib/FilterDriver';
-import Select2Component from "@/pages/_components/Select2";
-import {Event} from "@/models/Event";
 
 interface FilterProps {
     onSubmit: (query: any) => void;
@@ -19,20 +17,16 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
     const [sortBy, setSortBy] = useState<string>('created_at:desc');
     const [perPage, setPerPage] = useState<number>(10);
     const [typing, setTyping] = useState<NodeJS.Timeout | null>(null);
-    const [filters, setFilters] = useState({
-        event_id: "",
-        is_active: ""
-    })
 
     const getQuery = useCallback(() => {
-        const query = buildQuery(filters);
+        const query = {};
         return {
             search,
-            filter: query,
+            filter: buildQuery(query),
             sort_by: sortBy,
             per_page: perPage,
         };
-    }, [search, sortBy, perPage, filters]);
+    }, [search, sortBy, perPage]);
 
     const debouncedSubmit = useCallback(() => {
         if (typing) clearTimeout(typing);
@@ -40,7 +34,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
             submit();
         }, 1000);
         setTyping(newTyping);
-    }, [typing, search, sortBy, perPage, filters]);
+    }, [typing, search, sortBy, perPage]);
 
     const submit = () => {
         const query = getQuery();
@@ -53,7 +47,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
         return () => {
             if (typing) clearTimeout(typing);
         };
-    }, [search, sortBy, perPage, filters]);
+    }, [search, sortBy, perPage]);
 
     const resetFilter = () => {
         setSearch('');
@@ -61,47 +55,24 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
         setPerPage(10);
     };
 
-    const EventModel = new Event();
-    const handleFilters = (e) => {
-        const { name, value } = e.target;
-        setFilters(prevData => ({
-            ...prevData,
-            [name]: value,
-        }));
-    };
-
-
     return (
         <div className="card">
             <div className="card-header d-flex border-top rounded-0 flex-wrap p-3">
-                {/*<div className="me-4 pe-4">*/}
-                {/*    <label className="form-label">Searching</label>*/}
-                {/*    <div className="input-group input-group-merge">*/}
-                {/*        <span className="input-group-text" id="basic-addon-search31">*/}
-                {/*            <i className="bx bx-search"></i>*/}
-                {/*        </span>*/}
-                {/*        <input*/}
-                {/*            type="search"*/}
-                {/*            className="form-control"*/}
-                {/*            placeholder="Search..."*/}
-                {/*            value={search}*/}
-                {/*            onChange={(e) => setSearch(e.target.value)}*/}
-                {/*        />*/}
-                {/*    </div>*/}
-                {/*</div>*/}
-                <div className="col-12 col-md-3">
-                    <label className="form-label">Event</label>
-                    <Select2Component
-                        fetchData={EventModel.list}
-                        placeholder="All Event"
-                        name="event_id"
-                        onChange={handleFilters}
-                        selectedId={filters.event_id}
-                        dataKey="events"
-                        showKey="title"
-                    />
+                <div className="me-4 pe-4">
+                    <label className="form-label">Searching</label>
+                    <div className="input-group input-group-merge">
+                        <span className="input-group-text" id="basic-addon-search31">
+                            <i className="bx bx-search"></i>
+                        </span>
+                        <input
+                            type="search"
+                            className="form-control"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
                 </div>
-
                 <div className="d-flex flex-column flex-md-row align-items-start align-items-md-end ms-auto gap-3">
                     <div>
                         <label className="form-label">Sort</label>
@@ -112,8 +83,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
                     </div>
                     <div>
                         <label className="form-label">Show</label>
-                        <select className="form-select" value={perPage}
-                                onChange={(e) => setPerPage(parseInt(e.target.value))}>
+                        <select className="form-select" value={perPage} onChange={(e) => setPerPage(parseInt(e.target.value))}>
                             <option value="10">10</option>
                             <option value="20">20</option>
                             <option value="50">50</option>

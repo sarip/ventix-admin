@@ -7,6 +7,7 @@
 import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
 import {InEventCat, InEventCatForm} from "@/models/EventCat";
+import {InEvent} from "@/models/Event";
 
 export interface InTicketUser {
     id: number;
@@ -39,6 +40,7 @@ export interface InTicketUser {
         is_active: number;
         sort_order: number;
         created_at: string;
+        event : InEvent;
     };
 }
 

@@ -17,6 +17,8 @@ $routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'],
     $routes->get('facilities', 'FacilitieController::index', ['filter' => 'TokenFeFilter']);
     $routes->get('facility-booking-status', 'FacilitieController::bookingStatus', ['filter' => 'TokenFeFilter']);
     $routes->get('facility-bookings', 'FacilitieController::myBooking', ['filter' => 'TokenFeFilter']);
+    $routes->get('facility-bookings/(:num)', 'FacilitieController::findMyBook/$1', ['filter' => 'TokenFeFilter']);
+    $routes->post('facility-bookings/(:num)/upload-payment', 'FacilitieController::uploadPayment/$1', ['filter' => 'TokenFeFilter']);
     $routes->post('facilities/book', 'FacilitieController::booking', ['filter' => 'TokenFeFilter']);
     $routes->get('facilities/(:num)', 'FacilitieController::find/$1', ['filter' => 'TokenFeFilter']);
     $routes->get('reg_provinces', 'RegProvinceController::index', ['filter' => 'TokenFeFilter']);
@@ -24,6 +26,7 @@ $routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'],
     $routes->get('orders', 'OrderController::index', ['filter' => 'TokenFeFilter']);
     $routes->post('orders', 'OrderController::create', ['filter' => 'TokenFeFilter']);
     $routes->get('orders/(:any)', 'OrderController::findByOrderCode/$1', ['filter' => 'TokenFeFilter']);
+    $routes->post('orders/(:any)/upload-payment', 'OrderController::uploadPayment/$1', ['filter' => 'TokenFeFilter']);
 
     $routes->get('tickets/my', 'TicketController::index', ['filter' => 'TokenFeFilter']);
 });
@@ -38,6 +41,8 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
 
     // ADMINISTRATOR AUTHENTICATION
     $routes->post('login', 'AuthController::login');
+    $routes->post('register-eo', 'AuthController::registerEo');
+    $routes->post('register-member', 'AuthController::registerMember');
     $routes->get('logout', 'AuthController::logout', ['filter' => 'tokenFilter']);
     $routes->get('whoami', 'AuthController::whoami', ['filter' => 'tokenFilter']);
 
@@ -115,6 +120,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->delete('userticket/(:num)', 'UserTicketController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('event_ticket', 'EventTicketController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('event_ticket/find', 'EventTicketController::find', ['filter' => 'PermissionFilter']);
     $routes->post('eventticket', 'EventTicketController::create', ['filter' => 'PermissionFilter']);
     $routes->put('eventticket/(:num)', 'EventTicketController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('eventticket/(:num)', 'EventTicketController::delete/$1', ['filter' => 'PermissionFilter']);
@@ -158,6 +164,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('order', 'OrderController::create', ['filter' => 'PermissionFilter']);
     $routes->put('order/(:num)', 'OrderController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('order/(:num)', 'OrderController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('order/preview-commission', 'OrderController::previewCommission', ['filter' => 'PermissionFilter']);
 
     $routes->get('facilities', 'FacilitieController::index', ['filter' => 'PermissionFilter']);
     $routes->post('facility', 'FacilitieController::create', ['filter' => 'PermissionFilter']);
@@ -245,6 +252,15 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('regprovince', 'RegProvinceController::create', ['filter' => 'PermissionFilter']);
     $routes->put('regprovince/(:num)', 'RegProvinceController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('regprovince/(:num)', 'RegProvinceController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // COMMISSION ANALYSIS
+    $routes->get('commissions', 'CommissionController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('commissions/analysis', 'CommissionController::analysis', ['filter' => 'PermissionFilter']);
+
+    $routes->get('commission_rules', 'CommissionRuleController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('commissionrule', 'CommissionRuleController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('commissionrule/(:num)', 'CommissionRuleController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('commissionrule/(:num)', 'CommissionRuleController::delete/$1', ['filter' => 'PermissionFilter']);
 
     // OTHER API REQUEST //
 

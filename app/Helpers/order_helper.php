@@ -70,3 +70,42 @@ if (!function_exists('generate_order_facility_code')) {
     }
 }
 
+if (!function_exists('generate_ticket_code')) {
+
+    /**
+     * Generate ticket code
+     * Example: TIX-ORD1-TK1-01
+     *
+     * @param string $orderCode      Example: ORD1
+     * @param string $ticketType    Example: TK1
+     * @return string
+     */
+    function generate_ticket_code(int $orderId, int $eventTicketId): string
+    {
+        $db = \Config\Database::connect();
+
+        $prefix = "TIX-ORD{$orderId}-TK{$eventTicketId}-";
+
+        $row = $db->table('user_tickets')
+            ->select('ticket_code')
+            ->like('ticket_code', $prefix, 'after')
+            ->orderBy('ticket_code', 'DESC')
+            ->limit(1)
+            ->get()
+            ->getRow();
+
+        $lastNumber = 0;
+
+        if ($row) {
+            $lastNumber = (int) substr(
+                $row->ticket_code,
+                strrpos($row->ticket_code, '-') + 1
+            );
+        }
+
+        $next = str_pad($lastNumber + 1, 2, '0', STR_PAD_LEFT);
+
+        return $prefix . $next;
+    }
+}
+

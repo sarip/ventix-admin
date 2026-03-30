@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { Table, Button, Form as BootstrapForm, Row, Col } from 'react-bootstrap';
 import { InEventTicketForm } from '@/models/EventTicket';
 import SingleDateTimePicker from '@/pages/_components/SingleDateTimePicker';
-import {InMasterTaxe, MasterTaxe} from "@/models/MasterTaxe";
+import { InMasterTaxe, MasterTaxe } from "@/models/MasterTaxe";
+import { TicketOrder } from '@/models/TicketOrder';
 
 interface TicketRow extends InEventTicketForm {
     _isNew?: boolean;
@@ -19,6 +20,10 @@ interface EventTicketsStepProps {
 const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, onChange }) => {
     const nextTempId = React.useRef(1);
     const [taxes, setTaxes] = useState<InMasterTaxe[]>([]);
+    const [commissions, setCommissions] = useState<Record<string, any>>({});
+    const [loadingCommissions, setLoadingCommissions] = useState<Record<string, boolean>>({});
+
+    const TicketOrderModel = new TicketOrder();
 
     const addNewRow = () => {
         const newRow: TicketRow = {
@@ -54,7 +59,7 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
 
         const ticket = updated[index];
         if (ticket.is_taxable === 'Y') {
-            ticket.final_price = calculateFinalPrice(ticket.price, ticket.tax_id);
+            ticket.final_price = calculateFinalPrice(ticket.price, Number(ticket.tax_id));
         } else {
             ticket.final_price = ticket.price;
             ticket.tax_id = '';
@@ -80,13 +85,13 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
         if (!taxId) return price;
         const tax = taxes.find(t => t.id === Number(taxId));
         if (!tax) return price;
-        return price + price * (tax.rate / 100);
+        return price + price * (parseFloat(tax.rate) / 100);
     };
 
 
     const TaxesModel = new MasterTaxe();
     const loadtaxes = () => {
-        TaxesModel.list({per_page: `1000000000000`}).then(response => {
+        TaxesModel.list({ per_page: `1000000000000` }).then(response => {
             setTaxes(response.master_taxes);
         })
     }
@@ -94,6 +99,42 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
     useEffect(() => {
         loadtaxes();
     }, []);
+
+    useEffect(() => {
+        const activeTickets = tickets.filter(t => !t._isDeleted);
+        activeTickets.forEach(ticket => {
+            const key = ticket.id?.toString() || ticket._tempId?.toString();
+            const price = Number(ticket.price);
+            if (!key || price <= 0) return;
+
+            // Only fetch if price changed or not already fetched
+            if (commissions[key]?.base_amount !== price) {
+                setLoadingCommissions(prev => ({ ...prev, [key]: true }));
+                TicketOrderModel.previewCommission({ module: 'event', base_amount: price })
+                    .then((res: any) => {
+                        setCommissions(prev => ({
+                            ...prev,
+                            [key]: {
+                                base_amount: price,
+                                list: res.calculations || []
+                            }
+                        }));
+                    })
+                    .catch(err => console.error('Failed to fetch commission for ticket:', key, err))
+                    .finally(() => {
+                        setLoadingCommissions(prev => ({ ...prev, [key]: false }));
+                    });
+            }
+        });
+    }, [tickets]);
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
+    };
 
     return (
         <div className="event-tickets-step">
@@ -203,6 +244,48 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                                     value={ticket.final_price}
                                                 />
                                             </BootstrapForm.Group>
+
+                                            {/* Commission Preview */}
+                                            <div className="mt-2 p-2 bg-light rounded border border-info" style={{ fontSize: '0.75rem' }}>
+                                                <div className="fw-bold mb-1 text-info">
+                                                    <i className="bx bx-calculator me-1"></i>
+                                                    Fee Breakdown
+                                                </div>
+                                                {(() => {
+                                                    const key = ticket.id?.toString() || ticket._tempId?.toString();
+                                                    const commData = key ? commissions[key] : null;
+
+                                                    if (loadingCommissions[key || '']) {
+                                                        return <div className="text-muted italic">Computing fees...</div>;
+                                                    }
+
+                                                    if (!commData || !commData.list || commData.list.length === 0) {
+                                                        return <div className="text-muted">Enter price to see fees.</div>;
+                                                    }
+
+                                                    return (
+                                                        <div className="d-flex flex-column gap-1">
+                                                            {commData.list.map((c: any, i: number) => (
+                                                                <div key={i} className="d-flex justify-content-between">
+                                                                    <span className="text-capitalize">{c.rule_key.replace(/_/g, ' ')}:</span>
+                                                                    <span className="fw-semibold text-success">{formatCurrency(c.calculated_amount)}</span>
+                                                                </div>
+                                                            ))}
+                                                            <div className="border-top pt-1 mt-1 d-flex justify-content-between fw-bold text-primary">
+                                                                <span>Cust. Pays:</span>
+                                                                <span>
+                                                                    {formatCurrency(
+                                                                        ticket.final_price +
+                                                                        commData.list.reduce((sum: number, c: any) =>
+                                                                            sum + (c.rule_key === 'guest_fee' ? parseFloat(c.calculated_amount) : 0), 0
+                                                                        )
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
                                         </Col>
 
                                         <Col md={12}>

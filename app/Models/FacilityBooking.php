@@ -20,7 +20,7 @@ class FacilityBooking extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'user_id', 'facility_id', 'facility_code', 'booking_date', 'start_time', 'end_time', 'total_hours', 'total_price', 'status'
+        'user_id', 'facility_id', 'facility_code', 'booking_date', 'start_time', 'end_time', 'total_hours', 'total_price', 'status', 'payment_proof'
     ];
 
     // Dates

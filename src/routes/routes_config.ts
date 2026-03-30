@@ -7,6 +7,7 @@ type Route = {
     endpoint?: string;
     group?: string;
     childrens?: Route[];
+    is_superadmin?: boolean,
 };
 
 const routes: Route[] = [
@@ -21,6 +22,15 @@ const routes: Route[] = [
         tooltip: "Dashboard",
         icon: 'bxs-dashboard',
         title: 'Dashboard',
+        is_superadmin: false,
+    },
+    {
+        path: '/commission_analysis',
+        side_menu: true,
+        tooltip: "Commission Analysis",
+        icon: 'bx-money',
+        title: 'Commission Analysis',
+        is_superadmin: true,
     },
 
 
@@ -31,6 +41,7 @@ const routes: Route[] = [
         icon: 'bx-calendar-check',
         title: 'Ticket',
         group: 'Users',
+        is_superadmin: false,
         childrens: [
             {
                 path: '/ticket_analytics',
@@ -74,6 +85,7 @@ const routes: Route[] = [
         icon: 'bx-calendar-event',
         title: 'Event',
         group: 'Users',
+        is_superadmin: false,
         childrens: [
             {
                 path: '/event',
@@ -118,6 +130,7 @@ const routes: Route[] = [
         icon: 'bx-buildings',
         title: 'Facility',
         group: 'Facility',
+        is_superadmin: false,
         childrens: [
             {
                 path: '/facility',
@@ -147,6 +160,7 @@ const routes: Route[] = [
         icon: 'bx-medal',
         title: 'User Points',
         group: 'Users',
+        is_superadmin: true,
         childrens: [
             {
                 path: '/user_points',
@@ -178,6 +192,7 @@ const routes: Route[] = [
         icon: 'bx-user-circle',
         title: 'User Management',
         group: 'Users',
+        is_superadmin: true,
         childrens: [
             {
                 path: '/user',
@@ -205,7 +220,15 @@ const routes: Route[] = [
         icon: 'bx-cog',
         title: 'System App',
         group: 'Users',
+        is_superadmin: true,
         childrens: [
+            {
+                path: '/commission_rules',
+                side_menu: true,
+                tooltip: "Commission Rules",
+                title: 'Commission Rules',
+                endpoint: 'api/v1/users',
+            },
             {
                 path: '/taxes',
                 side_menu: true,
