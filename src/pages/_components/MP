@@ -23,7 +23,7 @@ interface Props {
     onChange: (lat: string, lng: string, label?: string) => void;
 }
 
-export default function MapPicker({
+export default function MapPicker__({
                                       latitude,
                                       longitude,
                                       onChange

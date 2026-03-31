@@ -29,7 +29,6 @@ const MapPicker = dynamic(
     () => import("@/pages/_components/MapPicker/MapPicker"),
     { ssr: false }
 );
-
 enum FormStep {
     EVENT_INFO = 'event-info',
     EVENT_AGENDA = 'event-agenda',
