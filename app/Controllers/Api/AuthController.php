@@ -11,6 +11,7 @@ use App\Models\RoleAction;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserLog;
+use Config\Services;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use App\Libraries\Validate;
@@ -107,13 +108,33 @@ class AuthController extends ApiController
     {
         // 1. users table
         $db = \Config\Database::connect();
-        $user = $db->table('users')->where(['username' => $username])->get()->getRow();
+
+
+        $requestservice = Services::request();
+        $request = $requestservice->getGet();
+
+        $role = [];
+        $User = $db->table('users')->where(['username' => $username]);
+
+
+        if(!empty($request['role'])) {
+            if($request['role'] === 'GUEST') {
+                $User->whereIn('role', ['VIP Member', 'General_User']);
+            }
+        }
+
+        $user = $User->get()->getRow();
 
         if ($user && password_verify($password, $user->password)) {
             $user->source = 'users';
             return $user;
         }
 
+        if(!empty($request['role'])) {
+            if ($request['role'] === 'GUEST') {
+                return null;
+            }
+        }
         // 2. appusers table
         $appUser = (new AppUser())
             ->where('username', $username)

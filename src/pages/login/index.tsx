@@ -34,7 +34,7 @@ export default function Login() {
             setCookie('key', key, { maxAge: secondsUntilMidnight });
             localStorage.setItem('key', key);
             setTimeout(()=> {
-                router.replace('/dashboard')
+                window.location.href = process.env.NEXT_PUBLIC_SITE_URL + '/dashboard';
             }, 1000)
 
         }).catch((error) => {
