@@ -22,12 +22,14 @@ import { canEditUser, canChangeStatus, canResetPassword, getUserPermissions } fr
 import { convertUnixTimestampToDate } from "@/utils/date";
 import ChangeStatusModal from "@/pages/user/_change_status_modal";
 import ResetPasswordModal from "@/pages/user/_reset_password_modal";
+import {InUsersRole, UsersRole} from "@/models/UsersRole";
 
 export default function UserPage() {
     const router = useRouter();
     const { blockUI, unblockUI } = useBlockUI();
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [users, setUsers] = useState<InUser[]>([]);
+    const [roles,setRoles ] = useState<InUsersRole[]>([]);
     const [pagination, setPagination] = useState<any>({});
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [showForm, setShowForm] = useState<boolean>(false);
@@ -92,6 +94,14 @@ export default function UserPage() {
         }
     };
 
+
+    const ModelRoles = new UsersRole();
+    const loadRoles = () => {
+        ModelRoles.list().then(response => {
+            setRoles(response.sys_users_role || []);
+        })
+    }
+
     // Reload data when filters change
     useEffect(() => {
         if (!isInitialLoad) {
@@ -109,6 +119,7 @@ export default function UserPage() {
 
     // Initial load
     useEffect(() => {
+        loadRoles();
         listData();
     }, []);
 
@@ -187,7 +198,8 @@ export default function UserPage() {
                 return { field, message: message.join(' ') };
             });
             setValidationError(result);
-            showToast('Validation error', 'error');
+            // console.log({'error': error})
+            // showToast(error.message, 'error');
         }
     }, []);
 
@@ -299,10 +311,9 @@ export default function UserPage() {
                                 onChange={(e) => setRoleFilter(e.target.value)}
                             >
                                 <option value="">All Roles</option>
-                                <option value="Super Admin">Super Admin</option>
-                                <option value="EO Owner">EO Owner</option>
-                                <option value="Admin">Admin</option>
-                                <option value="EO Staff">EO Staff</option>
+                                {roles.map((role, key) => (
+                                    <option value={role.role_name}>{role.role_name}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -478,6 +489,7 @@ export default function UserPage() {
 
             {/* User Form Modal */}
             <Form
+                roles={roles}
                 title={formData.id ? 'Edit User' : 'Add User'}
                 show={showForm}
                 onClose={() => setShowForm(false)}

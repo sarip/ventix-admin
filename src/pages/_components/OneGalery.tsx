@@ -8,13 +8,14 @@ import 'lightgallery/css/lg-zoom.css';
 import 'lightgallery/css/lg-thumbnail.css';
 
 import { proxyUrl } from '@/utils/image';
+import {mediaUrl} from "@/lib/media";
 
 interface Attachment {
     url: string;
 }
 
 interface OneGaleryProps {
-    attachments: Attachment[];
+    attachments: Attachment[] | string;
     style?: any;
 }
 
@@ -25,7 +26,7 @@ const OneGalery: React.FC<OneGaleryProps> = ({ attachments, style }) => {
 
 
 
-    const firstUrl = proxyUrl(attachments);
+    // const firstUrl = proxyUrl(attachments);
 
     return (
         <div ref={galleryRef} className="position-relative d-inline-block">
@@ -38,13 +39,13 @@ const OneGalery: React.FC<OneGaleryProps> = ({ attachments, style }) => {
 
             {/* Thumbnail utama */}
             <a
-                href={firstUrl}
+                href={mediaUrl(attachments)}
                 className="position-relative d-inline-block rounded overflow-hidden shadow-sm"
                 style={style}
             >
                 {/* Thumbnail */}
                 <img
-                    src={firstUrl}
+                    src={mediaUrl(attachments)}
                     alt="Attachment Preview"
                     className="w-100 h-100 object-fit-cover border rounded"
                 />

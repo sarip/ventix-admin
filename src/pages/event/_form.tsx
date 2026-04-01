@@ -487,11 +487,48 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
 
                                             <div className="mb-3">
                                                 <label className="form-label">Lokasi Event</label>
-                                                <MapPicker
-                                                    latitude={formData.latitude}
-                                                    longitude={formData.longitude}
-                                                    onChange={handleMapChange}
+                                                <textarea
+                                                    id="location_name"
+                                                    name="location_name"
+                                                    className={`form-control ${!!errors?.location_name ? 'is-invalid' : ''}`}
+                                                    placeholder="location_name"
+                                                    value={formData.location_name}
+                                                    onChange={handleInputChange}
                                                 />
+                                                {/*<MapPicker*/}
+                                                {/*    latitude={formData.latitude}*/}
+                                                {/*    longitude={formData.longitude}*/}
+                                                {/*    onChange={handleMapChange}*/}
+                                                {/*/>*/}
+                                            </div>
+
+                                            <div className="mb-3">
+                                                <div className="row">
+                                                    <div className="col-6">
+                                                        <label className="form-label">Latitude</label>
+                                                        <input
+                                                            type="text"
+                                                            id="latitude"
+                                                            name="latitude"
+                                                            className={`form-control ${!!errors?.latitude ? 'is-invalid' : ''}`}
+                                                            placeholder="latitude"
+                                                            value={formData.latitude}
+                                                            onChange={handleInputChange}
+                                                        />
+                                                    </div>
+                                                    <div className="col-6">
+                                                        <label className="form-label">Longitude</label>
+                                                        <input
+                                                            type="text"
+                                                            id="longitude"
+                                                            name="longitude"
+                                                            className={`form-control ${!!errors?.longitude ? 'is-invalid' : ''}`}
+                                                            placeholder="longitude"
+                                                            value={formData.longitude}
+                                                            onChange={handleInputChange}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
 
                                         </div>
@@ -529,7 +566,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
 
                     <div className="modal-footer">
                         <button type="reset" className="btn btn-label-secondary" data-bs-dismiss="modal"
-                            aria-label="Close" onClick={onClose}>Cancel
+                                aria-label="Close" onClick={onClose}>Cancel
                         </button>
 
                         {currentStep !== FormStep.EVENT_INFO && (

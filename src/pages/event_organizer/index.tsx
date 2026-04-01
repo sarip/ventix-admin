@@ -216,7 +216,7 @@ const EventOrganizerPage: React.FC = () => {
                                     </div>
                                 </td>
                                 <td>
-                                    <OneGalery attachments={`/uploads/event_organizer/${item.logo_path}`} />
+                                    <OneGalery attachments={`/event_organizer/${item.logo_path}`} />
                                 </td>
                                 <td>{item.eo_name}</td>
                                 <td>{item.company_name}</td>

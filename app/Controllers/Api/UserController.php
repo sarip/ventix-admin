@@ -14,6 +14,7 @@ use App\Models\SysUsersRole;
 use App\Models\User;
 use App\Models\EventsOrganizer;
 use App\Models\UserLog;
+use function PHPUnit\Framework\throwException;
 
 class UserController extends ApiController
 {
@@ -322,12 +323,12 @@ class UserController extends ApiController
         $targetUser = $this->userModel->find($id);
 
         if (!$targetUser) {
-            return $this->failNotFound('User not found');
+            return $this->errorOutput('User not found', 404);
         }
 
         // Check access permission
         if (!$this->canAccessUser($currentUser, $targetUser)) {
-            return $this->failForbidden('You do not have permission to edit this user');
+            return $this->errorOutput('You do not have permission to edit this user', 403);
         }
 
         // Build update data (excluding readonly fields)
@@ -335,9 +336,9 @@ class UserController extends ApiController
             'name' => $this->request->getJsonVar('name'),
             'phone' => $this->request->getJsonVar('phone'),
             'role' => $this->request->getJsonVar('role'),
-            'eo_id' => $this->request->getJsonVar('eo_id'),
+//            'eo_id' => $this->request->getJsonVar('eo_id'),
             'status' => $this->request->getJsonVar('status'),
-            'profile_picture' => $this->request->getJsonVar('profile_picture')
+//            'profile_picture' => $this->request->getJsonVar('profile_picture')
         ];
 
         // Validate role change
@@ -541,17 +542,7 @@ class UserController extends ApiController
      */
     protected function getCurrentUser()
     {
-        // This is a placeholder - implement based on your auth system
-        // Example: return from session, JWT token, etc.
-
-        // For now, get from request header or session
-        $userId = $this->request->id ?? session('user_id');
-
-        if ($userId) {
-            return $this->userModel->getWithRelations($userId);
-        }
-
-        return null;
+        return $this->request->current_user;
     }
 
     /**
@@ -559,7 +550,7 @@ class UserController extends ApiController
      */
     protected function applyRoleBasedFilter($builder, $currentUser)
     {
-        switch ($currentUser->role) {
+        switch ($currentUser['role']) {
             case 'Super Admin':
                 // No filter - can see all users
                 break;
@@ -588,13 +579,13 @@ class UserController extends ApiController
      */
     protected function canAccessUser($currentUser, $targetUser)
     {
-        switch ($currentUser->role) {
-            case 'Super Admin':
+        switch ($currentUser['role']) {
+            case 'super_admin':
                 return true;
 
             case 'EO Owner':
             case 'EO Staff':
-                return $targetUser->eo_id == $currentUser->eo_id;
+                return $targetUser->eo_id == $currentUser['eo_id'];
 
             case 'Admin':
                 return $targetUser->eo_id === null;

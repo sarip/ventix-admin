@@ -18,17 +18,19 @@ import {
     getPasswordStrength,
     getPasswordStrengthColor
 } from '@/utils/validation';
+import {InUsersRole} from "@/models/UsersRole";
 
 interface FormProps {
     title: string;
     show: boolean;
+    roles: InUsersRole[];
     onClose: () => void;
     data: InUserForm;
     onSave: (data: InUserForm) => void;
     validationError?: { field: string; message: string }[];
 }
 
-const Form: React.FC<FormProps> = ({ title, show, onClose, data, onSave, validationError = [] }) => {
+const Form: React.FC<FormProps> = ({ title, show, onClose, data, onSave, validationError = [], roles }) => {
     const [formData, setFormData] = useState<InUserForm>(data);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
@@ -340,8 +342,8 @@ const Form: React.FC<FormProps> = ({ title, show, onClose, data, onSave, validat
                                     onBlur={handleBlur}
                                 >
                                     <option value="">Select role</option>
-                                    {availableRoles.map(role => (
-                                        <option key={role} value={role}>{role}</option>
+                                    {roles.map((role, key) => (
+                                        <option key={key} value={role.role_name}>{role.role_name}</option>
                                     ))}
                                 </select>
                                 {touched.role && errors.role && (
