@@ -70,7 +70,7 @@ const Navbar: React.FC = () => {
 
     const logout = () => {
         if (!localStorage.getItem('key')) {
-            window.location.href = '/login';
+            router.push('/login')
         } else {
 
             let key = localStorage.getItem('key');
@@ -92,8 +92,8 @@ const Navbar: React.FC = () => {
                 // deleteCookie('email');
                 // deleteCookie('role');
                 setTimeout(() => {
-                    window.location.href = '/login';
-
+                    // window.location.href = '/login';
+                    router.push('/login')
                 }, 2000)
 
             })
