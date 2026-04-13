@@ -42,6 +42,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     // ADMINISTRATOR AUTHENTICATION
     $routes->post('login', 'AuthController::login');
     $routes->post('register-eo', 'AuthController::registerEo');
+    $routes->get('verify-email/(:any)', 'AuthController::verifyEmail/$1');
     $routes->post('register-member', 'AuthController::registerMember');
     $routes->get('logout', 'AuthController::logout', ['filter' => 'tokenFilter']);
     $routes->get('whoami', 'AuthController::whoami', ['filter' => 'tokenFilter']);

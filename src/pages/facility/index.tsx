@@ -11,7 +11,7 @@ import { Facility, InFacility, InFacilityForm } from '@/models/Facility';
 import { showToast } from '@/utils/toast';
 import FacilityFormModal from './_form';
 import FacilityPricingModal from './_pricing';
-import Filter, {QueryParamsProps} from "./_filter";
+import Filter, { QueryParamsProps } from "./_filter";
 
 interface PaginationProps {
     current_page: number;
@@ -38,6 +38,8 @@ const FacilityListPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [selectedFacility, setSelectedFacility] = useState<InFacility | null>(null);
     const [formData, setFormData] = useState<InFacilityForm>({
         name: '',
@@ -50,11 +52,27 @@ const FacilityListPage: React.FC = () => {
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
     const FacilityModel = new Facility();
 
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
 
     const loadFacilities = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
+            query.sort_by = sortBy + ':' + sortOrder;
             const response = await FacilityModel.list(query);
             setFacilities(response.facilities || []);
             setPagination(response.pagination);
@@ -154,6 +172,10 @@ const FacilityListPage: React.FC = () => {
         if (!isInitialLoad) loadFacilities(lastQuery);
     }, [currentPage]);
 
+    useEffect(() => {
+        if (!isInitialLoad) loadFacilities(lastQuery);
+    }, [sortBy, sortOrder]);
+
 
     return (
         <>
@@ -161,7 +183,7 @@ const FacilityListPage: React.FC = () => {
                 <h4 className="py-2 breadcrumb-wrapper mb-0">Facility Management</h4>
                 Manage your Facility Management
             </div>
-            <Filter onSubmit={loadFacilities}/>
+            <Filter onSubmit={loadFacilities} />
             <div className="card mt-2">
                 <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
                     <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
@@ -177,71 +199,71 @@ const FacilityListPage: React.FC = () => {
                     <div className="table-responsive">
                         <table className="table table-hover">
                             <thead className="table-light">
-                            <tr>
-                                <th style={{width: '50px'}}>#</th>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>PIC</th>
-                                <th>Availability</th>
-                                <th style={{width: '200px'}}>Actions</th>
-                            </tr>
+                                <tr>
+                                    <th style={{ width: '50px' }}>#</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Name {getSortIcon('name')}</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('category')}>Category {getSortIcon('category')}</th>
+                                    <th>PIC</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('is_available')}>Availability {getSortIcon('is_available')}</th>
+                                    <th style={{ width: '200px' }}>Actions</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            {facilities.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="text-center py-4 text-muted">
-                                        <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
-                                        No facilities found
-                                    </td>
-                                </tr>
-                            ) : (
-                                facilities.map((facility, index) => (
-                                    <tr key={facility.id}>
-                                        <td>{((currentPage - 1) * 10) + index + 1}</td>
-                                        <td>
-                                            <div className="fw-semibold">{facility.name}</div>
-                                            <small className="text-muted">{facility.description}</small>
-                                        </td>
-                                        <td>{facility.category}</td>
-                                        <td>
-                                            {facility.user_pic ? (
-                                                <>
-                                                    <div className="fw-semibold">{facility.user_pic.name}</div>
-                                                    <small className="text-muted">{facility.user_pic.email}</small>
-                                                </>
-                                            ) : (
-                                                <span className="text-muted">-</span>
-                                            )}
-                                        </td>
-                                        <td>{getAvailabilityBadge(facility.is_available)}</td>
-                                        <td>
-                                            <div className="d-flex gap-1">
-                                                <button
-                                                    className="btn btn-sm btn-icon btn-warning"
-                                                    onClick={() => update(facility)}
-                                                    title="Edit"
-                                                >
-                                                    <i className="bx bx-edit"></i>
-                                                </button>
-                                                <button
-                                                    className="btn btn-sm btn-icon btn-info"
-                                                    onClick={() => openPricing(facility)}
-                                                    title="Pricing"
-                                                >
-                                                    <i className="bx bx-dollar"></i>
-                                                </button>
-                                                <button
-                                                    className="btn btn-sm btn-icon btn-danger"
-                                                    onClick={() => remove(facility.id)}
-                                                    title="Delete"
-                                                >
-                                                    <i className="bx bx-trash"></i>
-                                                </button>
-                                            </div>
+                                {facilities.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="text-center py-4 text-muted">
+                                            <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
+                                            No facilities found
                                         </td>
                                     </tr>
-                                ))
-                            )}
+                                ) : (
+                                    facilities.map((facility, index) => (
+                                        <tr key={facility.id}>
+                                            <td>{((currentPage - 1) * 10) + index + 1}</td>
+                                            <td>
+                                                <div className="fw-semibold">{facility.name}</div>
+                                                <small className="text-muted">{facility.description}</small>
+                                            </td>
+                                            <td>{facility.category}</td>
+                                            <td>
+                                                {facility.user_pic ? (
+                                                    <>
+                                                        <div className="fw-semibold">{facility.user_pic.name}</div>
+                                                        <small className="text-muted">{facility.user_pic.email}</small>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-muted">-</span>
+                                                )}
+                                            </td>
+                                            <td>{getAvailabilityBadge(facility.is_available)}</td>
+                                            <td>
+                                                <div className="d-flex gap-1">
+                                                    <button
+                                                        className="btn btn-sm btn-icon btn-warning"
+                                                        onClick={() => update(facility)}
+                                                        title="Edit"
+                                                    >
+                                                        <i className="bx bx-edit"></i>
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-icon btn-info"
+                                                        onClick={() => openPricing(facility)}
+                                                        title="Pricing"
+                                                    >
+                                                        <i className="bx bx-dollar"></i>
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-icon btn-danger"
+                                                        onClick={() => remove(facility.id)}
+                                                        title="Delete"
+                                                    >
+                                                        <i className="bx bx-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -258,7 +280,7 @@ const FacilityListPage: React.FC = () => {
                             {pagination.page_count && (
                                 <div className="col-sm-12 col-md-6 d-flex justify-content-end">
                                     <Pagination currentPage={currentPage} pageCount={pagination.page_count}
-                                                onPageChange={setCurrentPage}/>
+                                        onPageChange={setCurrentPage} />
                                 </div>
                             )}
                         </div>

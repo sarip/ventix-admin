@@ -9,13 +9,13 @@ import { Offcanvas, Button } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
-import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
-import Filter, {QueryParamsProps} from './_filter';
+import ConfirmDialog from '@/pages/_components/ConfirmDialog'
+import Filter, { QueryParamsProps } from './_filter';
 import Form from './_form';
 import { Tenant, InTenant, InTenantForm } from '@/models/Tenant';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
-import {ListResponse} from "@/types/apiTypes";
+import { ListResponse } from "@/types/apiTypes";
 
 interface ValidationErrorProps {
     field: string;
@@ -40,6 +40,8 @@ const TenantPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InTenantForm>({
@@ -52,21 +54,39 @@ const TenantPage: React.FC = () => {
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
     const Model = new Tenant();
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
     const listData = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
-            const response:ListResponse<InTenant[]> = await Model.list(query);
+            query.sort_by = sortBy + ':' + sortOrder;
+            const response: ListResponse<InTenant[]> = await Model.list(query);
             setLastQuery(query);
             setTenants(response.tenants);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
-        } catch (e){
-            if(e.status === 403){
+        } catch (e) {
+            if (e.status === 403) {
                 router.push('/403');
             }
             unblockUI();
-        }finally {
+        } finally {
             if (isInitialLoad) {
                 unblockUI();
                 setIsInitialLoad(false);
@@ -112,7 +132,7 @@ const TenantPage: React.FC = () => {
             listData(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
-            let result:ValidationErrorProps[] = lines.map(line => {
+            let result: ValidationErrorProps[] = lines.map(line => {
                 let [field, ...message] = line.split(' ');
                 return {
                     field,
@@ -123,7 +143,7 @@ const TenantPage: React.FC = () => {
         }
     }, [Model, lastQuery, listData]);
 
-    const remove = async (id:number) => {
+    const remove = async (id: number) => {
         Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this data",
@@ -136,7 +156,7 @@ const TenantPage: React.FC = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const response = await Model.delete(id);
-                if(response.success) {
+                if (response.success) {
                     showToast("Successfully Deleted", "success");
                     listData(lastQuery);
                 }
@@ -149,6 +169,10 @@ const TenantPage: React.FC = () => {
     useEffect(() => {
         if (!isInitialLoad) listData(lastQuery);
     }, [currentPage]);
+
+    useEffect(() => {
+        if (!isInitialLoad) listData(lastQuery);
+    }, [sortBy, sortOrder]);
 
 
     return (
@@ -170,39 +194,39 @@ const TenantPage: React.FC = () => {
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
-                        <tr>
-                            <th style={{width: '10%'}}>Actions</th>
-                            <th>Name</th>
-                            <th>Contact Name</th>
-                            <th>Contact Email</th>
-                            <th>Contact Phone</th>
-                            <th>Unit Code</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
+                            <tr>
+                                <th style={{ width: '10%' }}>Actions</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Name {getSortIcon('name')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('contact_name')}>Contact Name {getSortIcon('contact_name')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('contact_email')}>Contact Email {getSortIcon('contact_email')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('contact_phone')}>Contact Phone {getSortIcon('contact_phone')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('unit_code')}>Unit Code {getSortIcon('unit_code')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
 
-                        </tr>
+                            </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                        {tenants.map((item:InTenant, key:number) => (
-                            <tr className="odd" key={key}>
-                                <td>
-                                    <div className="d-flex align-items-sm-center justify-content-sm-center">
-                                        <button className="btn btn-md btn-icon btn-danger me-2"
+                            {tenants.map((item: InTenant, key: number) => (
+                                <tr className="odd" key={key}>
+                                    <td>
+                                        <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                            <button className="btn btn-md btn-icon btn-danger me-2"
                                                 onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
-                                        </button>
-                                        <button className="btn btn-md btn-icon btn-warning"
+                                            </button>
+                                            <button className="btn btn-md btn-icon btn-warning"
                                                 onClick={() => update(item)}><i className="bx bx-edit"></i></button>
-                                    </div>
-                                </td>
-                                <td>{item.name}</td>
-                                <td>{item.contact_name}</td>
-                                <td>{item.contact_email}</td>
-                                <td>{item.contact_phone}</td>
-                                <td>{item.unit_code}</td>
-                                <td>{item.created_at}</td>
-                                <td>{item.updated_at}</td>
-                            </tr>
-                        ))}
+                                        </div>
+                                    </td>
+                                    <td>{item.name}</td>
+                                    <td>{item.contact_name}</td>
+                                    <td>{item.contact_email}</td>
+                                    <td>{item.contact_phone}</td>
+                                    <td>{item.unit_code}</td>
+                                    <td>{item.created_at}</td>
+                                    <td>{item.updated_at}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                     {pagination && (

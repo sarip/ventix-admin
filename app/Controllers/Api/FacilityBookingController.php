@@ -14,6 +14,7 @@ use App\Models\FacilityBooking;
 use App\Models\FacilitybookingStatu;
 use App\Models\User;
 use App\Libraries\CommissionEngine;
+use App\Libraries\EmailNotificationService;
 
 class FacilityBookingController extends ApiController
 {
@@ -128,13 +129,17 @@ class FacilityBookingController extends ApiController
         $commissionEngine = new CommissionEngine();
         $commissions = $commissionEngine->processOrder($id, 'facility', $create_data['total_price']);
 
-        // Adjust total_price if there's a guest fee
-//        if (isset($commissions['guest_fee'])) {
-//            $totalPriceWithFee = (float) $create_data['total_price'] + $commissions['guest_fee'];
-//            $FacilityBooking->update($id, [
-//                'total_price' => $totalPriceWithFee
-//            ]);
-//        }
+        // Send Facility Booking Created email
+        $User = new User();
+        $buyer = $User->find($create_data['user_id']);
+        if ($buyer) {
+            $freshBooking = $FacilityBooking->find($id);
+            $Facilitie = new Facilitie();
+            $facility = $Facilitie->find($create_data['facility_id']);
+            if ($facility) {
+                (new EmailNotificationService())->sendFacilityBookingCreated($freshBooking, $buyer, $facility);
+            }
+        }
 
         return $this->successOutput(['id' => $id, 'commissions' => $commissions], 201);
     }
@@ -399,6 +404,20 @@ class FacilityBookingController extends ApiController
             $updated->status,
             FacilitybookingStatu::class
         );
+
+        // Send status-based email notifications
+        $buyer = $User->find($booking->user_id);
+        $facility = $Facility->find($booking->facility_id);
+        if ($buyer && $facility) {
+            $emailSvc = new EmailNotificationService();
+            $freshBooking = $FacilityBooking->find($id);
+
+            if (strtolower($status) === 'pending') {
+                $emailSvc->sendFacilityPaymentSubmitted($freshBooking, $buyer, $facility);
+            } elseif (strtolower($status) === 'confirmed') {
+                $emailSvc->sendFacilityPaymentAccepted($freshBooking, $buyer, $facility);
+            }
+        }
 
         return $this->successOutput(['booking' => $updated]);
     }

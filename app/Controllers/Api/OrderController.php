@@ -18,6 +18,7 @@ use App\Models\OrdersStatu;
 use App\Models\User;
 use App\Models\UserTicket;
 use App\Libraries\CommissionEngine;
+use App\Libraries\EmailNotificationService;
 
 class OrderController extends ApiController
 {
@@ -172,13 +173,14 @@ class OrderController extends ApiController
         $commissionEngine = new CommissionEngine();
         $commissions = $commissionEngine->processOrder($id, 'event', $totalAmount);
 
-        // Adjust total_amount if there's a guest fee
-//        if (isset($commissions['guest_fee'])) {
-//            $totalAmountWithFee = $totalAmount + $commissions['guest_fee'];
-//            $Order->update($id, [
-//                'total_amount' => $totalAmountWithFee
-//            ]);
-//        }
+        // Send Order Created email
+        $User = new User();
+        $buyer = $User->find($create_data['user_id']);
+        if ($buyer) {
+            $freshOrder = $Order->find($id);
+            $allItems = (new OrderItem())->where('order_id', $id)->findAll();
+            (new EmailNotificationService())->sendOrderCreated($freshOrder, $buyer, $allItems);
+        }
 
         return $this->successOutput(['id' => $id, 'commissions' => $commissions], 201);
     }
@@ -236,6 +238,10 @@ class OrderController extends ApiController
             $this->_generateTicket($update_data, $id, $order_item->event_ticket_id);
         }
 
+        // Detect old status before update (for email triggers)
+        $existingOrder = $Order->find($id);
+        $oldStatus = $existingOrder ? $existingOrder->status : null;
+
         $Order->update($id, $update_data);
 
         // Integrate Commission Engine
@@ -246,13 +252,50 @@ class OrderController extends ApiController
 
         $commissions = $commissionEngine->processOrder($id, 'event', $update_data['total_amount']);
 
-        // Adjust total_amount if there's a guest fee
-//        if (isset($commissions['guest_fee'])) {
-//            $totalAmountWithFee = (float) $update_data['total_amount'] + $commissions['guest_fee'];
-//            $Order->update($id, [
-//                'total_amount' => $totalAmountWithFee
-//            ]);
-//        }
+        // Send status-based email notifications
+        $newStatus = $update_data['status'] ?? null;
+        if ($newStatus && $newStatus !== $oldStatus) {
+            $UserModel = new User();
+            $buyer = $UserModel->find($update_data['user_id'] ?? ($existingOrder->user_id ?? null));
+            $freshOrder = $Order->find($id);
+
+            if ($buyer && $freshOrder) {
+                $emailSvc = new EmailNotificationService();
+
+                if (strtolower($newStatus) === 'waiting_verification') {
+                    $emailSvc->sendOrderPaymentSubmitted($freshOrder, $buyer);
+                } elseif (strtolower($newStatus) === 'paid' || strtolower($newStatus) === 'sukses') {
+
+                    $ticketModel = new UserTicket();
+                    $tickets = $ticketModel
+                        ->select('
+                                user_tickets.*,
+                                event_ticket.name as ticket_type,
+                                events.title as event_name,
+                                events.id as event_id,
+                                events.event_category as event_category,
+                                order_items.event_date as event_date
+                            ')
+                        ->join('order_items', 'order_items.event_ticket_id = user_tickets.event_ticket_id')
+                        ->join('event_ticket', 'event_ticket.id = user_tickets.event_ticket_id')
+                        ->join('events', 'events.id = event_ticket.event_id')
+                        ->where('order_items.order_id', $id)
+                        ->where('user_tickets.user_id', $freshOrder->user_id)
+                        ->findAll();
+
+//                    $tickets = (new UserTicket())->where('user_id', $freshOrder->user_id)->findAll();
+//                    // Filter to only tickets from this order's items
+//                    $orderItemTicketIds = array_column(
+//                        (new OrderItem())->where('order_id', $id)->findAll(),
+//                        'event_ticket_id'
+//                    );
+//
+//                    $tickets = array_filter($tickets, fn($t) => in_array($t->event_ticket_id, $orderItemTicketIds));
+                    $emailSvc->sendOrderPaymentAccepted($freshOrder, $buyer, array_values($tickets));
+                }
+            }
+        }
+
 
         $data = $Order->find($id);
 

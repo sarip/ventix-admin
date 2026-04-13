@@ -20,7 +20,7 @@ class SysUsersRole extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'role_name', 'role_slug', 'description'
+        'role_name', 'role_slug', 'description', 'scope'
     ];
 
     // Dates

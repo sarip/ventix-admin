@@ -31,6 +31,7 @@ interface FormProps {
 }
 
 const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, validationError = [] }) => {
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<OrderFormData>(data);
     const [orderItems, setOrderItems] = useState<InOrderItem[]>(data.order_items || []);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -131,14 +132,20 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
         return orderItems.reduce((sum, item) => sum + parseFloat(item.subtotal || '0'), 0);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const total = calculateTotal();
-        onSave({
-            ...formData,
-            total_amount: total.toString(),
-            order_items: orderItems
-        });
+        setLoading(true);
+        try {
+            const total = calculateTotal();
+            await onSave({
+                ...formData,
+                total_amount: total.toString(),
+                order_items: orderItems
+            });
+        } finally {
+            setLoading(false);
+        }
+
     };
 
     useEffect(() => {
@@ -376,9 +383,18 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                             <button type="button" className="btn btn-secondary" onClick={onHide}>
                                 Cancel
                             </button>
-                            <button type="submit" className="btn btn-primary">
-                                <i className="bx bx-save me-1"></i>
-                                {formData.id ? 'Update' : 'Create'} Order
+                            <button type="submit" className="btn btn-primary" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="bx bx-save me-1"></i>
+                                        {formData.id ? 'Update' : 'Create'} Order
+                                    </>
+                                )}
                             </button>
                         </div>
                     </form>

@@ -35,6 +35,8 @@ const TicketOrderPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -50,11 +52,27 @@ const TicketOrderPage: React.FC = () => {
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
     const TicketOrderModel = new TicketOrder();
 
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
 
     const loadOrders = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
+            query.sort_by = sortBy + ':' + sortOrder;
             const response = await TicketOrderModel.list(query);
             setLastQuery(query);
             setOrders(response.orders || []);
@@ -187,6 +205,10 @@ const TicketOrderPage: React.FC = () => {
         if (!isInitialLoad) loadOrders(lastQuery);
     }, [currentPage]);
 
+    useEffect(() => {
+        if (!isInitialLoad) loadOrders(lastQuery);
+    }, [sortBy, sortOrder]);
+
     return (
         <>
             <div className=" container-p-y">
@@ -211,12 +233,12 @@ const TicketOrderPage: React.FC = () => {
                             <tr>
                                 <th style={{ width: '50px' }}></th>
                                 <th style={{ width: '100px' }}>Actions</th>
-                                <th>Order Code</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('order_code')}>Order Code {getSortIcon('order_code')}</th>
                                 <th>User</th>
-                                <th>Total Amount</th>
-                                <th>Payment Method</th>
-                                <th>Status</th>
-                                <th>Date</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('total_amount')}>Total Amount {getSortIcon('total_amount')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('payment_method')}>Payment Method {getSortIcon('payment_method')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>Status {getSortIcon('status')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Date {getSortIcon('created_at')}</th>
                             </tr>
                         </thead>
                         <tbody>

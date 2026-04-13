@@ -36,6 +36,8 @@ const FacilityBookingPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('booking_date');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState<InFacilityBookingForm>({
         facility_id: 0,
@@ -48,11 +50,27 @@ const FacilityBookingPage: React.FC = () => {
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
     const BookingModel = new FacilityBooking();
 
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
 
     const loadBookings = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
+            query.sort_by = sortBy + ':' + sortOrder;
             const response = await BookingModel.list(query);
             setBookings(response.facility_bookings || []);
             setPagination(response.pagination);
@@ -147,6 +165,10 @@ const FacilityBookingPage: React.FC = () => {
         if (!isInitialLoad) loadBookings(lastQuery);
     }, [currentPage]);
 
+    useEffect(() => {
+        if (!isInitialLoad) loadBookings(lastQuery);
+    }, [sortBy, sortOrder]);
+
     return (
         <>
             <div className=" container-p-y">
@@ -173,13 +195,14 @@ const FacilityBookingPage: React.FC = () => {
                             <thead className="table-light">
                                 <tr>
                                     <th>#</th>
-                                    <th>Booking Code</th>
-                                    <th>Facility</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('facility_code')}>Booking Code {getSortIcon('facility_code')}</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('facility_id')}>Facility {getSortIcon('facility_id')}</th>
                                     <th>User</th>
-                                    <th>Date & Time</th>
-                                    <th>Duration</th>
-                                    <th>Total Price</th>
-                                    <th>Status</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('booking_date')}>Date & Time {getSortIcon('booking_date')}</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('total_hours')}>Duration {getSortIcon('total_hours')}</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('total_price')}>Total Price {getSortIcon('total_price')}</th>
+                                    <th>Proof</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>Status {getSortIcon('status')}</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>

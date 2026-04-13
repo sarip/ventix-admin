@@ -15,6 +15,8 @@
         "ext-mysqli": "*",
         "agungsugiarto/codeigniter4-cors": "^3.0",
         "codeigniter4/framework": "^4.0",
+        "dompdf/dompdf": "^3.1",
+        "endroid/qr-code": "^4.6",
         "firebase/php-jwt": "^6.10"
     },
     "require-dev": {

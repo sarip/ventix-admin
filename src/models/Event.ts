@@ -20,6 +20,7 @@ export interface InEventForm {
     start_date: string;
     end_date: string;
     location_name: string;
+    location: string;
     latitude: string;
     longitude: string;
     price_pool: string;

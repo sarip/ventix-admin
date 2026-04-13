@@ -9,13 +9,13 @@ import { Offcanvas, Button } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
-import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
-import Filter, {QueryParamsProps} from './_filter';
+import ConfirmDialog from '@/pages/_components/ConfirmDialog'
+import Filter, { QueryParamsProps } from './_filter';
 import Form from './_form';
 import { Event, InEvent, InEventForm } from '@/models/Event';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
-import {ListResponse} from "@/types/apiTypes";
+import { ListResponse } from "@/types/apiTypes";
 
 interface ValidationErrorProps {
     field: string;
@@ -41,6 +41,8 @@ const EventPage: React.FC = () => {
     const [pageCount, setPageCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InEventForm>({
         id: null,
@@ -52,30 +54,48 @@ const EventPage: React.FC = () => {
         start_date: "",
         end_date: "",
         location_name: "",
+        location: "",
         latitude: "",
         longitude: "",
         price_pool: "",
         registration_fee: "",
-        thumbnail_url:  null,
+        thumbnail_url: null,
         events_status: "",
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
     const Model = new Event();
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
     const listData = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
-            const response:ListResponse<InEvent[]> = await Model.list(query);
+            query.sort_by = sortBy + ':' + sortOrder;
+            const response: ListResponse<InEvent[]> = await Model.list(query);
             setLastQuery(query);
             setEvents(response.events);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
-        } catch (e){
-            if(e.status === 403){
+        } catch (e) {
+            if (e.status === 403) {
                 router.push('/403');
             }
             unblockUI();
-        }finally {
+        } finally {
             if (isInitialLoad) {
                 unblockUI();
                 setIsInitialLoad(false);
@@ -99,12 +119,13 @@ const EventPage: React.FC = () => {
             description: "",
             start_date: "",
             end_date: "",
+            location: "",
             location_name: "",
             latitude: "",
             longitude: "",
             price_pool: "",
             registration_fee: "",
-            thumbnail_url:  null,
+            thumbnail_url: null,
             events_status: "",
         });
     }
@@ -119,7 +140,7 @@ const EventPage: React.FC = () => {
 
 
     const save = useCallback(async (data: InEventForm) => {
-        console.log({'save' : data})
+        console.log({ 'save': data })
         try {
             // if (data.id) {
             //     await Model.update(data.id, data);
@@ -131,11 +152,11 @@ const EventPage: React.FC = () => {
             await Model.saveAll(data);
 
             showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
-            // jQuery("#modal-Event").modal('hide');
+            jQuery("#modal-Event").modal('hide');
             listData(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
-            let result:ValidationErrorProps[] = lines.map(line => {
+            let result: ValidationErrorProps[] = lines.map(line => {
                 let [field, ...message] = line.split(' ');
                 return {
                     field,
@@ -146,7 +167,7 @@ const EventPage: React.FC = () => {
         }
     }, [Model, lastQuery, listData]);
 
-    const remove = async (id:number) => {
+    const remove = async (id: number) => {
         Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this data",
@@ -159,7 +180,7 @@ const EventPage: React.FC = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const response = await Model.delete(id);
-                if(response.success) {
+                if (response.success) {
                     showToast("Successfully Deleted", "success");
                     listData(lastQuery);
                 }
@@ -172,6 +193,10 @@ const EventPage: React.FC = () => {
     useEffect(() => {
         if (!isInitialLoad) listData(lastQuery);
     }, [currentPage]);
+
+    useEffect(() => {
+        if (!isInitialLoad) listData(lastQuery);
+    }, [sortBy, sortOrder]);
 
 
     return (
@@ -193,47 +218,47 @@ const EventPage: React.FC = () => {
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
-                        <tr>
-                            <th style={{width: '10%'}}>Actions</th>
-                            <th>EO</th>
-                            <th>PIC</th>
-                            <th>Title</th>
-                            <th>Description</th>
-                            <th>Date</th>
-                            <th>Location</th>
-                            <th>Price Pool</th>
-                            <th>Registration Fee</th>
-                            <th>Event Status</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
+                            <tr>
+                                <th style={{ width: '10%' }}>Actions</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('eo_name')}>EO {getSortIcon('eo_name')}</th>
+                                <th>PIC</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('title')}>Title {getSortIcon('title')}</th>
+                                <th>Description</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('start_date')}>Date {getSortIcon('start_date')}</th>
+                                <th>Location</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('price_pool')}>Price Pool {getSortIcon('price_pool')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('registration_fee')}>Registration Fee {getSortIcon('registration_fee')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('events_status')}>Event Status {getSortIcon('events_status')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
 
-                        </tr>
+                            </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                        {events.map((item:InEvent, key:number) => (
-                            <tr className="odd" key={key}>
-                                <td>
-                                    <div className="d-flex align-items-sm-center justify-content-sm-center">
-                                        <button className="btn btn-md btn-icon btn-danger me-2"
+                            {events.map((item: InEvent, key: number) => (
+                                <tr className="odd" key={key}>
+                                    <td>
+                                        <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                            <button className="btn btn-md btn-icon btn-danger me-2"
                                                 onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
-                                        </button>
-                                        <button className="btn btn-md btn-icon btn-warning"
+                                            </button>
+                                            <button className="btn btn-md btn-icon btn-warning"
                                                 onClick={() => update(item)}><i className="bx bx-edit"></i></button>
-                                    </div>
-                                </td>
-                                <td>{item.event_organizer?.eo_name}</td>
-                                <td>{item.user?.name}</td>
-                                <td>{item.title}</td>
-                                <td>{item.description}</td>
-                                <td>{item.start_date} - {item.end_date}</td>
-                                <td>{item.location_name}</td>
-                                <td>{item.price_pool}</td>
-                                <td>{item.registration_fee}</td>
-                                <td>{item.events_status}</td>
-                                <td>{item.created_at}</td>
-                                <td>{item.updated_at}</td>
-                            </tr>
-                        ))}
+                                        </div>
+                                    </td>
+                                    <td>{item.event_organizer?.eo_name}</td>
+                                    <td>{item.user?.name}</td>
+                                    <td>{item.title}</td>
+                                    <td>{item.description}</td>
+                                    <td>{item.start_date} - {item.end_date}</td>
+                                    <td>{item.location_name}</td>
+                                    <td>{item.price_pool}</td>
+                                    <td>{item.registration_fee}</td>
+                                    <td>{item.events_status}</td>
+                                    <td>{item.created_at}</td>
+                                    <td>{item.updated_at}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                     {pagination && (

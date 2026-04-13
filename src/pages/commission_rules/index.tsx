@@ -9,14 +9,14 @@ import { Offcanvas, Button } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
-import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
-import Filter, {QueryParamsProps} from './_filter';
+import ConfirmDialog from '@/pages/_components/ConfirmDialog'
+import Filter, { QueryParamsProps } from './_filter';
 import Form from './_form';
 import { CommisionRules, InCommisionRulesForm, InCommisionRules } from '@/models/CommisionRules';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
-import {ListResponse} from "@/types/apiTypes";
-import {StatusBadgeColors} from "@/types/user";
+import { ListResponse } from "@/types/apiTypes";
+import { StatusBadgeColors } from "@/types/user";
 
 interface ValidationErrorProps {
     field: string;
@@ -41,6 +41,8 @@ const commissionrulesPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InCommisionRulesForm>({
@@ -53,21 +55,39 @@ const commissionrulesPage: React.FC = () => {
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
     const Model = new CommisionRules();
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
     const listData = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
-            const response:ListResponse<InCommisionRules[]> = await Model.list(query);
+            query.sort_by = sortBy + ':' + sortOrder;
+            const response: ListResponse<InCommisionRules[]> = await Model.list(query);
             setLastQuery(query);
             setcommissionruless(response.commission_rules);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
-        } catch (e){
-            if(e.status === 403){
+        } catch (e) {
+            if (e.status === 403) {
                 router.push('/403');
             }
             unblockUI();
-        }finally {
+        } finally {
             if (isInitialLoad) {
                 unblockUI();
                 setIsInitialLoad(false);
@@ -113,7 +133,7 @@ const commissionrulesPage: React.FC = () => {
             listData(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
-            let result:ValidationErrorProps[] = lines.map(line => {
+            let result: ValidationErrorProps[] = lines.map(line => {
                 let [field, ...message] = line.split(' ');
                 return {
                     field,
@@ -124,7 +144,7 @@ const commissionrulesPage: React.FC = () => {
         }
     }, [Model, lastQuery, listData]);
 
-    const remove = async (id:number) => {
+    const remove = async (id: number) => {
         Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this data",
@@ -137,7 +157,7 @@ const commissionrulesPage: React.FC = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const response = await Model.delete(id);
-                if(response.success) {
+                if (response.success) {
                     showToast("Successfully Deleted", "success");
                     listData(lastQuery);
                 }
@@ -145,14 +165,14 @@ const commissionrulesPage: React.FC = () => {
         });
     };
 
-    const UserStatusBadge = ( status) => {
-        if(status == '1') {
+    const UserStatusBadge = (status) => {
+        if (status == '1') {
             return (
                 <span className={`badge bg-success`}>
                     Active
                 </span>
             );
-        }else{
+        } else {
             return (
                 <span className={`badge bg-danger`}>
                     Inactive
@@ -166,6 +186,10 @@ const commissionrulesPage: React.FC = () => {
     useEffect(() => {
         if (!isInitialLoad) listData(lastQuery);
     }, [currentPage]);
+
+    useEffect(() => {
+        if (!isInitialLoad) listData(lastQuery);
+    }, [sortBy, sortOrder]);
 
 
     return (
@@ -187,39 +211,39 @@ const commissionrulesPage: React.FC = () => {
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
-                        <tr>
-                            <th style={{width: '10%'}}>Actions</th>
-                            <th>Module</th>
-                            <th>Rule Key</th>
-                            <th>Percentage</th>
-                            <th>Fixed Amount</th>
-                            <th>Is Active</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
+                            <tr>
+                                <th style={{ width: '10%' }}>Actions</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('module')}>Module {getSortIcon('module')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('rule_key')}>Rule Key {getSortIcon('rule_key')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('percentage')}>Percentage {getSortIcon('percentage')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('fixed_amount')}>Fixed Amount {getSortIcon('fixed_amount')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('is_active')}>Is Active {getSortIcon('is_active')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
 
-                        </tr>
+                            </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                        {commissionruless.map((item:InCommisionRules, key:number) => (
-                            <tr className="odd" key={key}>
-                                <td>
-                                    <div className="d-flex align-items-sm-center justify-content-sm-center">
-                                        {/*<button className="btn btn-md btn-icon btn-danger me-2"*/}
-                                        {/*        onClick={() => remove(item.id)}><i className="bx bx-trash"></i>*/}
-                                        {/*</button>*/}
-                                        <button className="btn btn-md btn-icon btn-warning"
+                            {commissionruless.map((item: InCommisionRules, key: number) => (
+                                <tr className="odd" key={key}>
+                                    <td>
+                                        <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                            {/*<button className="btn btn-md btn-icon btn-danger me-2"*/}
+                                            {/*        onClick={() => remove(item.id)}><i className="bx bx-trash"></i>*/}
+                                            {/*</button>*/}
+                                            <button className="btn btn-md btn-icon btn-warning"
                                                 onClick={() => update(item)}><i className="bx bx-edit"></i></button>
-                                    </div>
-                                </td>
-                                <td>{item.module}</td>
-                                <td>{item.rule_key}</td>
-                                <td>{item.percentage}%</td>
-                                <td>{item.fixed_amount}</td>
-                                <td>{UserStatusBadge(item.is_active)}</td>
-                                <td>{item.created_at}</td>
-                                <td>{item.updated_at}</td>
-                            </tr>
-                        ))}
+                                        </div>
+                                    </td>
+                                    <td>{item.module}</td>
+                                    <td>{item.rule_key}</td>
+                                    <td>{item.percentage}%</td>
+                                    <td>{item.fixed_amount}</td>
+                                    <td>{UserStatusBadge(item.is_active)}</td>
+                                    <td>{item.created_at}</td>
+                                    <td>{item.updated_at}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                     {pagination && (

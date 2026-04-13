@@ -39,6 +39,8 @@ const TicketEventPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<InEventTicket | null>(null);
@@ -62,14 +64,27 @@ const TicketEventPage: React.FC = () => {
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
     const EventTicketModel = new EventTicket();
 
-    // useEffect(() => {
-    //     loadTickets();
-    // }, [currentPage, searchQuery, statusFilter]);
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
 
     const loadTickets = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
+            query.sort_by = sortBy + ':' + sortOrder;
             const response = await EventTicketModel.list(query);
             setLastQuery(query);
             setTickets(response.event_ticket || []);
@@ -184,6 +199,10 @@ const TicketEventPage: React.FC = () => {
         if (!isInitialLoad) loadTickets(lastQuery);
     }, [currentPage]);
 
+    useEffect(() => {
+        if (!isInitialLoad) loadTickets(lastQuery);
+    }, [sortBy, sortOrder]);
+
 
     return (
         <>
@@ -208,13 +227,13 @@ const TicketEventPage: React.FC = () => {
                         <thead className="table-light">
                             <tr>
                                 <th width="120">Actions</th>
-                                <th>Event</th>
-                                <th>Ticket Name</th>
-                                <th>Price</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('event_id')}>Event {getSortIcon('event_id')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Ticket Name {getSortIcon('name')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('price')}>Price {getSortIcon('price')}</th>
                                 <th>Taxes</th>
-                                <th>Final Price</th>
-                                <th>Capacity</th>
-                                <th>Status</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('final_price')}>Final Price {getSortIcon('final_price')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('remaining_capacity')}>Capacity {getSortIcon('remaining_capacity')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('is_active')}>Status {getSortIcon('is_active')}</th>
                             </tr>
                         </thead>
                         <tbody>

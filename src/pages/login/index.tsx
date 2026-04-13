@@ -16,7 +16,7 @@ export default function Login() {
 
     const handleLogin = async (e:any) => {
         e.preventDefault();
-        Axios.post(process.env.NEXT_PUBLIC_BASE_URL + 'login', {
+        Axios.post(process.env.NEXT_PUBLIC_BASE_URL + 'login?role=EO', {
             username : username,
             password : password
         }).then((response) => {

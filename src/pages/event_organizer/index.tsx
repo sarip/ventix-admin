@@ -9,13 +9,13 @@ import { Offcanvas, Button } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
-import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
-import Filter, {QueryParamsProps} from './_filter';
+import ConfirmDialog from '@/pages/_components/ConfirmDialog'
+import Filter, { QueryParamsProps } from './_filter';
 import Form from './_form';
 import { EventOrganizer, InEventOrganizer, InEventOrganizerForm } from '@/models/EventOrganizer';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
-import {ListResponse} from "@/types/apiTypes";
+import { ListResponse } from "@/types/apiTypes";
 import OneGalery from "@/pages/_components/OneGalery";
 
 interface ValidationErrorProps {
@@ -42,6 +42,8 @@ const EventOrganizerPage: React.FC = () => {
     const [pageCount, setPageCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InEventOrganizerForm>({
         id: null,
@@ -57,21 +59,39 @@ const EventOrganizerPage: React.FC = () => {
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
     const Model = new EventOrganizer();
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
     const listData = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
-            const response:ListResponse<InEventOrganizer[]> = await Model.list(query);
+            query.sort_by = sortBy + ':' + sortOrder;
+            const response: ListResponse<InEventOrganizer[]> = await Model.list(query);
             setLastQuery(query);
             setEventOrganizers(response.events_organizer);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
-        } catch (e){
-            if(e.status === 403){
+        } catch (e) {
+            if (e.status === 403) {
                 router.push('/403');
             }
             unblockUI();
-        }finally {
+        } finally {
             if (isInitialLoad) {
                 unblockUI();
                 setIsInitialLoad(false);
@@ -129,7 +149,7 @@ const EventOrganizerPage: React.FC = () => {
             listData(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
-            let result:ValidationErrorProps[] = lines.map(line => {
+            let result: ValidationErrorProps[] = lines.map(line => {
                 let [field, ...message] = line.split(' ');
                 return {
                     field,
@@ -140,7 +160,7 @@ const EventOrganizerPage: React.FC = () => {
         }
     }, [Model, lastQuery, listData]);
 
-    const remove = async (id:number) => {
+    const remove = async (id: number) => {
         Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this data",
@@ -153,7 +173,7 @@ const EventOrganizerPage: React.FC = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const response = await Model.delete(id);
-                if(response.success) {
+                if (response.success) {
                     showToast("Successfully Deleted", "success");
                     listData(lastQuery);
                 }
@@ -166,6 +186,10 @@ const EventOrganizerPage: React.FC = () => {
     useEffect(() => {
         if (!isInitialLoad) listData(lastQuery);
     }, [currentPage]);
+
+    useEffect(() => {
+        if (!isInitialLoad) listData(lastQuery);
+    }, [sortBy, sortOrder]);
 
 
     return (
@@ -187,49 +211,49 @@ const EventOrganizerPage: React.FC = () => {
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
-                        <tr>
-                            <th style={{width: '10%'}}>Actions</th>
-                            <th>Logo</th>
-                            <th>EO Name</th>
-                            <th>Company Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Website</th>
-                            <th>Address</th>
-                            <th>Tax ID</th>
-                            <th>Description</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
+                            <tr>
+                                <th style={{ width: '10%' }}>Actions</th>
+                                <th>Logo</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('eo_name')}>EO Name {getSortIcon('eo_name')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('company_name')}>Company Name {getSortIcon('company_name')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('email')}>Email {getSortIcon('email')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('phone')}>Phone {getSortIcon('phone')}</th>
+                                <th>Website</th>
+                                <th>Address</th>
+                                <th>Tax ID</th>
+                                <th>Description</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
 
-                        </tr>
+                            </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                        {EventOrganizers.map((item:InEventOrganizer, key:number) => (
-                            <tr className="odd" key={key}>
-                                <td>
-                                    <div className="d-flex align-items-sm-center justify-content-sm-center">
-                                        <button className="btn btn-md btn-icon btn-danger me-2"
+                            {EventOrganizers.map((item: InEventOrganizer, key: number) => (
+                                <tr className="odd" key={key}>
+                                    <td>
+                                        <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                            <button className="btn btn-md btn-icon btn-danger me-2"
                                                 onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
-                                        </button>
-                                        <button className="btn btn-md btn-icon btn-warning"
+                                            </button>
+                                            <button className="btn btn-md btn-icon btn-warning"
                                                 onClick={() => update(item)}><i className="bx bx-edit"></i></button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <OneGalery attachments={`/event_organizer/${item.logo_path}`} />
-                                </td>
-                                <td>{item.eo_name}</td>
-                                <td>{item.company_name}</td>
-                                <td>{item.email}</td>
-                                <td>{item.phone}</td>
-                                <td>{item.website}</td>
-                                <td>{item.address}</td>
-                                <td>{item.tax_id}</td>
-                                <td>{item.description}</td>
-                                <td>{item.created_at}</td>
-                                <td>{item.updated_at}</td>
-                            </tr>
-                        ))}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <OneGalery attachments={`/event_organizer/${item.logo_path}`} />
+                                    </td>
+                                    <td>{item.eo_name}</td>
+                                    <td>{item.company_name}</td>
+                                    <td>{item.email}</td>
+                                    <td>{item.phone}</td>
+                                    <td>{item.website}</td>
+                                    <td>{item.address}</td>
+                                    <td>{item.tax_id}</td>
+                                    <td>{item.description}</td>
+                                    <td>{item.created_at}</td>
+                                    <td>{item.updated_at}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                     {pagination && (

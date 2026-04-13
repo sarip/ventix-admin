@@ -9,6 +9,7 @@ export interface QueryParamsProps {
     search?: string;
     filter?: string;
     sort_by?: string;
+    sort_order?: string;
     per_page?: number;
     page?: number;
 }
@@ -38,7 +39,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
 
     const submit = () => {
         const query = getQuery();
-        console.log({"query" : query})
+        console.log({ "query": query })
         onSubmit(query);
     };
 

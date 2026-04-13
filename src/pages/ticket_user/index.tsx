@@ -4,7 +4,7 @@
  * @date 2026-01-14
  */
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Badge, Modal, Button } from 'react-bootstrap';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
@@ -12,10 +12,10 @@ import { TicketUser, InTicketUser } from '@/models/TicketUser';
 import { showToast } from '@/utils/toast';
 import QRCode from 'qrcode';
 import PrintTicket from './PrintTicket';
-import Filter, {QueryParamsProps} from "./_filter";
+import Filter, { QueryParamsProps } from "./_filter";
 import Swal from "sweetalert2";
 import moment from "moment/moment";
-import {getCookie} from "cookies-next";
+import { getCookie } from "cookies-next";
 
 interface PaginationProps {
     current_page: number;
@@ -35,17 +35,35 @@ const TicketUserPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [showQRModal, setShowQRModal] = useState(false);
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<InTicketUser | null>(null);
     const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
     const TicketUserModel = new TicketUser();
 
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
 
     const loadTickets = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
+            query.sort_by = sortBy + ':' + sortOrder;
             const response = await TicketUserModel.list(query);
             setLastQuery(query);
             setTickets(response.user_tickets || []);
@@ -75,7 +93,7 @@ const TicketUserPage: React.FC = () => {
         }
     };
 
-    const handleCheckIn =  useCallback(async (ticket: InTicketUser) => {
+    const handleCheckIn = useCallback(async (ticket: InTicketUser) => {
         if (ticket.check_in_at) {
             showToast('Ticket already checked in', 'info');
             return;
@@ -102,7 +120,7 @@ const TicketUserPage: React.FC = () => {
                     check_in_at: moment().format('YYYY-MM-DD HH:mm:ss'),
                     check_in_by: getCookie('id')
                 }
-                console.log({'ticket' : data})
+                console.log({ 'ticket': data })
                 await TicketUserModel.update(ticket.id, data);
                 showToast('Ticket checked in successfully', 'success');
                 await loadTickets(lastQuery); // Reload to get updated data
@@ -144,13 +162,17 @@ const TicketUserPage: React.FC = () => {
         if (!isInitialLoad) loadTickets(lastQuery);
     }, [currentPage]);
 
+    useEffect(() => {
+        if (!isInitialLoad) loadTickets(lastQuery);
+    }, [sortBy, sortOrder]);
+
     return (
         <>
             <div className="container-p-y">
                 <h4 className="py-2 breadcrumb-wrapper mb-0">User Tickets</h4>
                 Manage your User Tickets
             </div>
-           <Filter onSubmit={loadTickets} />
+            <Filter onSubmit={loadTickets} />
             <div className="card mt-2">
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <h5 className="mb-0"></h5>
@@ -168,12 +190,12 @@ const TicketUserPage: React.FC = () => {
                             <thead className="table-light">
                                 <tr>
                                     <th>#</th>
-                                    <th>Ticket Code</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('ticket_code')}>Ticket Code {getSortIcon('ticket_code')}</th>
                                     <th>User</th>
                                     <th>Event Ticket</th>
-                                    <th>Status</th>
-                                    <th>Check-in</th>
-                                    <th>Created</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>Status {getSortIcon('status')}</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('check_in_at')}>Check-in {getSortIcon('check_in_at')}</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created {getSortIcon('created_at')}</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -204,7 +226,7 @@ const TicketUserPage: React.FC = () => {
                                             </td>
                                             <td dangerouslySetInnerHTML={{
                                                 __html: ticket.status_badge,
-                                            }}/>
+                                            }} />
                                             <td>
                                                 {ticket.check_in_at ? (
                                                     <div>

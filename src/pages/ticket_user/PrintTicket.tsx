@@ -157,29 +157,21 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                             </div>
 
                             {/* Sponsor Section */}
-                            <div className="ticket-sponsors">
-                                <div className="sponsor-title">Sponsored By</div>
-                                <div className="sponsor-list">
-                                    {ticket.ticket?.events_sponsors?.length > 0 ? (
-                                        ticket.ticket.events_sponsors.map((row, index) => (
-                                            <img
-                                                key={index}
-                                                src={row.url}
-                                                alt={`Sponsor ${index + 1}`}
-                                            />
-                                        ))
-                                    ) : (
-                                        <>
-                                            <img src="/uploads/sponsor/garuda.png" alt="Sponsor 1" />
-                                            <img src="/uploads/sponsor/finnet.png" alt="Sponsor 2" />
-                                            <img src="/uploads/sponsor/pertamina.png" alt="Sponsor 3" />
-                                            <img src="/uploads/sponsor/tokped.png" alt="Sponsor 4" />
-                                            <img src="/uploads/sponsor/starbucks.png" alt="Sponsor 5" />
-                                        </>
-                                    )}
+                            {ticket.ticket?.events_sponsors?.length > 0 && (
+                                <div className="ticket-sponsors">
+                                    <div className="sponsor-title">Sponsored By</div>
+                                    <div className="sponsor-list">
+                                        {ticket.ticket.events_sponsors.map((row, index) => (
+                                                <img
+                                                    key={index}
+                                                    src={row.url}
+                                                    alt={`Sponsor ${index + 1}`}
+                                                />
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
+                            )}
 
                             {/* Footer */}
                             <div className="ticket-footer">
@@ -217,25 +209,17 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                                     <div className="stub-name">{ticket.user?.name}</div>
                                 </div>
 
-                                <div className="stub-sponsor">
-                                    {ticket.ticket?.events_sponsors?.length > 0 ? (
-                                        ticket.ticket.events_sponsors.map((row, index) => (
-                                            <img
-                                                key={index}
-                                                src={row.url}
-                                                alt={`Sponsor ${index + 1}`}
-                                            />
-                                        ))
-                                    ) : (
-                                        <>
-                                            <img src="/uploads/sponsor/garuda.png" alt="Sponsor 1" />
-                                            <img src="/uploads/sponsor/finnet.png" alt="Sponsor 2" />
-                                            <img src="/uploads/sponsor/pertamina.png" alt="Sponsor 3" />
-                                            <img src="/uploads/sponsor/tokped.png" alt="Sponsor 4" />
-                                            <img src="/uploads/sponsor/starbucks.png" alt="Sponsor 5" />
-                                        </>
-                                    )}
-                                </div>
+                                {ticket.ticket?.events_sponsors?.length > 0 && (
+                                    <div className="stub-sponsor">
+                                        {ticket.ticket.events_sponsors.map((row, index) => (
+                                                <img
+                                                    key={index}
+                                                    src={row.url}
+                                                    alt={`Sponsor ${index + 1}`}
+                                                />
+                                            ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

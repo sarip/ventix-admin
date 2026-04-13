@@ -11,6 +11,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
 use App\Libraries\CommissionEngine;
+use App\Libraries\EmailNotificationService;
 use App\Models\Event;
 use App\Models\EventsSponsor;
 use App\Models\EventTicket;
@@ -218,7 +219,16 @@ class OrderController extends ApiController
             $db->transCommit();
 
 
+            // Send Order Created email
+            $User = new User();
             $order = $Order->find($orderId);
+            $buyer = $User->find($order->user_id);
+            if ($buyer) {
+                $allItems = (new OrderItem())->where('order_id', $orderId)->findAll();
+                (new EmailNotificationService())->sendOrderCreated($order, $buyer, $allItems);
+            }
+
+
             return $this->successOutput(['data' => $order], 201);
 
         } catch (\Throwable $e) {
@@ -242,8 +252,19 @@ class OrderController extends ApiController
         if ($file && $file->isValid() && !$file->hasMoved()) {
             $thumbnail_url = $file->getRandomName();
             $file->move(FCPATH . 'uploads/payment_proof', $thumbnail_url);
-            $Order->update($order->id, ['payment_proof' => $thumbnail_url]);
+            $Order->update($order->id, [
+                'payment_proof' => $thumbnail_url,
+                'status'        => 'waiting_verification'
+            ]);
+
+
+            $emailSvc = new EmailNotificationService();
+            $User = new User();
+            $buyer = $User->find($order->user_id);
+            $emailSvc->sendOrderPaymentSubmitted($order, $buyer);
         }
+
+
 
         return $this->successOutput(['data' => $order]);
 

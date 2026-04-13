@@ -74,7 +74,7 @@ class EventsOrganizer extends Model
 
     protected function logAfterInsert($data)
     {
-        $this->logUser('ADD', 'Add '. strtoupper($this->table), $data);
+//        $this->logUser('ADD', 'Add '. strtoupper($this->table), $data);
     }
 
     protected function logBeforeDelete($data)

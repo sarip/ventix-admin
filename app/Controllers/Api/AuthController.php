@@ -9,6 +9,7 @@ use App\Models\EventsOrganizer;
 use App\Models\Module;
 use App\Models\RoleAction;
 use App\Models\Role;
+use App\Models\SysUsersRole;
 use App\Models\User;
 use App\Models\UserLog;
 use Config\Services;
@@ -66,25 +67,29 @@ class AuthController extends ApiController
             'password' => 'required',
         ];
         $validate = Validate::run([
-            'username'  => $username,
+            'username' => $username,
             'password' => $password
         ], $rules);
-        if($validate !== true) {
+        if ($validate !== true) {
             return $this->errorOutput($validate, 400);
         }
 
         $user = $this->findUser($username, $password);
 
-    
 
-        if(!$user) {
+
+        if (!$user) {
             return $this->errorOutput("Invalid username or password", 401);
         }
 
-      
+        if ($user->status !== 'Active') {
+            return $this->errorOutput("Your account is " . $user->status . ". Please check your email for verification.", 401);
+        }
+
+
 
         $token = $this->generateToken($user);
-        
+
 
         // Log User
 //        $UserLog = new UserLog();
@@ -114,27 +119,25 @@ class AuthController extends ApiController
         $request = $requestservice->getGet();
 
         $role = [];
-        $User = $db->table('users')->where(['username' => $username]);
+        $user = $db->table('users')->where(['username' => $username])->get()->getRow();
 
 
-        if(!empty($request['role'])) {
-            if($request['role'] === 'GUEST') {
-                $User->whereIn('role', ['VIP Member', 'General_User']);
+        if(!empty($request['role']) && $user ) {
+            $UserSysRole = new SysUsersRole();
+            $usersysrole = $UserSysRole->where('role_name', $user->role)->first();
+
+            if($usersysrole->scope !== $request['role']){
+                return null;
             }
         }
-
-        $user = $User->get()->getRow();
 
         if ($user && password_verify($password, $user->password)) {
             $user->source = 'users';
             return $user;
         }
 
-        if(!empty($request['role'])) {
-            if ($request['role'] === 'GUEST') {
-                return null;
-            }
-        }
+
+
         // 2. appusers table
         $appUser = (new AppUser())
             ->where('username', $username)
@@ -155,7 +158,7 @@ class AuthController extends ApiController
         $user = (new User())
             ->find($id);
 
-        if ($user ) {
+        if ($user) {
             $user->source = 'users';
             return $user;
         }
@@ -165,7 +168,7 @@ class AuthController extends ApiController
             ->find($id)
             ->first();
 
-        if ($appUser ) {
+        if ($appUser) {
             $appUser->source = 'appusers';
             return $appUser;
         }
@@ -191,9 +194,9 @@ class AuthController extends ApiController
      */
     public function whoami()
     {
-//        $User = new User();
+        //        $User = new User();
         $user = $this->findUserById($this->request->id ?? null);
-//        if(!$user) {
+        //        if(!$user) {
 //            return $this->errorOutput("Invalid token", 401);
 //        }
 //
@@ -208,11 +211,11 @@ class AuthController extends ApiController
 
 
         $fullname = "";
-        if($this->request->source === "users") {
+        if ($this->request->source === "users") {
             $User = new User();
             $user = $User->find($this->request->id);
             $fullname = $user->name;
-        }else{
+        } else {
             $User = new Appuser();
             $user = $User->find($this->request->id);
             $fullname = $user->full_name;
@@ -223,22 +226,23 @@ class AuthController extends ApiController
             'id' => $user->id,
             'source' => $this->request->source,
             'username' => $user->username,
-//            'scope' => $user->role_id,
+            //            'scope' => $user->role_id,
             'fullname' => $fullname,
             'user' => $user,
-//            'role_actions' => $role_actions,
+            //            'role_actions' => $role_actions,
         ]);
     }
 
-  
+
     /**
      * Validate Token API
      * @return mixed
      */
-    public function validateToken() {
+    public function validateToken()
+    {
         $ApiToken = new ApiToken();
         $token = $ApiToken->find($this->request->getHeaderLine('key'));
-        if(!$token) {
+        if (!$token) {
             return $this->errorOutput("Invalid token", 401);
         }
         return $this->successOutput([
@@ -251,17 +255,18 @@ class AuthController extends ApiController
      * Update current user password
      * @return mixed|void
      */
-    public function updatePassword() {
+    public function updatePassword()
+    {
         $User = new User();
         $user = $User->find($this->request->id ?? null);
-        if(empty($user)) {
+        if (empty($user)) {
             return $this->errorOutput("Invalid token", 401);
         }
 
         $password = $this->request->getJsonVar('password');
         $current_password = $this->request->getJsonVar('current_password');
 
-//        $rules = [
+        //        $rules = [
 //            'password'          => 'required|min_length[6]',
 //            'current_password'  => 'required|min_length[6]'
 //        ];
@@ -274,15 +279,15 @@ class AuthController extends ApiController
 //            return $this->errorOutput($validate, 400);
 //        }
 
-        if(empty($password)) {
+        if (empty($password)) {
             return $this->errorOutput("Kata sandi tidak boleh kosong", 400);
         }
 
-        if(empty($password) || empty($current_password)) {
+        if (empty($password) || empty($current_password)) {
             return $this->errorOutput("Kata sandi baru tidak boleh kosong ", 400);
         }
 
-        if(hash('SHA256', $current_password) !== $user->password) {
+        if (hash('SHA256', $current_password) !== $user->password) {
             return $this->errorOutput("Kata sandi saat ini tidak valid", 400);
         }
 
@@ -292,30 +297,31 @@ class AuthController extends ApiController
             'last_update_password' => time()
         ]);
 
-        
+
 
         return $this->successOutput([
             'message' => 'Password updated',
         ]);
     }
 
-    
+
 
     public function logout()
     {
         $User = new User();
         $user = $User->find($this->request->id ?? null);
-        echo json_encode($user); die();
+        echo json_encode($user);
+        die();
         // Log User
         $UserLog = new UserLog();
         $UserLog->insert([
             'user_id' => $user->id,
             'event_section' => "AUTH",
-            'event_action' => 'Logout', 
+            'event_action' => 'Logout',
             'event_note' => "Logout in From : {$this->request->getUserAgent()}",
             'ip_address' => $this->request->getIPAddress(),
-        ]); 
-        
+        ]);
+
         return $this->successOutput(['user' => $user]);
     }
 
@@ -327,11 +333,11 @@ class AuthController extends ApiController
         // Validation Rules
         // =============================
         $rules = [
-            'username'      => 'required|min_length[4]|max_length[30]|alpha_numeric',
-            'name'          => 'required|min_length[3]',
-            'email'         => 'required|valid_email',
-            'password'      => 'required|min_length[8]',
-            'phone'         => 'required|min_length[6]',
+            'username' => 'required|min_length[4]|max_length[30]|alpha_numeric|is_unique[users.username]',
+            'name' => 'required|min_length[3]',
+            'email' => 'required|valid_email|is_unique[users.email]',
+            'password' => 'required|min_length[8]',
+            'phone' => 'required|min_length[6]',
 
 
         ];
@@ -339,22 +345,27 @@ class AuthController extends ApiController
         if (!$this->validate($rules)) {
             return $this->errorOutput(json_encode($this->validator->getErrors()), 400);
         }
+        $verification_token = bin2hex(random_bytes(32));
+
         $UserModel = new User();
         $userId = $UserModel->insert([
-            'username'   => $this->request->getJsonVar('username'),
-            'name'       => $this->request->getJsonVar('name'),
-            'email'      => $this->request->getJsonVar('email'),
-            'password'   => $this->request->getJsonVar('password'),
-            'phone'      => $this->request->getJsonVar('phone'),
-            'role'      => $this->request->getJsonVar('role'),
-            'status'      => $this->request->getJsonVar('status'),
-            'created_at'=> date('Y-m-d H:i:s')
+            'username' => $this->request->getJsonVar('username'),
+            'name' => $this->request->getJsonVar('name'),
+            'email' => $this->request->getJsonVar('email'),
+            'password' => $this->request->getJsonVar('password'),
+            'phone' => $this->request->getJsonVar('phone'),
+            'role' => $this->request->getJsonVar('role'),
+            'status' => 'Inactive',
+            'verification_token' => $verification_token,
+            'created_at' => date('Y-m-d H:i:s')
         ], true);
         if ($userId === false) {
-            return  $this->errorOutput(json_encode($UserModel->errors(), true), 400);
+            return $this->errorOutput(json_encode($UserModel->errors(), true), 400);
 
         }
         $user = $UserModel->find($userId);
+        helper('email_helper');
+        send_verification_email($user, $verification_token);
 
         return $this->successOutput(['user' => $user]);
     }
@@ -370,18 +381,18 @@ class AuthController extends ApiController
         // Validation Rules
         // =============================
         $rules = [
-            'username'      => 'required|min_length[4]|max_length[30]|alpha_numeric',
-            'name'          => 'required|min_length[3]',
-            'email'         => 'required|valid_email',
-            'password'      => 'required|min_length[8]',
-            'phone'         => 'required|min_length[6]',
-            'eo_name'       => 'required',
-            'company_name'  => 'required',
-            'website'       => 'permit_empty|valid_url',
-            'address'       => 'required',
-//            'tax_id'        => 'required',
-            'description'  => 'permit_empty|max_length[500]',
-//            'logo'          => [
+            'username' => 'required|is_unique[users.username]|min_length[4]|max_length[30]|alpha_numeric',
+            'name' => 'required|min_length[3]',
+            'email' => 'required|valid_email|is_unique[events_organizer.email]',
+            'password' => 'required|min_length[8]',
+            'phone' => 'required|min_length[6]',
+            'eo_name' => 'required|is_unique[events_organizer.eo_name]',
+            'company_name' => 'required',
+            //            'website' => 'permit_empty|valid_url',
+//            'address' => 'required',
+            //            'tax_id'        => 'required',
+//            'description' => 'permit_empty|max_length[500]',
+            //            'logo'          => [
 //                'rules' => 'uploaded[logo]|max_size[logo,2048]|is_image[logo]|mime_in[logo,image/png,image/jpg,image/jpeg]',
 //                'errors' => [
 //                    'uploaded' => 'Logo wajib diupload',
@@ -402,10 +413,13 @@ class AuthController extends ApiController
             // =============================
             // Upload Logo
             // =============================
-            $logo      = $this->request->getFile('logo');
-            $logoName  = $logo->getRandomName();
-            $uploadPath = FCPATH . 'uploads/event_organizer';
-            $logo->move($uploadPath, $logoName);
+            $logo = $this->request->getFile('logo');
+            $logoName = null;
+            if ($logo && $logo->isValid() && !$logo->hasMoved()) {
+                $logoName = $logo->getRandomName();
+                $uploadPath = FCPATH . 'uploads/event_organizer';
+                $logo->move($uploadPath, $logoName);
+            }
 
             // =============================
             // Create User
@@ -419,41 +433,72 @@ class AuthController extends ApiController
 
             $eoModel = new EventsOrganizer();
             $eo_id = $eoModel->insert([
-                'eo_name'       => $this->request->getPost('eo_name'),
-                'company_name'  => $this->request->getPost('company_name'),
-                'website'       => $this->request->getPost('website'),
-                'address'       => $this->request->getPost('address'),
-//                'tax_id'        => $this->request->getPost('tax_id'),
-                'eo_slug'       => generate_slug($this->request->getPost('eo_name')),
-                'email'      => $this->request->getPost('email'),
-                'phone'      => $this->request->getPost('phone'),
-                'description'  => $this->request->getPost('description'),
-                'logo_path'          => $logoName,
-                'created_at'    => date('Y-m-d H:i:s')
+                'eo_name' => $this->request->getPost('eo_name'),
+                'company_name' => $this->request->getPost('company_name'),
+                'website' => $this->request->getPost('website'),
+                'address' => $this->request->getPost('address'),
+                //                'tax_id'        => $this->request->getPost('tax_id'),
+                'eo_slug' => generate_slug($this->request->getPost('eo_name')),
+                'email' => $this->request->getPost('email'),
+                'phone' => $this->request->getPost('phone'),
+                'description' => $this->request->getPost('description'),
+                'logo_path' => $logoName,
+                'created_at' => date('Y-m-d H:i:s')
             ], true);
+
+            $verification_token = bin2hex(random_bytes(32));
 
             $userId = $userModel->insert([
-                'eo_id'     => $eo_id,
-                'username'   => $this->request->getPost('username'),
-                'name'       => $this->request->getPost('name'),
-                'email'      => $this->request->getPost('email'),
-                'password'   => $this->request->getPost('password'),
-                'phone'      => $this->request->getPost('phone'),
-                'role'       => 'EO Admin',
-                'is_active'  => 1,
-                'created_at'=> date('Y-m-d H:i:s')
+                'eo_id' => $eo_id,
+                'username' => $this->request->getPost('username'),
+                'name' => $this->request->getPost('name'),
+                'email' => $this->request->getPost('email'),
+                'password' => $this->request->getPost('password'),
+                'phone' => $this->request->getPost('phone'),
+                'role' => 'EO Admin',
+                'status' => 'Inactive',
+                'verification_token' => $verification_token,
+                'created_at' => date('Y-m-d H:i:s')
             ], true);
 
 
 
 
+            // Send Verification Email
+            helper('email_helper');
+            $userObj = $userModel->find($userId);
+            send_verification_email($userObj, $verification_token);
+
             $db->transCommit();
-            return $this->successOutput(['data' => $userId]);
+            return $this->successOutput(['data' => $userId, 'message' => 'Registration successful. Please check your email for verification.']);
 
         } catch (\Throwable $e) {
             $db->transRollback();
             return $this->errorOutput($e->getMessage());
         }
+    }
+
+    /**
+     * Verify email with token — renders a user-facing HTML page.
+     * @param $token
+     * @return string|\CodeIgniter\HTTP\ResponseInterface
+     */
+    public function verifyEmail($token)
+    {
+        $userModel = new User();
+        $user = $userModel->where('verification_token', $token)->first();
+
+        if (!$user) {
+            return view('emails/verify_error');
+        }
+
+        $userModel->update($user->id, [
+            'status' => 'Active',
+            'verification_token' => null,
+            'email_verified_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return view('emails/verify_success', ['user' => $user]);
     }
 
 }

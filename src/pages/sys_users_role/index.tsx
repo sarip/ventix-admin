@@ -2,7 +2,7 @@
  * Users Role Page
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import { UsersRole, InUsersRole } from '@/models/UsersRole';
 import { showToast } from '@/utils/toast';
@@ -11,7 +11,35 @@ const UsersRolePage: React.FC = () => {
     const { blockUI, unblockUI } = useBlockUI();
     const [roles, setRoles] = useState<InUsersRole[]>([]);
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+    const [sortBy, setSortBy] = useState<string>('role_name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const UsersRoleModel = new UsersRole();
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
+    const sortedRoles = useMemo(() => {
+        return [...roles].sort((a, b) => {
+            const valA = (a as any)[sortBy] ?? '';
+            const valB = (b as any)[sortBy] ?? '';
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [roles, sortBy, sortOrder]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -61,14 +89,14 @@ const UsersRolePage: React.FC = () => {
                             <thead className="table-light">
                                 <tr>
                                     <th style={{ width: '50px' }}>#</th>
-                                    <th>Role Name</th>
-                                    <th style={{ width: '180px' }}>Role Slug</th>
+                                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('role_name')}>Role Name {getSortIcon('role_name')}</th>
+                                    <th style={{ width: '180px', cursor: 'pointer' }} onClick={() => handleSort('role_slug')}>Role Slug {getSortIcon('role_slug')}</th>
                                     <th>Description</th>
-                                    <th style={{ width: '180px' }}>Created At</th>
+                                    <th style={{ width: '180px', cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {roles.length === 0 ? (
+                                {sortedRoles.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="text-center py-4 text-muted">
                                             <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
@@ -76,7 +104,7 @@ const UsersRolePage: React.FC = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    roles.map((role, index) => (
+                                    sortedRoles.map((role, index) => (
                                         <tr key={index}>
                                             <td>{index + 1}</td>
                                             <td>

@@ -9,13 +9,13 @@ import { Offcanvas, Button } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
-import  ConfirmDialog  from '@/pages/_components/ConfirmDialog'
-import Filter, {QueryParamsProps} from './_filter';
+import ConfirmDialog from '@/pages/_components/ConfirmDialog'
+import Filter, { QueryParamsProps } from './_filter';
 import Form from './_form';
 import { EventCat, InEventCat, InEventCatForm } from '@/models/EventCat';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
-import {ListResponse} from "@/types/apiTypes";
+import { ListResponse } from "@/types/apiTypes";
 
 interface ValidationErrorProps {
     field: string;
@@ -41,6 +41,8 @@ const EventCatPage: React.FC = () => {
     const [pageCount, setPageCount] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [lastQuery, setLastQuery] = useState<any>({});
+    const [sortBy, setSortBy] = useState<string>('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InEventCatForm>({
         name: "",
@@ -48,21 +50,39 @@ const EventCatPage: React.FC = () => {
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
     const Model = new EventCat();
+
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
+    const getSortIcon = (column: string) => {
+        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
+        return sortOrder === 'asc'
+            ? <i className="bx bx-sort-up ms-1"></i>
+            : <i className="bx bx-sort-down ms-1"></i>;
+    };
+
     const listData = async (query: QueryParamsProps = {}) => {
         if (isInitialLoad) blockUI();
         try {
             query.page = currentPage;
-            const response:ListResponse<InEventCat[]> = await Model.list(query);
+            query.sort_by = sortBy + ':' + sortOrder;
+            const response: ListResponse<InEventCat[]> = await Model.list(query);
             setLastQuery(query);
             setEventCats(response.events_cat);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
-        } catch (e){
-            if(e.status === 403){
+        } catch (e) {
+            if (e.status === 403) {
                 router.push('/403');
             }
             unblockUI();
-        }finally {
+        } finally {
             if (isInitialLoad) {
                 unblockUI();
                 setIsInitialLoad(false);
@@ -104,7 +124,7 @@ const EventCatPage: React.FC = () => {
             listData(lastQuery);
         } catch (error) {
             let lines = error.message.trim().split('\n');
-            let result:ValidationErrorProps[] = lines.map(line => {
+            let result: ValidationErrorProps[] = lines.map(line => {
                 let [field, ...message] = line.split(' ');
                 return {
                     field,
@@ -115,7 +135,7 @@ const EventCatPage: React.FC = () => {
         }
     }, [Model, lastQuery, listData]);
 
-    const remove = async (name:string) => {
+    const remove = async (name: string) => {
         Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this data",
@@ -128,7 +148,7 @@ const EventCatPage: React.FC = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const response = await Model.delete(name);
-                if(response.success) {
+                if (response.success) {
                     showToast("Successfully Deleted", "success");
                     listData(lastQuery);
                 }
@@ -141,6 +161,10 @@ const EventCatPage: React.FC = () => {
     useEffect(() => {
         if (!isInitialLoad) listData(lastQuery);
     }, [currentPage]);
+
+    useEffect(() => {
+        if (!isInitialLoad) listData(lastQuery);
+    }, [sortBy, sortOrder]);
 
 
     return (
@@ -162,29 +186,29 @@ const EventCatPage: React.FC = () => {
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
-                        <tr>
-                            {/*<th style={{width: '10%'}}>Actions</th>*/}
-                            <th>Name</th>
-                            <th>Description</th>
+                            <tr>
+                                {/*<th style={{width: '10%'}}>Actions</th>*/}
+                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Name {getSortIcon('name')}</th>
+                                <th>Description</th>
 
-                        </tr>
+                            </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                        {EventCats.map((item:InEventCat, key:number) => (
-                            <tr className="odd" key={key}>
-                                {/*<td>*/}
-                                {/*    <div className="d-flex align-items-sm-center justify-content-sm-center">*/}
-                                {/*        <button className="btn btn-md btn-icon btn-danger me-2"*/}
-                                {/*                onClick={() => remove(item.name)}><i className="bx bx-trash"></i>*/}
-                                {/*        </button>*/}
-                                {/*        <button className="btn btn-md btn-icon btn-warning"*/}
-                                {/*                onClick={() => update(item)}><i className="bx bx-edit"></i></button>*/}
-                                {/*    </div>*/}
-                                {/*</td>*/}
-                                <td>{item.name}</td>
-                                <td>{item.description}</td>
-                            </tr>
-                        ))}
+                            {EventCats.map((item: InEventCat, key: number) => (
+                                <tr className="odd" key={key}>
+                                    {/*<td>*/}
+                                    {/*    <div className="d-flex align-items-sm-center justify-content-sm-center">*/}
+                                    {/*        <button className="btn btn-md btn-icon btn-danger me-2"*/}
+                                    {/*                onClick={() => remove(item.name)}><i className="bx bx-trash"></i>*/}
+                                    {/*        </button>*/}
+                                    {/*        <button className="btn btn-md btn-icon btn-warning"*/}
+                                    {/*                onClick={() => update(item)}><i className="bx bx-edit"></i></button>*/}
+                                    {/*    </div>*/}
+                                    {/*</td>*/}
+                                    <td>{item.name}</td>
+                                    <td>{item.description}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                     {pagination && (

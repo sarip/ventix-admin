@@ -24,6 +24,7 @@ import { showToast } from '@/utils/toast';
 import EventSponsorsStep from "./_sponsors";
 
 import dynamic from "next/dynamic";
+import {RegProvince} from "@/models/RegProvince";
 
 const MapPicker = dynamic(
     () => import("@/pages/_components/MapPicker/MapPicker"),
@@ -56,6 +57,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
         description: "",
         start_date: "",
         end_date: "",
+        location: "",
         location_name: "",
         latitude: "",
         longitude: "",
@@ -74,6 +76,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
     const EventModel = new Event();
     const EventAgendaModel = new EventAgenda();
     const EventTicketModel = new EventTicket();
+    const RegProvinceModel = new RegProvince();
 
     useEffect(() => {
         setFormData(data);
@@ -394,7 +397,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                         parentEl="#modal-Event"
                                                         value={formData.start_date}
                                                         onChange={(name, value) =>
-                                                            setFormData((prev) => ({ ...prev, [name]: value }))
+                                                            setFormData((prev) => ({...prev, [name]: value}))
                                                         }
                                                         error={errors.start_date}
                                                     />
@@ -407,7 +410,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                         parentEl="#modal-Event"
                                                         value={formData.end_date}
                                                         onChange={(name, value) =>
-                                                            setFormData((prev) => ({ ...prev, [name]: value }))
+                                                            setFormData((prev) => ({...prev, [name]: value}))
                                                         }
                                                         error={errors.end_date}
                                                     />
@@ -417,7 +420,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                             <div className="row mb-3">
                                                 <div className="col">
                                                     <div className="form-group">
-                                                        <label className="form-label" htmlFor="price_pool">Price Pool</label>
+                                                        <label className="form-label" htmlFor="price_pool">Price
+                                                            Pool</label>
                                                         <input
                                                             id="price_pool"
                                                             type="number"
@@ -447,13 +451,15 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                             onChange={handleInputChange}
                                                         />
                                                         {!!errors?.registration_fee && (
-                                                            <div className="invalid-feedback">{errors.registration_fee}</div>
+                                                            <div
+                                                                className="invalid-feedback">{errors.registration_fee}</div>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="form-group mb-3">
-                                                <label className="form-label" htmlFor="events_status">Event Status</label>
+                                                <label className="form-label" htmlFor="events_status">Event
+                                                    Status</label>
                                                 <select
                                                     id="events_status"
                                                     name="events_status"
@@ -462,10 +468,29 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                     onChange={handleInputChange}
                                                 >
                                                     <option value="">-- Select --</option>
-                                                    <OptionEventStatus />
+                                                    <OptionEventStatus/>
                                                 </select>
                                                 {!!errors?.events_status && (
                                                     <div className="invalid-feedback">{errors.location_name}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="form-group mb-3">
+                                                <label className="form-label" htmlFor="location">Province</label>
+                                                <Select2Component
+                                                    fetchData={RegProvinceModel.list}
+                                                    dropdownParent="#modal-Event"
+                                                    placeholder="Pilih opsi"
+                                                    name="location"
+                                                    onChange={handleInputChange}
+                                                    validation={errors.location}
+                                                    selectedId={formData.location}
+                                                    dataKey="reg_provinces"
+                                                    showKey="name"
+                                                    id="name"
+                                                />
+                                                {!!errors?.location && (
+                                                    <div className="invalid-feedback">{errors.location}</div>
                                                 )}
                                             </div>
 

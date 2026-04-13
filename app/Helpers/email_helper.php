@@ -111,3 +111,36 @@ if (!function_exists('send_status_change_email')) {
         }
     }
 }
+if (!function_exists('send_verification_email')) {
+    /**
+     * Send email verification link
+     * 
+     * @param object $user User object
+     * @param string $token Verification token
+     * @return bool
+     */
+    function send_verification_email(object $user, string $token): bool
+    {
+        $email = \Config\Services::email();
+
+        $email->setFrom('veentixindo@gmail.com', 'Venntix Admin System');
+        $email->setTo($user->email);
+        $email->setSubject('Email Verification - Venntix Admin System');
+
+        $message = view('emails/verify_email', [
+            'user' => $user,
+            'verification_url' => base_url('api/v1/verify-email/' . $token)
+        ]);
+
+        $email->setMessage($message);
+
+        if ($email->send()) {
+            return true;
+        } else {
+            echo $email->printDebugger(['headers', 'subject', 'body']);
+            die();
+            log_message('error', 'Failed to send verification email to: ' . $user->email . ' - ' . $email->printDebugger(['headers']));
+            return false;
+        }
+    }
+}

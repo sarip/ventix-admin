@@ -14,7 +14,7 @@ class EventsStatu extends Model
     protected $DBGroup          = 'default';
     protected $table            = 'events_status';
     protected $primaryKey       = 'name';
-    protected $useAutoIncrement = true;
+    protected $useAutoIncrement = false;
     protected $insertID         = 0;
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;

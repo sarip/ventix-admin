@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { buildQuery } from '@/lib/FilterDriver';
 import Select2Component from "@/pages/_components/Select2";
-import {Event} from "@/models/Event";
+import { Event } from "@/models/Event";
 
 interface FilterProps {
     onSubmit: (query: any) => void;
@@ -11,6 +11,7 @@ export interface QueryParamsProps {
     search?: string;
     filter?: string;
     sort_by?: string;
+    sort_order?: string;
     per_page?: number;
     page?: number;
 }
@@ -44,7 +45,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
 
     const submit = () => {
         const query = getQuery();
-        console.log({"query" : query})
+        console.log({ "query": query })
         onSubmit(query);
     };
 
@@ -113,7 +114,7 @@ const Filter: React.FC<FilterProps> = ({ onSubmit }) => {
                     <div>
                         <label className="form-label">Show</label>
                         <select className="form-select" value={perPage}
-                                onChange={(e) => setPerPage(parseInt(e.target.value))}>
+                            onChange={(e) => setPerPage(parseInt(e.target.value))}>
                             <option value="10">10</option>
                             <option value="20">20</option>
                             <option value="50">50</option>

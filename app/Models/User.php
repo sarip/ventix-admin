@@ -30,6 +30,8 @@ class User extends Model
         'profile_picture',
         'refferalcode',
         'status',
+        'verification_token',
+        'email_verified_at',
         'last_login',
         'updated_at'
     ];
@@ -118,7 +120,7 @@ class User extends Model
     protected function setDefaultStatus($data)
     {
         if (!isset($data['data']['status']) || empty($data['data']['status'])) {
-            $data['data']['status'] = 'Active';
+            $data['data']['status'] = 'Inactive';
         }
         return $data;
     }

@@ -11,6 +11,7 @@ namespace App\Controllers\Frontend;
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
 use App\Libraries\CommissionEngine;
+use App\Libraries\EmailNotificationService;
 use App\Models\EventsOrganizer;
 use App\Models\Facilitie;
 use App\Models\FacilityBooking;
@@ -253,6 +254,19 @@ class FacilitieController extends ApiController
 
         $commissionEngine = new CommissionEngine();
         $commissions = $commissionEngine->processOrder($id, 'facility', $totalPrice);
+
+
+        // Send Facility Booking Created email
+        $User = new User();
+        $buyer = $User->find($current_user['id']);
+        if ($buyer) {
+            $freshBooking = $FacilityBooking->find($id);
+            $Facilitie = new Facilitie();
+            $facility = $Facilitie->find($create_data['facility_id']);
+            if ($facility) {
+                (new EmailNotificationService())->sendFacilityBookingCreated($freshBooking, $buyer, $facility);
+            }
+        }
 
         $data = $FacilityBooking->find($id);
 
