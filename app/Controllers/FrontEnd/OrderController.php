@@ -20,6 +20,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrdersStatu;
 use App\Models\User;
+use App\Models\UserTicket;
 use Config\Services;
 
 class OrderController extends ApiController
@@ -142,10 +143,10 @@ class OrderController extends ApiController
             $Order       = new Order();
             $OrderItem   = new OrderItem();
             $EventTicket = new EventTicket();
-
+            $current_user = $this->request->current_user;
             // 1. Create Order
             $orderData = [
-                'user_id'        => $this->request->getJsonVar('user_id'),
+                'user_id'        => $current_user['id'],
                 'order_code'     => generate_order_code(),
                 'total_amount'   => 0,
                 'status'         => 'Pending',
@@ -216,18 +217,44 @@ class OrderController extends ApiController
 //            }
 
             // 7. Commit
-            $db->transCommit();
 
 
-            // Send Order Created email
-            $User = new User();
             $order = $Order->find($orderId);
+            $User = new User();
             $buyer = $User->find($order->user_id);
-            if ($buyer) {
+            $emailSvc = new EmailNotificationService();
+            if($totalAmount == 0 ){
+                $Order->update($orderId, [
+                    'status' => 'paid',
+                    'payment_method' => ''
+                ]);
+
+                foreach ($orderItems as $orderItem) {
+                   $this->_generateTicket($current_user['id'], $orderId, $orderItem->event_ticket_id);
+                }
+
+                $ticketModel = new UserTicket();
+                $tickets = $ticketModel
+                    ->select('
+                                user_tickets.*,
+                                event_ticket.name as ticket_type,
+                                events.title as event_name,
+                                events.id as event_id,
+                                events.event_category as event_category,
+                                order_items.event_date as event_date
+                            ')
+                    ->join('order_items', 'order_items.event_ticket_id = user_tickets.event_ticket_id')
+                    ->join('event_ticket', 'event_ticket.id = user_tickets.event_ticket_id')
+                    ->join('events', 'events.id = event_ticket.event_id')
+                    ->where('order_items.order_id', $orderId)
+                    ->where('user_tickets.user_id', $current_user['id'])
+                    ->findAll();
+                $emailSvc->sendOrderPaymentAccepted($order, $buyer, array_values($tickets), 'order_payment_accepted_free');
+            }else{
                 $allItems = (new OrderItem())->where('order_id', $orderId)->findAll();
                 (new EmailNotificationService())->sendOrderCreated($order, $buyer, $allItems);
             }
-
+            $db->transCommit();
 
             return $this->successOutput(['data' => $order], 201);
 
@@ -267,6 +294,20 @@ class OrderController extends ApiController
 
 
         return $this->successOutput(['data' => $order]);
+
+
+    }
+
+
+    private function _generateTicket($user_id, $order_id, $event_ticket_id)
+    {
+        $UserTicket = new UserTicket();
+        return $UserTicket->insert([
+            'user_id' => $user_id,
+            'event_ticket_id' => $event_ticket_id,
+            'ticket_code' => generate_ticket_code($order_id, $event_ticket_id),
+            'status' => 'VALID'
+        ]);
 
 
     }

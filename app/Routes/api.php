@@ -12,6 +12,7 @@ $routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'],
     $routes->get('events_cat', 'EventsCatController::index', ['filter' => 'TokenFeFilter']);
     $routes->get('events', 'EventController::index', ['filter' => 'TokenFeFilter']);
     $routes->get('events/(:num)', 'EventController::find/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('events/slug/(:any)', 'EventController::findSlug/$1', ['filter' => 'TokenFeFilter']);
 
 
     $routes->get('facilities', 'FacilitieController::index', ['filter' => 'TokenFeFilter']);

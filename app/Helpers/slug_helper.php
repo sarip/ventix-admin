@@ -10,3 +10,19 @@ if (!function_exists('generate_slug')) {
         return $slug;
     }
 }
+
+if (!function_exists('deslugify')) {
+    /**
+     * Convert slug back to readable text
+     */
+    function deslugify($slug)
+    {
+        // ganti dash jadi spasi
+        $text = str_replace('-', ' ', $slug);
+
+        // optional: uppercase setiap kata
+        $text = ucwords($text);
+
+        return $text;
+    }
+}

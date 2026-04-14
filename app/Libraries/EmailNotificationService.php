@@ -100,14 +100,15 @@ class EmailNotificationService
      *
      * @param object $order   Order object
      * @param object $user    User object
+     * @param string $template
      * @param array  $tickets Array of UserTicket objects (ticket_code, status, event_name, ticket_type, event_date)
      */
-    public function sendOrderPaymentAccepted(object $order, object $user, array $tickets = []): bool
+    public function sendOrderPaymentAccepted(object $order, object $user, array $tickets = [], $template = 'order_payment_accepted'): bool
     {
         // Enrich tickets with event / ticket type names
         $enrichedTickets = $this->enrichUserTickets($tickets);
 
-        $html = view('emails/order_payment_accepted', [
+        $html = view('emails/'.$template, [
             'user' => $user,
             'order' => $order,
             'tickets' => $enrichedTickets,
@@ -116,7 +117,11 @@ class EmailNotificationService
         $this->mailer->clear(true);
         $this->mailer->setFrom($this->fromEmail, $this->fromName);
         $this->mailer->setTo($user->email);
-        $this->mailer->setSubject("Pembayaran Dikonfirmasi – Tiket #{$order->order_code} Siap!");
+        if($template === 'order_payment_accepted') {
+            $this->mailer->setSubject("Pembayaran Dikonfirmasi – Tiket #{$order->order_code} Siap!");
+        }else{
+            $this->mailer->setSubject("Order Dikonfirmasi – Tiket #{$order->order_code} Siap!");
+        }
         $this->mailer->setMessage($html);
 
         // Generate and attach PDF for each ticket

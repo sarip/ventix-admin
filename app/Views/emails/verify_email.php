@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Email – Venntix</title>
+    <title>Verify Your Email – Veentix</title>
     <style>
         /* Reset */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -225,7 +225,7 @@
 
                 <p>
                     Thank you for registering on
-                    <strong><?= esc(env('NEXT_PUBLIC_APP_NAME', 'Venntix')) ?></strong>.
+                    <strong><?= esc(env('NEXT_PUBLIC_APP_NAME', 'Veentix')) ?></strong>.
                     We're excited to have you on board.
                 </p>
 
@@ -257,7 +257,7 @@
                 <hr class="divider">
 
                 <p style="font-size:14px; color:#9ca3af;">
-                    If you did not create an account with <?= esc(env('NEXT_PUBLIC_APP_NAME', 'Venntix')) ?>,
+                    If you did not create an account with <?= esc(env('NEXT_PUBLIC_APP_NAME', 'Veentix')) ?>,
                     you can safely ignore this email. No action is required.
                 </p>
             </div>
@@ -265,7 +265,7 @@
             <!-- Footer -->
             <div class="card-footer">
                 <p>
-                    &copy; <?= date('Y') ?> <?= esc(env('NEXT_PUBLIC_APP_NAME', 'Venntix')) ?>. All rights reserved.<br>
+                    &copy; <?= date('Y') ?> <?= esc(env('NEXT_PUBLIC_APP_NAME', 'Veentix')) ?>. All rights reserved.<br>
                     This is an automated message. Please do not reply to this email.
                 </p>
             </div>

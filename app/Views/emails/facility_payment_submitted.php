@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pembayaran Fasilitas Dalam Verifikasi – Venntix</title>
+    <title>Pembayaran Fasilitas Dalam Verifikasi – Veentix</title>
     <style>
         * {
             margin: 0;
@@ -228,7 +228,7 @@
 <body>
     <div class="wrapper">
         <div class="brand-bar">
-            <div class="logo-text">Venntix</div>
+            <div class="logo-text">Veentix</div>
         </div>
         <div class="card">
             <!-- Header -->
@@ -299,7 +299,7 @@
             <div class="card-footer">
                 <p>
                     &copy;
-                    <?= date('Y') ?> Venntix. All rights reserved.<br>
+                    <?= date('Y') ?> Veentix. All rights reserved.<br>
                     Ini adalah email otomatis, jangan balas email ini.
                 </p>
             </div>

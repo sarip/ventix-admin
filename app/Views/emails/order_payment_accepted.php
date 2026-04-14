@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiket Anda Siap – Venntix</title>
+    <title>Tiket Anda Siap – Veentix</title>
     <style>
         * {
             margin: 0;
@@ -254,7 +254,7 @@
 <body>
     <div class="wrapper">
         <div class="brand-bar">
-            <div class="logo-text">Venntix</div>
+            <div class="logo-text">Veentix</div>
         </div>
         <div class="card">
             <!-- Header -->
@@ -334,12 +334,12 @@
 
                 <div class="info-box">
                     📱 &nbsp;Simpan email ini atau screenshot kode tiket Anda. Anda mungkin juga dapat melihat tiket
-                    melalui aplikasi atau website Venntix.
+                    melalui aplikasi atau website Veentix.
                 </div>
 
                 <hr class="divider">
                 <p style="font-size:13px;color:#9ca3af">
-                    Jika ada pertanyaan, hubungi panitia event atau support Venntix.
+                    Jika ada pertanyaan, hubungi panitia event atau support Veentix.
                 </p>
             </div>
 
@@ -347,7 +347,7 @@
             <div class="card-footer">
                 <p>
                     &copy;
-                    <?= date('Y') ?> Venntix. All rights reserved.<br>
+                    <?= date('Y') ?> Veentix. All rights reserved.<br>
                     Ini adalah email otomatis, jangan balas email ini.
                 </p>
             </div>

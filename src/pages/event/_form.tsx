@@ -22,9 +22,10 @@ import { InEventAgendaForm, EventAgenda } from "@/models/EventAgenda";
 import { InEventTicketForm, EventTicket } from "@/models/EventTicket";
 import { showToast } from '@/utils/toast';
 import EventSponsorsStep from "./_sponsors";
+import EventAdsStep, { AdImage } from "./_ads";
 
 import dynamic from "next/dynamic";
-import {RegProvince} from "@/models/RegProvince";
+import { RegProvince } from "@/models/RegProvince";
 
 const MapPicker = dynamic(
     () => import("@/pages/_components/MapPicker/MapPicker"),
@@ -34,7 +35,8 @@ enum FormStep {
     EVENT_INFO = 'event-info',
     EVENT_AGENDA = 'event-agenda',
     EVENT_TICKETS = 'event-tickets',
-    EVENT_SPONSORS = 'event-sponsors'
+    EVENT_SPONSORS = 'event-sponsors',
+    EVENT_ADS = 'event-ads'
 }
 
 
@@ -72,6 +74,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
     const [agendas, setAgendas] = useState<any[]>([]);
     const [tickets, setTickets] = useState<any[]>([]);
     const [sponsors, setSponsors] = useState<any[]>([]);
+    const [ads, setAds] = useState<AdImage[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const EventModel = new Event();
     const EventAgendaModel = new EventAgenda();
@@ -84,7 +87,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
         // Load existing agendas and tickets when editing
         setAgendas((data as any).events_agendas || []);
         setTickets((data as any).events_tickets || []);
-        setSponsors((data as any).events_sponsors || []); // Mock or actual related data
+        setSponsors((data as any).events_sponsors || []);
+        setAds((data as any).events_ads || []);
         setCurrentStep(FormStep.EVENT_INFO);
     }, [data]);
 
@@ -116,6 +120,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
             setCurrentStep(FormStep.EVENT_TICKETS);
         } else if (currentStep === FormStep.EVENT_TICKETS) {
             setCurrentStep(FormStep.EVENT_SPONSORS);
+        } else if (currentStep === FormStep.EVENT_SPONSORS) {
+            setCurrentStep(FormStep.EVENT_ADS);
         }
     };
 
@@ -199,11 +205,22 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                     fd.append(`sponsor_logos[${index}]`, sponsor.file);
                 }
             });
-            // If we need to send information about deleted or existing logos:
             fd.append('sponsors_info', JSON.stringify(sponsors.map(s => ({
                 id: s.id,
                 _isDeleted: s._isDeleted,
                 _isNew: s._isNew
+            }))));
+
+            // Append ad images
+            ads.forEach((ad, index) => {
+                if (ad.file && !ad._isDeleted) {
+                    fd.append(`ad_images[${index}]`, ad.file);
+                }
+            });
+            fd.append('ads_info', JSON.stringify(ads.map(a => ({
+                id: a.id,
+                _isDeleted: a._isDeleted,
+                _isNew: a._isNew
             }))));
 
             console.log({ 'data': data })
@@ -296,6 +313,12 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                     <Nav.Link eventKey={FormStep.EVENT_SPONSORS}>
                                         <i className="bx bx-image me-1"></i>
                                         Step 4: Sponsors
+                                    </Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey={FormStep.EVENT_ADS}>
+                                        <i className="bx bx-photo-album me-1"></i>
+                                        Step 5: Ad Images
                                     </Nav.Link>
                                 </Nav.Item>
                             </Nav>
@@ -397,7 +420,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                         parentEl="#modal-Event"
                                                         value={formData.start_date}
                                                         onChange={(name, value) =>
-                                                            setFormData((prev) => ({...prev, [name]: value}))
+                                                            setFormData((prev) => ({ ...prev, [name]: value }))
                                                         }
                                                         error={errors.start_date}
                                                     />
@@ -410,7 +433,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                         parentEl="#modal-Event"
                                                         value={formData.end_date}
                                                         onChange={(name, value) =>
-                                                            setFormData((prev) => ({...prev, [name]: value}))
+                                                            setFormData((prev) => ({ ...prev, [name]: value }))
                                                         }
                                                         error={errors.end_date}
                                                     />
@@ -468,7 +491,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                     onChange={handleInputChange}
                                                 >
                                                     <option value="">-- Select --</option>
-                                                    <OptionEventStatus/>
+                                                    <OptionEventStatus />
                                                 </select>
                                                 {!!errors?.events_status && (
                                                     <div className="invalid-feedback">{errors.location_name}</div>
@@ -584,6 +607,14 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                         onChange={setSponsors}
                                     />
                                 </Tab.Pane>
+
+                                <Tab.Pane eventKey={FormStep.EVENT_ADS}>
+                                    <EventAdsStep
+                                        eventId={savedEventId}
+                                        ads={ads}
+                                        onChange={setAds}
+                                    />
+                                </Tab.Pane>
                             </Tab.Content>
                         </Tab.Container>
                     </div>
@@ -591,7 +622,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
 
                     <div className="modal-footer">
                         <button type="reset" className="btn btn-label-secondary" data-bs-dismiss="modal"
-                                aria-label="Close" onClick={onClose}>Cancel
+                            aria-label="Close" onClick={onClose}>Cancel
                         </button>
 
                         {currentStep !== FormStep.EVENT_INFO && (
@@ -599,7 +630,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                 type="button"
                                 className="btn btn-outline-secondary"
                                 onClick={() => {
-                                    if (currentStep === FormStep.EVENT_SPONSORS) setCurrentStep(FormStep.EVENT_TICKETS);
+                                    if (currentStep === FormStep.EVENT_ADS) setCurrentStep(FormStep.EVENT_SPONSORS);
+                                    else if (currentStep === FormStep.EVENT_SPONSORS) setCurrentStep(FormStep.EVENT_TICKETS);
                                     else if (currentStep === FormStep.EVENT_TICKETS) setCurrentStep(FormStep.EVENT_AGENDA);
                                     else if (currentStep === FormStep.EVENT_AGENDA) setCurrentStep(FormStep.EVENT_INFO);
                                 }}
@@ -609,7 +641,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                             </button>
                         )}
 
-                        {currentStep !== FormStep.EVENT_SPONSORS ? (
+                        {currentStep !== FormStep.EVENT_ADS ? (
                             <button type="button" className="btn btn-primary" onClick={nextStep}>
                                 Next
                                 <i className="bx bx-arrow-right ms-1"></i>

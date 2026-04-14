@@ -10,6 +10,7 @@ namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
 use App\Models\Event;
+use App\Models\EventsAd;
 use App\Models\EventsAgenda;
 use App\Models\EventsGuest;
 use App\Models\EventsOrganizer;
@@ -51,7 +52,7 @@ class EventController extends ApiController
         $current_user = $this->request->current_user;
         $where_eo = [];
 
-        if(!empty($current_user['eo_id'])) {
+        if (!empty($current_user['eo_id'])) {
             $where_eo['events_organizer_id'] = $current_user['eo_id'];
         }
 
@@ -79,6 +80,12 @@ class EventController extends ApiController
                 $sponsor->url = base_url('uploads/sponsor/' . $sponsor->logo_url);
             });
 
+            $EventAd = new EventsAd();
+            $item->events_ads = $EventAd->where('events_id', $item->id)->orderBy('sort_order', 'ASC')->findAll();
+            // Map image_url to full URL for frontend preview
+            array_walk($item->events_ads, function (&$ad) {
+                $ad->preview_url = base_url('uploads/ads/' . $ad->image_url);
+            });
 
         });
 
@@ -153,6 +160,7 @@ class EventController extends ApiController
             $agendaModel = new EventsAgenda();
             $ticketModel = new EventTicket();
             $sponsorModel = new EventsSponsor();
+            $adModel = new EventsAd();
 
 
             // ======================
@@ -286,6 +294,44 @@ class EventController extends ApiController
                             $sponsorModel->insert([
                                 'events_id' => $eventId,
                                 'logo_url' => $logo_url
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // ======================
+            // STEP 5: AD IMAGES
+            // ======================
+            $ads_info = json_decode($this->request->getPost('ads_info'), true) ?? [];
+            $all_files = $this->request->getFiles();
+
+            if (!empty($ads_info)) {
+                foreach ($ads_info as $index => $info) {
+                    // Delete if marked
+                    if (!empty($info['_isDeleted']) && !empty($info['id'])) {
+                        $existing = $adModel->find($info['id']);
+                        if ($existing && file_exists(FCPATH . 'uploads/ads/' . $existing->image_url)) {
+                            @unlink(FCPATH . 'uploads/ads/' . $existing->image_url);
+                        }
+                        $adModel->delete($info['id']);
+                        continue;
+                    }
+
+                    if (!empty($info['_isNew'])) {
+                        $file = null;
+                        if (isset($all_files['ad_images'][$index])) {
+                            $file = $all_files['ad_images'][$index];
+                        }
+
+                        if ($file && $file->isValid() && !$file->hasMoved()) {
+                            $image_url = $file->getRandomName();
+                            $file->move(FCPATH . 'uploads/ads', $image_url);
+
+                            $adModel->insert([
+                                'events_id' => $eventId,
+                                'image_url' => $image_url,
+                                'sort_order' => $index,
                             ]);
                         }
                     }
