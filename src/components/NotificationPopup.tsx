@@ -42,11 +42,12 @@ export default function NotificationPopup({ userId, token }: NotificationPopupPr
     }, [fetchNotifications]);
 
     // Connect to WebSocket
-    const { isConnected } = useRealtimeNotification(userId, handleRealtimeNotification);
+    // const { isConnected } = useRealtimeNotification(userId, handleRealtimeNotification);
 
     const getNotificationIcon = (type: string) => {
         if (type.includes('pm')) return '🔧';
         if (type.includes('wo')) return '📋';
+        if (type.includes('registration') || type.includes('eo')) return '👤';
         if (type.includes('ticket')) return '🎫';
         if (type.includes('inventory')) return '📦';
         if (type.includes('vendor') || type.includes('invoice')) return '💼';
@@ -110,6 +111,11 @@ export default function NotificationPopup({ userId, token }: NotificationPopupPr
                 // Navigate to incident page
                 router.push(`/incident`);
                 break;
+            case 'events_organizer':
+            case 'registration':
+                // Navigate to EO list page
+                router.push(`/event_organizer`);
+                break;
             default:
                 // For unknown types, log to console
                 console.log('No navigation defined for type:', entity_type, 'ID:', entity_id);
@@ -160,9 +166,9 @@ export default function NotificationPopup({ userId, token }: NotificationPopupPr
                         <div className="dropdown-header d-flex align-items-center py-3">
                             <h5 className="text-body mb-0 me-auto">
                                 Notifikasi
-                                {isConnected && (
-                                    <i className="bx bx-wifi text-success ms-2" title="Connected"></i>
-                                )}
+                                {/*{isConnected && (*/}
+                                {/*    <i className="bx bx-wifi text-success ms-2" title="Connected"></i>*/}
+                                {/*)}*/}
                             </h5>
                             {unreadCount > 0 && (
                                 <a

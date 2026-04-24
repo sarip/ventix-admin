@@ -10,6 +10,9 @@ const API_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://your-api.com";
  * - Mengecek permission read pada module yang sesuai dengan path
  * - Menyuntikkan header x-user-data (jika perlu) agar bisa diakses di server/edge runtimes
  */
+// Routes accessible without authentication
+const PUBLIC_ROUTES = ['/login', '/forgot-password', '/reset-password'];
+
 export async function middleware(req: NextRequest) {
     try {
         const token = req.cookies.get("key")?.value;
@@ -87,7 +90,7 @@ export async function middleware(req: NextRequest) {
  */
 export const config = {
     matcher: [
-        "/((?!api|_next|static|assets|login|403|.*\\..*).*)",
+        "/((?!api|_next|static|assets|login|forgot-password|reset-password|403|.*\\..*).*)",
     ],
 };
 

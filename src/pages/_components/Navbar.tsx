@@ -151,10 +151,10 @@ const Navbar: React.FC = () => {
                     </div>
                     <ul className="navbar-nav flex-row align-items-center ms-auto">
                         {/* NOTIFICATION */}
-                        {/*<NotificationPopup*/}
-                        {/*    userId={userId}*/}
-                        {/*    token={token}*/}
-                        {/*/>*/}
+                        <NotificationPopup
+                            userId={userId}
+                            token={token}
+                        />
                         <li className="nav-item navbar-dropdown dropdown-user dropdown">
                             <a className="nav-link dropdown-toggle hide-arrow" href="" data-bs-toggle="dropdown">
                                 <div className="avatar avatar-online">

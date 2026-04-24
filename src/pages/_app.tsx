@@ -8,9 +8,10 @@ import { ToastContainer } from 'react-toastify';
 import { useRouter } from 'next/router';
 import { AppProps } from 'next/app';
 import Auth from "@/models/Auth";
-import {useUserStore} from "@/store/store";
+import { useUserStore } from "@/store/store";
 import LoadingPage from "@/pages/_components/LoadingPage";
 import { setCookie, getCookie } from 'cookies-next';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function MyApp({ Component, pageProps }: AppProps) {
     const [isClient, setIsClient] = useState(false);
@@ -19,7 +20,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     const [roleActions, setRoleActions] = useState<any[]>([]);
     const router = useRouter();
     const setUser = useUserStore((state) => state.setUser);
-    const noLayoutPages = ['/login'];
+    const noLayoutPages = ['/login', '/forgot-password', '/reset-password'];
 
     useEffect(() => {
         setIsClient(true);
@@ -28,6 +29,11 @@ function MyApp({ Component, pageProps }: AppProps) {
 
     const checkLoginStatus = async () => {
         const key = localStorage.getItem('key');
+        if (router.pathname !== '/login' && (router.pathname === '/forgot-password' || router.pathname === '/reset-password')) {
+            setLoading(false);
+            return null;
+        }
+
         if (!key) {
             setIsLoggedIn(false);
             setLoading(false);
@@ -59,6 +65,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             setUser({
                 id: response.id,
                 fullname: response.fullname,
+                role: response.user.role,
                 username: response.username
             })
             setIsLoggedIn(true);
@@ -76,7 +83,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     }
 
     // 🔥 Jika belum login, redirect ke login sebelum merender halaman lain
-    if (!isLoggedIn && router.pathname !== '/login') {
+    if (!isLoggedIn && !noLayoutPages.includes(router.pathname)) {
         router.replace('/login');
         return null;
     }
@@ -91,16 +98,17 @@ function MyApp({ Component, pageProps }: AppProps) {
     );
 
     return (
-        noLayoutPages.includes(router.pathname) ? (
-            renderComponent
-        ) : (
-            <Layout>
-                <RouteChangeBlocker >
-                {renderComponent}
-                </RouteChangeBlocker>
-
-            </Layout>
-        )
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
+            {noLayoutPages.includes(router.pathname) ? (
+                renderComponent
+            ) : (
+                <Layout>
+                    <RouteChangeBlocker>
+                        {renderComponent}
+                    </RouteChangeBlocker>
+                </Layout>
+            )}
+        </GoogleOAuthProvider>
     );
 }
 

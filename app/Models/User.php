@@ -30,7 +30,9 @@ class User extends Model
         'profile_picture',
         'refferalcode',
         'status',
+        'google_id',
         'verification_token',
+        'reset_token_expiry',
         'email_verified_at',
         'last_login',
         'updated_at'
@@ -45,9 +47,9 @@ class User extends Model
 
     // Validation
     protected $validationRules = [
-        'username' => 'required|min_length[4]|max_length[50]|alpha_numeric_punct|is_unique[users.username,id,{id}]',
+        //        'username' => 'required|min_length[4]|max_length[50]|alpha_numeric_punct|is_unique[users.username,id,{id}]',
         'name' => 'required|min_length[3]|max_length[150]',
-        'email' => 'required|valid_email|is_unique[users.email,id,{id}]',
+        //        'email' => 'required|valid_email|is_unique[users.email,id,{id}]',
         'password' => 'required|min_length[8]',
         'phone' => 'permit_empty|min_length[8]|max_length[20]',
         'role' => 'required|max_length[50]',

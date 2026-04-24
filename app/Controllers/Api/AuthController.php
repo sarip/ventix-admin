@@ -17,7 +17,8 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use App\Libraries\Validate;
 use App\Models\UserLogged;
-use App\Models\Seting;
+use App\Libraries\NotificationService;
+use App\Libraries\RedisNotification;
 use App\Libraries\ValidatePassword;
 
 class AuthController extends ApiController
@@ -109,6 +110,156 @@ class AuthController extends ApiController
     }
 
 
+    /**
+     * Login with Google SSO
+     *
+     * Verifies the Google ID token received from the frontend, looks up the user
+     * by email or google_id, and returns a JWT if the user is Active.
+     *
+     * @api {post} /api/v1/auth/google Login With Google
+     * @apiBody {String} id_token Google credential (ID token) from Google Sign-In
+     * @apiSuccess {String} key JWT token for subsequent requests
+     */
+    public function loginWithGoogle()
+    {
+        $id_token = $this->request->getJsonVar('credential');
+
+        if (empty($id_token)) {
+            return $this->errorOutput('Google ID token is required', 400);
+        }
+
+        // Verify the token with Google
+        $googleUser = $this->verifyGoogleToken($id_token);
+
+        if (!$googleUser) {
+            return $this->errorOutput('Google token tidak valid atau sudah expired', 401);
+        }
+
+        $email = $googleUser['email'] ?? null;
+        $googleId = $googleUser['sub'] ?? null;
+        $name = $googleUser['name'] ?? null;
+        $picture = $googleUser['picture'] ?? null;
+
+        if (empty($email) || empty($googleId)) {
+            return $this->errorOutput('Tidak dapat mengambil informasi akun Google', 400);
+        }
+
+        // Find user by google_id first, then by email
+        $UserModel = new User();
+        $db = \Config\Database::connect();
+
+        $user = $db->table('users')
+            ->where('google_id', $googleId)
+            ->get()->getRow();
+
+        if (!$user) {
+            // Try by email (user may have registered manually before)
+            $user = $db->table('users')
+                ->where('email', $email)
+                ->get()->getRow();
+
+            // If found by email, link the google_id for future logins
+            if ($user) {
+                $UserModel->skipValidation(true)->update($user->id, ['google_id' => $googleId]);
+                $user->google_id = $googleId;
+            }
+        }
+
+
+        $requestservice = Services::request();
+        $request = $requestservice->getGet();
+        if (!empty($request['role']) && $user) {
+            $UserSysRole = new SysUsersRole();
+            $usersysrole = $UserSysRole->where('role_name', $user->role)->first();
+
+            if ($usersysrole->scope !== $request['role']) {
+                return $this->errorOutput("Silahkan Login di halaman {$usersysrole->scope}");
+            }
+        }
+
+
+
+        // REGISTER
+        $isNewUser = $this->request->getJsonVar('isNewUser');
+        if($isNewUser && !$user) {
+            $id = $UserModel->insert([
+                'username' => $this->request->getJsonVar('username'),
+                'google_id' => $googleId,
+                'name' => $this->request->getJsonVar('name'),
+                'email' => $this->request->getJsonVar('email'),
+                'password' => $this->request->getJsonVar('password'),
+                'phone' => $this->request->getJsonVar('phone'),
+                'role' => $this->request->getJsonVar('role') === 'GUEST' ?  'General_User' : 'EO Admin',
+                'status' => 'Active',
+                'created_at' => date('Y-m-d H:i:s'),
+                'email_verified_at' => date('Y-m-d H:i:s'),
+            ]);
+            $user = $UserModel->find($id);
+        }
+
+        if (!$user) {
+            return $this->errorOutput(
+                'Akun Google ini belum terdaftar. Silakan daftar terlebih dahulu.',
+                404
+            );
+        }
+
+        if ($user->status !== 'Active') {
+            return $this->errorOutput(
+                'Akun Anda berstatus ' . $user->status . '. Silakan cek email untuk verifikasi.',
+                401
+            );
+        }
+
+        $user->source = 'users';
+        $token = $this->generateToken($user);
+
+        unset($user->password);
+        return $this->successOutput([
+            'key' => $token,
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * Verify a Google ID token using Google's tokeninfo endpoint
+     * @param string $id_token
+     * @return array|null  Decoded token claims, or null on failure
+     */
+    private function verifyGoogleToken(string $accessToken): ?array
+    {
+        $ch = curl_init();
+
+        curl_setopt_array($ch, [
+            CURLOPT_URL => 'https://www.googleapis.com/oauth2/v3/userinfo',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $accessToken,
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+
+        $curlError = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        curl_close($ch);
+
+
+        if (!empty($curlError)) {
+            return null;
+        }
+
+        if ($httpCode !== 200 || empty($response)) {
+            return null;
+        }
+
+        $data = json_decode($response, true);
+
+        return $data;
+    }
+
     private function findUser(string $username, string $password): ?object
     {
         // 1. users table
@@ -122,11 +273,11 @@ class AuthController extends ApiController
         $user = $db->table('users')->where(['username' => $username])->get()->getRow();
 
 
-        if(!empty($request['role']) && $user ) {
+        if (!empty($request['role']) && $user) {
             $UserSysRole = new SysUsersRole();
             $usersysrole = $UserSysRole->where('role_name', $user->role)->first();
 
-            if($usersysrole->scope !== $request['role']){
+            if ($usersysrole->scope !== $request['role']) {
                 return null;
             }
         }
@@ -219,6 +370,7 @@ class AuthController extends ApiController
             $User = new Appuser();
             $user = $User->find($this->request->id);
             $fullname = $user->full_name;
+            $user->fullName = $fullname;
 
         }
 
@@ -310,8 +462,6 @@ class AuthController extends ApiController
     {
         $User = new User();
         $user = $User->find($this->request->id ?? null);
-        echo json_encode($user);
-        die();
         // Log User
         $UserLog = new UserLog();
         $UserLog->insert([
@@ -370,6 +520,189 @@ class AuthController extends ApiController
         return $this->successOutput(['user' => $user]);
     }
 
+    public function updateMember()
+    {
+        helper(['form']);
+
+        $UserModel = new User();
+
+        // =============================
+        // Get Request Data
+        // =============================
+        $user_id = $this->request->getJsonVar('user_id');
+
+        if (empty($user_id)) {
+            return $this->errorOutput("USERID NOT FOUND", 400);
+        }
+
+        // =============================
+        // Find Existing User
+        // =============================
+        $user = $UserModel->find($user_id);
+
+        if (!$user) {
+            return $this->errorOutput("Username tidak ditemukan", 404);
+        }
+
+        $userId = $user->id; // pastikan model return array
+
+        // =============================
+        // Validation Rules (Basic Only)
+        // =============================
+        $rules = [
+            'username' => 'required|min_length[4]|max_length[30]|alpha_numeric',
+            'name' => 'required|min_length[3]',
+            'email' => 'required|valid_email',
+            'phone' => 'required|min_length[6]',
+            'password' => 'permit_empty|min_length[8]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->errorOutput(json_encode($this->validator->getErrors(), true), 400);
+        }
+
+        // =============================
+        // Get Clean Input
+        // =============================
+        $input = [
+            'username' => $this->request->getJsonVar('username'),
+            'name' => $this->request->getJsonVar('name'),
+            'email' => $this->request->getJsonVar('email'),
+            'phone' => $this->request->getJsonVar('phone'),
+        ];
+
+        $password = $this->request->getJsonVar('password');
+
+        // =============================
+        // Uniqueness Check (Manual)
+        // =============================
+
+        // cek username
+        $existUsername = $UserModel
+            ->where('username', $input['username'])
+            ->where('id !=', $userId)
+            ->first();
+
+        if ($existUsername) {
+            return $this->errorOutput("Username sudah digunakan", 400);
+        }
+
+        // cek email
+        $existEmail = $UserModel
+            ->where('email', $input['email'])
+            ->where('id !=', $userId)
+            ->first();
+
+        if ($existEmail) {
+            return $this->errorOutput("Email sudah digunakan", 400);
+        }
+
+        // =============================
+        // Prepare Update Data
+        // =============================
+        $data = [
+            'username' => $input['username'],
+            'name' => $input['name'],
+            'email' => $input['email'],
+            'phone' => $input['phone'],
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        // optional password update
+        if (!empty($password)) {
+            $data['password'] = $password;
+        }
+
+        // optional: regenerate verification token jika email berubah
+        if ($input['email'] !== $user->email) {
+            $data['verification_token'] = bin2hex(random_bytes(32));
+        }
+
+        // =============================
+        // Update Data
+        // =============================
+        if (!$UserModel->update($userId, $data)) {
+            return $this->errorOutput(json_encode($UserModel->errors(), true), 400);
+        }
+
+        // =============================
+        // Get Updated User
+        // =============================
+        $updatedUser = $UserModel->find($userId);
+
+        // =============================
+        // Send Email (optional)
+        // =============================
+        if (isset($data['verification_token'])) {
+            helper('email_helper');
+            send_verification_email($updatedUser, $data['verification_token']);
+        }
+
+        // =============================
+        // Response
+        // =============================
+        return $this->successOutput([
+            'user' => $updatedUser
+        ]);
+    }
+
+    public function resendVerification()
+    {
+        $UserModel = new User();
+
+        // =============================
+        // Get Input
+        // =============================
+        $email = $this->request->getJsonVar('email');
+
+        if (empty($email)) {
+            return $this->errorOutput("Email wajib diisi", 400);
+        }
+
+        // =============================
+        // Find User
+        // =============================
+        $user = $UserModel->where('email', $email)->first();
+
+        if (!$user) {
+            return $this->errorOutput("Email tidak terdaftar", 404);
+        }
+
+        // =============================
+        // Check Already Verified
+        // =============================
+        if (!empty($user->email_verified_at)) {
+            return $this->errorOutput("Email sudah terverifikasi", 400);
+        }
+
+        // =============================
+        // Generate New Token
+        // =============================
+        $verificationToken = bin2hex(random_bytes(32));
+
+        $updateData = [
+            'verification_token' => $verificationToken,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$UserModel->update($user->id, $updateData)) {
+            return $this->errorOutput(json_encode($UserModel->errors(), true), 400);
+        }
+
+        // =============================
+        // Send Email
+        // =============================
+        helper('email_helper');
+        send_verification_email($user, $verificationToken);
+
+        // =============================
+        // Response
+        // =============================
+        return $this->successOutput([
+            'message' => 'Email verifikasi berhasil dikirim ulang'
+        ]);
+    }
+
 
 
 
@@ -388,16 +721,12 @@ class AuthController extends ApiController
             'phone' => 'required|min_length[6]',
             'eo_name' => 'required|is_unique[events_organizer.eo_name]',
             'company_name' => 'required',
-            //            'website' => 'permit_empty|valid_url',
-//            'address' => 'required',
-            //            'tax_id'        => 'required',
-//            'description' => 'permit_empty|max_length[500]',
-            //            'logo'          => [
-//                'rules' => 'uploaded[logo]|max_size[logo,2048]|is_image[logo]|mime_in[logo,image/png,image/jpg,image/jpeg]',
+            //            'legal_document' => [
+//                'rules' => 'uploaded[legal_document]|max_size[legal_document,5120]|ext_in[legal_document,pdf,jpg,jpeg,png]',
 //                'errors' => [
-//                    'uploaded' => 'Logo wajib diupload',
-//                    'max_size' => 'Ukuran logo maksimal 2MB',
-//                    'is_image' => 'File harus berupa gambar',
+//                    'uploaded' => 'Dokumen legalitas wajib diupload',
+//                    'max_size' => 'Ukuran dokumen maksimal 5MB',
+//                    'ext_in' => 'Format dokumen harus PDF atau Gambar (JPG/PNG)',
 //                ]
 //            ]
         ];
@@ -422,6 +751,17 @@ class AuthController extends ApiController
             }
 
             // =============================
+            // Upload Legality Document
+            // =============================
+//            $legalityDoc = $this->request->getFile('legal_document');
+//            $legalityDocName = null;
+//            if ($legalityDoc && $legalityDoc->isValid() && !$legalityDoc->hasMoved()) {
+//                $legalityDocName = $legalityDoc->getRandomName();
+//                $uploadPathLegality = FCPATH . 'uploads/legality';
+//                $legalityDoc->move($uploadPathLegality, $legalityDocName);
+//            }
+
+            // =============================
             // Create User
             // =============================
             $userModel = new User();
@@ -435,6 +775,8 @@ class AuthController extends ApiController
             $eo_id = $eoModel->insert([
                 'eo_name' => $this->request->getPost('eo_name'),
                 'company_name' => $this->request->getPost('company_name'),
+//                'organization_type' => $this->request->getPost('organization_type'),
+//                'legal_doc_path' => $legalityDocName,
                 'website' => $this->request->getPost('website'),
                 'address' => $this->request->getPost('address'),
                 //                'tax_id'        => $this->request->getPost('tax_id'),
@@ -443,7 +785,9 @@ class AuthController extends ApiController
                 'phone' => $this->request->getPost('phone'),
                 'description' => $this->request->getPost('description'),
                 'logo_path' => $logoName,
-                'created_at' => date('Y-m-d H:i:s')
+                'verification_status' => 'Approved',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ], true);
 
             $verification_token = bin2hex(random_bytes(32));
@@ -463,18 +807,295 @@ class AuthController extends ApiController
 
 
 
+            if (!$userId) {
+                $modelErrors = $userModel->errors();
+                $dbError = $db->error();
 
-            // Send Verification Email
-            helper('email_helper');
-            $userObj = $userModel->find($userId);
-            send_verification_email($userObj, $verification_token);
+                throw new \Exception('System bermasalah silahkan coba lagi');
+            }
 
             $db->transCommit();
-            return $this->successOutput(['data' => $userId, 'message' => 'Registration successful. Please check your email for verification.']);
+
+
+            // Send Verification Email
+
+            $is_google = $this->request->getPost('is_google');
+            if(empty($is_google)) {
+                helper('email_helper');
+                $userObj = $userModel->find($userId);
+                send_verification_email($userObj, $verification_token);
+            }
+
+
+//            // Send notification to verification team (Admin/Validator)
+//            $adminEmails = ['admin.utama@veentix.com', 'sarip@veentix.com'];
+//            foreach ($adminEmails as $adminEmail) {
+//                send_new_eo_registration_notification((object) [
+//                    'eo_name' => $this->request->getPost('eo_name'),
+//                    'company_name' => $this->request->getPost('company_name'),
+//                    'organization_type' => $this->request->getPost('organization_type'),
+//                    'email' => $this->request->getPost('email'),
+//                ], $adminEmail);
+//            }
+//            // =============================
+//            // Database & Real-time Notifications
+//            // =============================
+//            $notificationService = new NotificationService();
+//            $redisNotif = new RedisNotification('alerts');
+//            $appuserModel = new Appuser();
+//            $validators = $appuserModel->whereIn('role', ['validator', 'super_admin', 'admin', 'leader'])->where('status', 'Active')->findAll();
+//
+//            foreach ($validators as $validator) {
+//                // Database
+//                $notifId = $notificationService->create(
+//                    $validator->id,
+//                    'registration:new_eo',
+//                    'events_organizer',
+//                    $eo_id,
+//                    'New EO Registration',
+//                    "EO " . $this->request->getPost('eo_name') . " has registered and needs review.",
+//                    ['eo_name' => $this->request->getPost('eo_name'), 'company_name' => $this->request->getPost('company_name')]
+//                );
+//
+//                // Real-time (WebSocket)
+//                if ($notifId) {
+//                    $redisNotif->publish('alert', [
+//                        'userId' => $validator->id,
+//                        'id' => $notifId,
+//                        'type' => 'registration:new_eo',
+//                        'message' => "EO " . $this->request->getPost('eo_name') . " has registered.",
+//                        'severity' => 'info'
+//                    ]);
+//                }
+//            }
+
+            $is_google = $this->request->getPost('is_google');
+            if(!empty($is_google)) {
+                $google_token = $this->request->getPost('google_token');
+                $googleUser = $this->verifyGoogleToken($google_token);
+
+                if (!$googleUser) {
+                    return $this->errorOutput('Google token tidak valid atau sudah expired', 401);
+                }
+                $googleId = $googleUser['sub'] ?? null;
+                $userModel->skipValidation(true)->update($userId, [
+                    'google_id'             => $googleId,
+                    'email_verified_at'     => date('Y-m-d H:i:s'),
+                    'status'                => 'Active',
+                    'verification_token'    => ''
+                ]);
+                $userObj = $userModel->find($userId);
+
+                $userObj->source = 'users';
+                $token = $this->generateToken($userObj);
+
+                unset($userObj->password);
+                return $this->successOutput([
+                    'key' => $token,
+                    'user' => $userObj,
+                ]);
+
+            }
+
+            return $this->successOutput(['data' => $userObj, 'message' => 'Registration successful. Please check your email for verification.']);
 
         } catch (\Throwable $e) {
             $db->transRollback();
             return $this->errorOutput($e->getMessage());
+        }
+    }
+
+
+    public function updateEo()
+    {
+        helper(['form']);
+
+        $db = db_connect();
+        $db->transBegin();
+
+        try {
+            $userModel = new User();
+            $eoModel = new EventsOrganizer();
+
+            // =============================
+            // Get Input (pakai ID sebagai acuan)
+            // =============================
+            $userId = $this->request->getPost('user_id');
+
+            if (empty($userId)) {
+                return $this->errorOutput("User ID wajib diisi", 400);
+            }
+
+            $user = $userModel->find($userId);
+            if (!$user) {
+                return $this->errorOutput("User tidak ditemukan", 404);
+            }
+
+            $eo = $eoModel->find($user->eo_id);
+            if (!$eo) {
+                return $this->errorOutput("Data EO tidak ditemukan", 404);
+            }
+
+            // =============================
+            // Validation (basic only)
+            // =============================
+            $rules = [
+                'username' => 'required|min_length[4]|max_length[30]|alpha_numeric',
+                'name' => 'required|min_length[3]',
+                'email' => 'required|valid_email',
+                'phone' => 'required|min_length[6]',
+                'eo_name' => 'required',
+                'company_name' => 'required',
+                'password' => 'permit_empty|min_length[8]',
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->errorOutput(json_encode($this->validator->getErrors(), true), 400);
+            }
+
+            // =============================
+            // Get Input Clean
+            // =============================
+            $input = [
+                'username' => $this->request->getPost('username'),
+                'name' => $this->request->getPost('name'),
+                'email' => $this->request->getPost('email'),
+                'phone' => $this->request->getPost('phone'),
+                'eo_name' => $this->request->getPost('eo_name'),
+                'company_name' => $this->request->getPost('company_name'),
+                'website' => $this->request->getPost('website'),
+                'address' => $this->request->getPost('address'),
+                'description' => $this->request->getPost('description'),
+            ];
+
+            $password = $this->request->getPost('password');
+
+            // =============================
+            // Uniqueness Check
+            // =============================
+
+            // username
+            $existUsername = $userModel
+                ->where('username', $input['username'])
+                ->where('id !=', $userId)
+                ->first();
+
+            if ($existUsername) {
+                throw new \Exception("Username sudah digunakan");
+            }
+
+            // email (users)
+            $existEmailUser = $userModel
+                ->where('email', $input['email'])
+                ->where('id !=', $userId)
+                ->first();
+
+            if ($existEmailUser) {
+                throw new \Exception("Email sudah digunakan");
+            }
+
+            // email (EO)
+            $existEmailEo = $eoModel
+                ->where('email', $input['email'])
+                ->where('id !=', $eo->id)
+                ->first();
+
+            if ($existEmailEo) {
+                throw new \Exception("Email EO sudah digunakan");
+            }
+
+            // eo_name
+            $existEoName = $eoModel
+                ->where('eo_name', $input['eo_name'])
+                ->where('id !=', $eo->id)
+                ->first();
+
+            if ($existEoName) {
+                throw new \Exception("Nama EO sudah digunakan");
+            }
+
+            // =============================
+            // Upload Logo (optional)
+            // =============================
+            $logo = $this->request->getFile('logo');
+            $logoName = $eo->logo_path;
+
+            if ($logo && $logo->isValid() && !$logo->hasMoved()) {
+                $logoName = $logo->getRandomName();
+                $uploadPath = FCPATH . 'uploads/event_organizer';
+
+                $logo->move($uploadPath, $logoName);
+
+                // optional: hapus logo lama
+                if (!empty($eo->logo_path) && file_exists($uploadPath . '/' . $eo->logo_path)) {
+                    unlink($uploadPath . '/' . $eo->logo_path);
+                }
+            }
+
+            // =============================
+            // Update EO
+            // =============================
+            $eoModel->update($eo->id, [
+                'eo_name' => $input['eo_name'],
+                'company_name' => $input['company_name'],
+                'website' => $input['website'],
+                'address' => $input['address'],
+                'email' => $input['email'],
+                'phone' => $input['phone'],
+                'description' => $input['description'],
+                'logo_path' => $logoName,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            // =============================
+            // Prepare User Update
+            // =============================
+            $userData = [
+                'username' => $input['username'],
+                'name' => $input['name'],
+                'email' => $input['email'],
+                'phone' => $input['phone'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+
+            // password optional
+            if (!empty($password)) {
+                $userData['password'] = $password;
+            }
+
+            // =============================
+            // Handle Email Change → Reverify
+            // =============================
+            if ($input['email'] !== $user->email) {
+                $verification_token = bin2hex(random_bytes(32));
+
+                $userData['verification_token'] = $verification_token;
+                $userData['status'] = 'Inactive';
+
+                helper('email_helper');
+                send_verification_email($user, $verification_token);
+            }
+
+            // =============================
+            // Update User
+            // =============================
+            $userModel->update($userId, $userData);
+
+            // =============================
+            // Commit
+            // =============================
+            $db->transCommit();
+
+            return $this->successOutput([
+                'message' => 'Data EO berhasil diperbarui'
+            ]);
+
+        } catch (\Throwable $e) {
+            $db->transRollback();
+
+            log_message('error', $e->getMessage());
+
+            return $this->errorOutput($e->getMessage(), 400);
         }
     }
 
@@ -499,6 +1120,109 @@ class AuthController extends ApiController
         ]);
 
         return view('emails/verify_success', ['user' => $user]);
+    }
+
+    /**
+     * Forgot Password — step 1
+     *
+     * POST /api/v1/forgot-password
+     * Body: { "email": "user@example.com" }
+     *
+     * Generates a secure password-reset token, stores it with a 1-hour expiry,
+     * and sends a reset link to the user's email address.
+     */
+    public function forgotPassword()
+    {
+        $email = $this->request->getJsonVar('email');
+
+        if (empty($email)) {
+            return $this->errorOutput("Email wajib diisi", 400);
+        }
+
+        $UserModel = new User();
+        $user = $UserModel->where('email', $email)->first();
+
+        // Always respond with success to prevent email enumeration
+        if (!$user) {
+            return $this->successOutput([
+                'message' => 'Jika email terdaftar, link reset password telah dikirim.'
+            ]);
+        }
+
+        // Generate a secure reset token and set 1-hour expiry
+        $resetToken = bin2hex(random_bytes(32));
+        $resetExpiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+        $UserModel->skipValidation(true)->update($user->id, [
+            'verification_token' => $resetToken,
+            'reset_token_expiry' => $resetExpiry,
+        ]);
+        $SysUserRole = new SysUsersRole();
+        $sys_user_role = $SysUserRole->where('role_name', $user->role)->first();
+        $frontendUrl = "";
+        if ($sys_user_role) {
+            if ($sys_user_role->scope === "EO") {
+                $frontendUrl = env('NEXT_PUBLIC_SITE_URL');
+            } else {
+                $frontendUrl = env('NEXT_PUBLIC_API_BASE_URL') . '/auth';
+            }
+        }
+
+        // Build the reset URL pointing to the frontend
+        $resetUrl = $frontendUrl . '/reset-password?token=' . $resetToken;
+
+        helper('email_helper');
+        send_forgot_password_email($user, $resetToken, $resetUrl);
+
+        return $this->successOutput([
+            'message' => 'Jika email terdaftar, link reset password telah dikirim.'
+        ]);
+    }
+
+    /**
+     * Reset Password — step 2
+     *
+     * POST /api/v1/reset-password
+     * Body: { "token": "...", "password": "newpassword123" }
+     *
+     * Validates the reset token (must exist and not be expired) then updates
+     * the user password and clears the token.
+     */
+    public function resetPassword()
+    {
+        $token = $this->request->getJsonVar('otp');
+        $password = $this->request->getJsonVar('new_password');
+
+        if (empty($token) || empty($password)) {
+            return $this->errorOutput("Token dan password wajib diisi", 400);
+        }
+
+        if (strlen($password) < 8) {
+            return $this->errorOutput("Password minimal 8 karakter", 400);
+        }
+
+        $UserModel = new User();
+        $user = $UserModel->where('verification_token', $token)->first();
+
+        if (!$user) {
+            return $this->errorOutput("Token tidak valid atau sudah digunakan", 400);
+        }
+
+        // Check expiry (column reset_token_expiry)
+        if (!empty($user->reset_token_expiry) && strtotime($user->reset_token_expiry) < time()) {
+            return $this->errorOutput("Token sudah kadaluarsa. Silakan minta link reset password baru.", 400);
+        }
+
+        // Update password and clear the token
+        $UserModel->skipValidation(true)->update($user->id, [
+            'password' => $password,
+            'verification_token' => null,
+            'reset_token_expiry' => null,
+        ]);
+
+        return $this->successOutput([
+            'message' => 'Password berhasil direset. Silakan login dengan password baru Anda.'
+        ]);
     }
 
 }

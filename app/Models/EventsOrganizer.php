@@ -11,62 +11,76 @@ use CodeIgniter\Model;
 
 class EventsOrganizer extends Model
 {
-    protected $DBGroup          = 'default';
-    protected $table            = 'events_organizer';
-    protected $primaryKey       = 'id';
+    protected $DBGroup = 'default';
+    protected $table = 'events_organizer';
+    protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
-    protected $insertID         = 0;
-    protected $returnType       = 'object';
-    protected $useSoftDeletes   = false;
-    protected $protectFields    = true;
-    protected $allowedFields    = [
-        'eo_name', 'company_name', 'email', 'phone', 'website', 'address', 'logo_path', 'tax_id', 'description', 'eo_slug'
+    protected $insertID = 0;
+    protected $returnType = 'object';
+    protected $useSoftDeletes = false;
+    protected $protectFields = true;
+    protected $allowedFields = [
+        'eo_name',
+        'company_name',
+        'organization_type',
+        'legal_doc_path',
+        'email',
+        'phone',
+        'website',
+        'address',
+        'logo_path',
+        'tax_id',
+        'description',
+        'eo_slug',
+        'verification_status',
+        'verified_at',
+        'verified_by',
+        'verification_note'
     ];
 
     // Dates
     protected $useTimestamps = true;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-    protected $deletedField  = null;
+    protected $dateFormat = 'datetime';
+    protected $createdField = 'created_at';
+    protected $updatedField = 'updated_at';
+    protected $deletedField = null;
 
     // Validation
-    protected $validationRules      = [];
-    protected $validationMessages   = [];
-    protected $skipValidation       = false;
+    protected $validationRules = [];
+    protected $validationMessages = [];
+    protected $skipValidation = false;
     protected $cleanValidationRules = true;
 
     // Callbacks
     protected $allowCallbacks = true;
-    protected $beforeInsert   = [];
-    protected $beforeUpdate   = [];
-    protected $beforeFind     = [];
-    protected $afterFind      = [];
-    protected $beforeDelete   = ['logBeforeDelete'];
+    protected $beforeInsert = [];
+    protected $beforeUpdate = [];
+    protected $beforeFind = [];
+    protected $afterFind = [];
+    protected $beforeDelete = ['logBeforeDelete'];
     protected $afterInsert = ['logAfterInsert'];
     protected $afterUpdate = ['logAfterUpdate'];
     protected $afterDelete = [];
 
 
-     private function logUser($action, $note = '', $data = []) {
+    private function logUser($action, $note = '', $data = [])
+    {
         $request = \Config\Services::request();
         $UserLog = new UserLog();
         // check if $request is not from cli
         if (!is_cli()) {
             $user_agent = $request->getUserAgent();
             $ip_address = $request->getIPAddress();
-        }
-        else
-        {
+        } else {
             $user_agent = 'CLI';
             $ip_address = '127.0.0.1';
         }
 
         $UserLog->insert([
-            'user_id' => $request->id  ?? -1,
+            'user_id' => $request->id ?? -1,
             'event_section' => strtoupper($this->table),
             'event_action' => $action,
-            'event_note' => $note.' From : ' . $user_agent,
+            'event_note' => $note . ' From : ' . $user_agent,
             'ip_address' => $ip_address,
             'data' => json_encode($data)
         ]);
@@ -74,7 +88,7 @@ class EventsOrganizer extends Model
 
     protected function logAfterInsert($data)
     {
-//        $this->logUser('ADD', 'Add '. strtoupper($this->table), $data);
+        //        $this->logUser('ADD', 'Add '. strtoupper($this->table), $data);
     }
 
     protected function logBeforeDelete($data)
@@ -88,7 +102,8 @@ class EventsOrganizer extends Model
 
     }
 
-    protected function logAfterUpdate($data) {
-        $this->logUser('MODIFY', 'Update '. strtoupper($this->table), $data);
+    protected function logAfterUpdate($data)
+    {
+        $this->logUser('MODIFY', 'Update ' . strtoupper($this->table), $data);
     }
 }

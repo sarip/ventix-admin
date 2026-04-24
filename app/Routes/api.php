@@ -42,9 +42,16 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
 
     // ADMINISTRATOR AUTHENTICATION
     $routes->post('login', 'AuthController::login');
+    $routes->post('auth/google', 'AuthController::loginWithGoogle');
     $routes->post('register-eo', 'AuthController::registerEo');
     $routes->get('verify-email/(:any)', 'AuthController::verifyEmail/$1');
     $routes->post('register-member', 'AuthController::registerMember');
+    $routes->put('update-member', 'AuthController::updateMember');
+    $routes->post('update-eo', 'AuthController::updateEo');
+    $routes->post('resend-verification', 'AuthController::resendVerification');
+    $routes->post('forgot-password', 'AuthController::forgotPassword');
+    $routes->post('reset-password', 'AuthController::resetPassword');
+
     $routes->get('logout', 'AuthController::logout', ['filter' => 'tokenFilter']);
     $routes->get('whoami', 'AuthController::whoami', ['filter' => 'tokenFilter']);
 
@@ -103,6 +110,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->get('events_organizer', 'EventsOrganizerController::index', ['filter' => 'PermissionFilter']);
     $routes->post('eventsorganizer', 'EventsOrganizerController::create', ['filter' => 'PermissionFilter']);
     $routes->post('eventsorganizer/(:num)', 'EventsOrganizerController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('eventsorganizer/(:num)/verify', 'EventsOrganizerController::verify/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('eventsorganizer/(:num)', 'EventsOrganizerController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('events', 'EventController::index', ['filter' => 'PermissionFilter']);
@@ -263,6 +271,13 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('commissionrule', 'CommissionRuleController::create', ['filter' => 'PermissionFilter']);
     $routes->put('commissionrule/(:num)', 'CommissionRuleController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('commissionrule/(:num)', 'CommissionRuleController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // NOTIFICATIONS
+    $routes->get('notifications', 'NotificationController::index', ['filter' => 'tokenFilter']);
+    $routes->get('notifications/unread-count', 'NotificationController::unreadCount', ['filter' => 'tokenFilter']);
+    $routes->post('notifications/(:num)/read', 'NotificationController::markAsRead/$1', ['filter' => 'tokenFilter']);
+    $routes->post('notifications/read-all', 'NotificationController::markAllAsRead', ['filter' => 'tokenFilter']);
+    $routes->delete('notifications/(:num)', 'NotificationController::delete/$1', ['filter' => 'tokenFilter']);
 
     // OTHER API REQUEST //
 

@@ -5,18 +5,20 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Offcanvas, Button } from 'react-bootstrap';
+import {Offcanvas, Button, Badge} from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
 import ConfirmDialog from '@/pages/_components/ConfirmDialog'
 import Filter, { QueryParamsProps } from './_filter';
 import Form from './_form';
+import Profile from './_profile';
 import { EventOrganizer, InEventOrganizer, InEventOrganizerForm } from '@/models/EventOrganizer';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import { ListResponse } from "@/types/apiTypes";
 import OneGalery from "@/pages/_components/OneGalery";
+import {useUserStore} from "@/store/store";
 
 interface ValidationErrorProps {
     field: string;
@@ -45,6 +47,7 @@ const EventOrganizerPage: React.FC = () => {
     const [sortBy, setSortBy] = useState<string>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [showForm, setShowForm] = useState<boolean>(false);
+    const user = useUserStore((state) => state.user);
     const [formData, setFormData] = useState<InEventOrganizerForm>({
         id: null,
         eo_name: "",
@@ -56,8 +59,12 @@ const EventOrganizerPage: React.FC = () => {
         logo_path: "",
         tax_id: "",
         description: "",
+        organization_type: null,
+        legal_doc_path: "",
     });
     const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
+    const [showProfile, setShowProfile] = useState<boolean>(false);
+    const [selectedEO, setSelectedEO] = useState<InEventOrganizer | null>(null);
     const Model = new EventOrganizer();
 
     const handleSort = (column: string) => {
@@ -86,7 +93,7 @@ const EventOrganizerPage: React.FC = () => {
             setEventOrganizers(response.events_organizer);
             setPagination(response.pagination);
             setPageCount(response.pagination.page_count);
-        } catch (e) {
+        } catch (e: any) {
             if (e.status === 403) {
                 router.push('/403');
             }
@@ -117,6 +124,8 @@ const EventOrganizerPage: React.FC = () => {
             logo_path: "",
             tax_id: "",
             description: "",
+            organization_type: null,
+            legal_doc_path: "",
         });
     }
 
@@ -125,6 +134,46 @@ const EventOrganizerPage: React.FC = () => {
         SetValidationError([]);
         setFormData(data);
         jQuery("#modal-EventOrganizer").modal('show');
+    };
+
+    const viewProfile = (item: InEventOrganizer) => {
+        setSelectedEO(item);
+        setShowProfile(true);
+    };
+
+    const approveEO = async (id: number) => {
+        try {
+            await Model.verify(id, { status: 'Approved' });
+            showToast("Event Organizer approved successfully", "success");
+            setShowProfile(false);
+            listData(lastQuery);
+        } catch (error: any) {
+            showToast(error.message || "Failed to approve", "error");
+        }
+    };
+
+    const rejectEO = async (id: number) => {
+        const { value: note } = await Swal.fire({
+            title: 'Reject Organizer',
+            input: 'textarea',
+            inputLabel: 'Reason for rejection',
+            inputPlaceholder: 'Type your reason here...',
+            inputAttributes: {
+                'aria-label': 'Type your reason here'
+            },
+            showCancelButton: true
+        });
+
+        if (note) {
+            try {
+                await Model.verify(id, { status: 'Rejected', note });
+                showToast("Event Organizer rejected", "info");
+                setShowProfile(false);
+                listData(lastQuery);
+            } catch (error: any) {
+                showToast(error.message || "Failed to reject", "error");
+            }
+        }
     };
 
 
@@ -147,9 +196,9 @@ const EventOrganizerPage: React.FC = () => {
             showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
             jQuery("#modal-EventOrganizer").modal('hide');
             listData(lastQuery);
-        } catch (error) {
+        } catch (error: any) {
             let lines = error.message.trim().split('\n');
-            let result: ValidationErrorProps[] = lines.map(line => {
+            let result: ValidationErrorProps[] = lines.map((line: string) => {
                 let [field, ...message] = line.split(' ');
                 return {
                     field,
@@ -202,10 +251,12 @@ const EventOrganizerPage: React.FC = () => {
             <div className="card mt-2">
                 <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
                     <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
-                        <Button variant="primary" onClick={create}>
-                            <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
-                            <span className="d-none d-sm-inline-block">Add Data</span>
-                        </Button>
+                        {user.role === 'super_admin' && (
+                            <Button variant="primary" onClick={create}>
+                                <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
+                                <span className="d-none d-sm-inline-block">Add Data</span>
+                            </Button>
+                        )}
                     </div>
                 </h5>
                 <div className="table-responsive text-nowrap">
@@ -221,6 +272,9 @@ const EventOrganizerPage: React.FC = () => {
                                 <th>Website</th>
                                 <th>Address</th>
                                 <th>Tax ID</th>
+                                {/*<th>Org Type</th>*/}
+                                {/*<th>Status</th>*/}
+                                {/*<th>Legality</th>*/}
                                 <th>Description</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
@@ -232,11 +286,20 @@ const EventOrganizerPage: React.FC = () => {
                                 <tr className="odd" key={key}>
                                     <td>
                                         <div className="d-flex align-items-sm-center justify-content-sm-center">
-                                            <button className="btn btn-md btn-icon btn-danger me-2"
-                                                onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
+                                            <button className="btn btn-md btn-icon btn-primary me-2"
+                                                onClick={() => viewProfile(item)} title="View Profile">
+                                                <i className="bx bx-show"></i>
                                             </button>
+                                            {user.role === 'super_admin' && (
+                                            <button className="btn btn-md btn-icon btn-danger me-2"
+                                                onClick={() => remove(item.id)} title="Delete">
+                                                <i className="bx bx-trash"></i>
+                                            </button>
+                                            )}
                                             <button className="btn btn-md btn-icon btn-warning"
-                                                onClick={() => update(item)}><i className="bx bx-edit"></i></button>
+                                                onClick={() => update(item)} title="Edit">
+                                                <i className="bx bx-edit"></i>
+                                            </button>
                                         </div>
                                     </td>
                                     <td>
@@ -249,6 +312,19 @@ const EventOrganizerPage: React.FC = () => {
                                     <td>{item.website}</td>
                                     <td>{item.address}</td>
                                     <td>{item.tax_id}</td>
+                                    {/*<td><span className="badge bg-label-info">{item.organization_type}</span></td>*/}
+                                    {/*<td>*/}
+                                    {/*    <Badge bg={item.verification_status === 'Approved' ? 'success' : (item.verification_status === 'Rejected' ? 'danger' : 'warning text-dark')}>*/}
+                                    {/*        {item.verification_status || 'Pending'}*/}
+                                    {/*    </Badge>*/}
+                                    {/*</td>*/}
+                                    {/*<td>*/}
+                                    {/*    {item.legal_doc_path ? (*/}
+                                    {/*        <a href={`${process.env.NEXT_PUBLIC_BASE_URL?.replace('/api/v1/', '')}/uploads/legality/${item.legal_doc_path}`} target="_blank" rel="noreferrer" className="btn btn-xs btn-outline-primary">*/}
+                                    {/*            <i className="bx bx-file me-1"></i> View*/}
+                                    {/*        </a>*/}
+                                    {/*    ) : '-'}*/}
+                                    {/*</td>*/}
                                     <td>{item.description}</td>
                                     <td>{item.created_at}</td>
                                     <td>{item.updated_at}</td>
@@ -278,6 +354,13 @@ const EventOrganizerPage: React.FC = () => {
                 data={formData}
                 onSave={save}
                 validationError={validationError}
+            />
+            <Profile
+                show={showProfile}
+                onHide={() => setShowProfile(false)}
+                data={selectedEO}
+                onApprove={approveEO}
+                onReject={rejectEO}
             />
         </>
     );

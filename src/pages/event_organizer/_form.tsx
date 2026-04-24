@@ -34,6 +34,8 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
         logo_path: "",
         tax_id: "",
         description: "",
+        organization_type: null,
+        legal_doc_path: "",
     });
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const EventOrganizerModel = new EventOrganizer();
@@ -81,16 +83,17 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
+        const { name } = e.target;
         setFormData(prev => ({
             ...prev,
-            logo_path: e.target.files[0],
+            [name]: e.target.files![0],
         }));
     };
 
 
     return (
 
-        <div className="modal fade" id="modal-EventOrganizer" aria-hidden="true"   data-bs-backdrop="static" data-bs-keyboard="false" >
+        <div className="modal fade" id="modal-EventOrganizer" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" >
             <div className="modal-dialog" role="document">
                 <div className="modal-content">
                     <div className="modal-header">
@@ -115,23 +118,26 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                 )}
                             </div>
                         </div>
-                        <div className="row g-2">
-                            <div className="col mb-3">
-                                <label className="form-label" htmlFor="company_name">Company Name</label>
-                                <input
-                                    type="text"
-                                    id="company_name"
-                                    name="company_name"
-                                    className={`form-control ${!!errors?.company_name ? 'is-invalid' : ''}`}
-                                    placeholder="Company Name"
-                                    value={formData.company_name}
-                                    onChange={handleInputChange}
-                                />
-                                {!!errors?.eo_name && (
-                                    <div className="invalid-feedback">{errors.eo_name}</div>
-                                )}
-                            </div>
-                        </div>
+                        {/*<div className="row g-2">*/}
+                        {/*    <div className="col mb-3">*/}
+                        {/*        <label className="form-label" htmlFor="organization_type">Organization Type</label>*/}
+                        {/*        <select*/}
+                        {/*            id="organization_type"*/}
+                        {/*            name="organization_type"*/}
+                        {/*            className={`form-select ${!!errors?.organization_type ? 'is-invalid' : ''}`}*/}
+                        {/*            value={formData.organization_type as string}*/}
+                        {/*            onChange={handleInputChange}*/}
+                        {/*        >*/}
+                        {/*            <option value="">Select Type</option>*/}
+                        {/*            <option value="PT">PT</option>*/}
+                        {/*            <option value="UMKM">UMKM</option>*/}
+                        {/*            <option value="Komunitas">Komunitas</option>*/}
+                        {/*        </select>*/}
+                        {/*        {!!errors?.organization_type && (*/}
+                        {/*            <div className="invalid-feedback">{errors.organization_type}</div>*/}
+                        {/*        )}*/}
+                        {/*    </div>*/}
+                        {/*</div>*/}
                         <div className="row">
                             <div className="col mb-3">
                                 <label className="form-label" htmlFor="email">Email</label>
@@ -239,20 +245,38 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                     type="file"
                                     name="logo_path"
                                     className={`form-control ${!!errors?.logo_path ? 'is-invalid' : ''}`}
-                                    placeholder="logo_path"
                                     onChange={handleFileChange}
                                 />
-                                {!!errors?.description && (
-                                    <div className="invalid-feedback">{errors.description}</div>
+                                {formData.logo_path && typeof formData.logo_path === 'string' && (
+                                    <small className="text-muted">Current logo: {formData.logo_path}</small>
                                 )}
                             </div>
                         </div>
+                        {/*<div className="row">*/}
+                        {/*    <div className="col mb-3">*/}
+                        {/*        <label className="form-label" htmlFor="legal_document">Legal Document</label>*/}
+                        {/*        <input*/}
+                        {/*            type="file"*/}
+                        {/*            name="legal_document"*/}
+                        {/*            className={`form-control ${!!errors?.legal_document ? 'is-invalid' : ''}`}*/}
+                        {/*            onChange={handleFileChange}*/}
+                        {/*        />*/}
+                        {/*        {formData.legal_doc_path && (*/}
+                        {/*            <small className="text-muted">*/}
+                        {/*                Current document: <a href={`${process.env.NEXT_PUBLIC_BASE_URL?.replace('/api/v1/', '')}/uploads/legality/${formData.legal_doc_path}`} target="_blank" rel="noreferrer">View File</a>*/}
+                        {/*            </small>*/}
+                        {/*        )}*/}
+                        {/*        {!!errors?.legal_document && (*/}
+                        {/*            <div className="invalid-feedback">{errors.legal_document}</div>*/}
+                        {/*        )}*/}
+                        {/*    </div>*/}
+                        {/*</div>*/}
                     </div>
 
 
                     <div className="modal-footer">
                         <button type="reset" className="btn btn-label-secondary" data-bs-dismiss="modal"
-                                aria-label="Close" onClick={onClose}>Cancel
+                            aria-label="Close" onClick={onClose}>Cancel
                         </button>
                         <button type="button" className="btn btn-primary me-sm-3 me-1" onClick={save}>Save</button>
                     </div>

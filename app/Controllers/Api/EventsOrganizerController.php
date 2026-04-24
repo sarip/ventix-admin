@@ -33,7 +33,8 @@ class EventsOrganizerController extends ApiController
      * @apiQuery {String} page Page
      *
      */
-    public function index() {
+    public function index()
+    {
         $Model = new EventsOrganizer();
 
         // Define searchable column on this model
@@ -93,16 +94,16 @@ class EventsOrganizerController extends ApiController
         }
 
         $create_data = [
-            'eo_name'       => $this->request->getPost('eo_name'),
+            'eo_name' => $this->request->getPost('eo_name'),
             'company_name' => $this->request->getPost('company_name'),
-            'email'        => $this->request->getPost('email'),
-            'phone'        => $this->request->getPost('phone'),
-            'website'      => $this->request->getPost('website'),
-            'address'      => $this->request->getPost('address'),
-            'logo_path'    => $logoName,
-            'tax_id'       => $this->request->getPost('tax_id'),
-            'description'  => $this->request->getPost('description'),
-            'eo_slug'      => generate_slug($this->request->getPost('eo_name')),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'website' => $this->request->getPost('website'),
+            'address' => $this->request->getPost('address'),
+            'logo_path' => $logoName,
+            'tax_id' => $this->request->getPost('tax_id'),
+            'description' => $this->request->getPost('description'),
+            'eo_slug' => generate_slug($this->request->getPost('eo_name')),
         ];
 
         $id = $EventsOrganizer->insert($create_data);
@@ -161,16 +162,16 @@ class EventsOrganizerController extends ApiController
         }
 
         $update_data = [
-            'eo_name'       => $this->request->getPost('eo_name'),
+            'eo_name' => $this->request->getPost('eo_name'),
             'company_name' => $this->request->getPost('company_name'),
-            'email'        => $this->request->getPost('email'),
-            'phone'        => $this->request->getPost('phone'),
-            'website'      => $this->request->getPost('website'),
-            'address'      => $this->request->getPost('address'),
-            'logo_path'    => $logoName,
-            'tax_id'       => $this->request->getPost('tax_id'),
-            'description'  => $this->request->getPost('description'),
-            'eo_slug'      => generate_slug($this->request->getPost('eo_name')),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'website' => $this->request->getPost('website'),
+            'address' => $this->request->getPost('address'),
+            'logo_path' => $logoName,
+            'tax_id' => $this->request->getPost('tax_id'),
+            'description' => $this->request->getPost('description'),
+            'eo_slug' => generate_slug($this->request->getPost('eo_name')),
         ];
 
         $EventsOrganizer->update($id, $update_data);
@@ -214,6 +215,52 @@ class EventsOrganizerController extends ApiController
         $EventsOrganizer->delete($id);
 
         return $this->successOutput([], 200);
+    }
+
+    /**
+     * Verify EventsOrganizer
+     * @param $id
+     * @return mixed
+     */
+    public function verify($id)
+    {
+        $EventsOrganizer = new EventsOrganizer();
+        $data = $EventsOrganizer->find($id);
+
+        if (!$data) {
+            return $this->errorOutput('Events Organizer not found');
+        }
+
+        $json = $this->request->getJSON();
+        $status = $json->status ?? null;
+        $note = $json->note ?? null;
+
+        if (!in_array($status, ['Approved', 'Rejected'])) {
+            return $this->errorOutput('Invalid status');
+        }
+
+        $update_data = [
+            'verification_status' => $status,
+            'verification_note' => $note,
+            'verified_at' => date('Y-m-d H:i:s'),
+            'verified_by' => $this->request->id ?? null
+        ];
+
+        $EventsOrganizer->update($id, $update_data);
+
+        // If approved, we might want to activate the connected user account
+        if ($status === 'Approved') {
+            $userModel = new \App\Models\User();
+            $user = $userModel->where('eo_id', $id)->first();
+            if ($user && $user->status === 'Inactive') {
+                $userModel->update($user->id, ['status' => 'Active']);
+            }
+        }
+
+        return $this->successOutput([
+            'message' => "Events Organizer {$status}",
+            'eventsorganizer' => $EventsOrganizer->find($id)
+        ]);
     }
 
 }

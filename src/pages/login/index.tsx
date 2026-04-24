@@ -4,8 +4,11 @@ import Axios from 'axios';
 import swal from 'sweetalert2';
 import Head from 'next/head';
 import Swal from "sweetalert2";
-import {showToast} from '@/utils/toast'
+import { showToast } from '@/utils/toast'
 import { setCookie } from 'cookies-next';
+import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google'
+import Link from "next/link";
 
 
 export default function Login() {
@@ -14,29 +17,31 @@ export default function Login() {
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    const handleLogin = async (e:any) => {
+    const onLoginSuccess = (key: string) => {
+        showToast('Login Berhasil, silahkan tunggu ...', 'success')
+        // SET COOKIE
+        const now = new Date();
+        const tonight = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + 1,
+            0, 0, 0
+        );
+        const secondsUntilMidnight = Math.floor((tonight.getTime() - now.getTime()) / 1000);
+        setCookie('key', key, { maxAge: secondsUntilMidnight });
+        localStorage.setItem('key', key);
+        setTimeout(() => {
+            window.location.href = process.env.NEXT_PUBLIC_SITE_URL + '/dashboard';
+        }, 1000)
+    }
+
+    const handleLogin = async (e: any) => {
         e.preventDefault();
         Axios.post(process.env.NEXT_PUBLIC_BASE_URL + 'login?role=EO', {
-            username : username,
-            password : password
+            username: username,
+            password: password
         }).then((response) => {
-            showToast('Login Berhasil, silahkan tunggu ...', 'success')
-            let key = response.data.key;
-            // SET COOKIE
-            const now = new Date();
-            const tonight = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate() + 1,
-                0, 0, 0
-            );
-            const secondsUntilMidnight = Math.floor((tonight - now) / 1000);
-            setCookie('key', key, { maxAge: secondsUntilMidnight });
-            localStorage.setItem('key', key);
-            setTimeout(()=> {
-                window.location.href = process.env.NEXT_PUBLIC_SITE_URL + '/dashboard';
-            }, 1000)
-
+            onLoginSuccess(response.data.key);
         }).catch((error) => {
             const audio = new Audio("/assets/audio/danger.mp3");
             audio.play().catch((error) => {
@@ -50,6 +55,29 @@ export default function Login() {
 
         });
     };
+
+
+    const handleGoogleSuccess = useGoogleLogin({
+        scope: 'openid profile email',
+        onSuccess: async (tokenResponse) => {
+            console.log(tokenResponse);
+
+            Axios.post(process.env.NEXT_PUBLIC_BASE_URL + 'auth/google?role=EO', {
+                credential: tokenResponse.access_token
+            }).then((response) => {
+                onLoginSuccess(response.data.key);
+            }).catch((error) => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Login Gagal",
+                    text: error.response?.data?.message || "Google login gagal",
+                });
+            });
+        },
+        onError: () => {
+            console.log('Google Login Failed');
+        }
+    });
     const [isClient, setIsClient] = useState(false)
     const [showPassword, setShowPassword] = useState(false);
 
@@ -61,31 +89,39 @@ export default function Login() {
         <>
             <Head>
                 <title>Login | {process.env.NEXT_PUBLIC_APP_NAME}</title>
-                <meta name="description" content=""/>
-                <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css"/>
+                <meta name="description" content="" />
+                <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css" />
             </Head>
             <script src="/assets/js/pages-auth.js"></script>
             <div className="container-xxl">
-            <div className="authentication-wrapper authentication-basic container-p-y">
+                <div className="authentication-wrapper authentication-basic container-p-y">
                     <div className="authentication-inner py-4">
                         <div className="card">
                             <div className="card-body">
-                                <h5 className="mb-3 mt-2 text-center">Selamat Datang Di {process.env.NEXT_PUBLIC_APP_NAME} 👋</h5>
-                                <p className="mb-4 text-center">Silakan masuk untuk mengakses akun dan melanjutkan aktivitas Anda</p>
+                                <h5 className="mb-3 mt-2 text-center">Selamat Datang
+                                    Di {process.env.NEXT_PUBLIC_APP_NAME} 👋</h5>
+                                <p className="mb-4 text-center">Silakan masuk untuk mengakses akun dan melanjutkan
+                                    aktivitas Anda</p>
                                 <form id="formAuthentication" className="mb-3" onSubmit={handleLogin}>
                                     <div className="mb-3">
                                         <label htmlFor="username" className="form-label">Username</label>
-                                        <input type="text" className="form-control" id="username" name="username" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus/>
+                                        <input type="text" className="form-control" id="username" name="username"
+                                               placeholder="username" value={username}
+                                               onChange={(e) => setUsername(e.target.value)} autoFocus/>
                                     </div>
                                     <div className="mb-3 form-password-toggle">
                                         <div className="d-flex justify-content-between">
                                             <label className="form-label" htmlFor="password">Password</label>
-                                            {/*<a href="/auth-forgot-password-basic.html">*/}
-                                            {/*    <small>Forgot Password?</small>*/}
-                                            {/*</a>*/}
+                                            <a href="/forgot-password">
+                                                <small>Lupa Password?</small>
+                                            </a>
                                         </div>
                                         <div className="input-group input-group-merge">
-                                            <input type={showPassword ? "text" : "password"} id="password" className="form-control" name="password" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" aria-describedby="password" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                                            <input type={showPassword ? "text" : "password"} id="password"
+                                                   className="form-control" name="password"
+                                                   placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
+                                                   aria-describedby="password" value={password}
+                                                   onChange={(e) => setPassword(e.target.value)}/>
                                             <span
                                                 className="input-group-text cursor-pointer"
                                                 onClick={() => setShowPassword(!showPassword)}
@@ -103,9 +139,40 @@ export default function Login() {
                                     {/*    </div>*/}
                                     {/*</div>*/}
                                     <div className="mb-3">
-                                        <button className="btn btn-primary d-grid w-100" type="submit" onClick={handleLogin} >Login</button>
+                                        <button className="btn btn-primary d-grid w-100" type="submit"
+                                                onClick={handleLogin}>Login
+                                        </button>
                                     </div>
                                 </form>
+
+
+                                <div className="divider my-4">
+                                    <div className="divider-text">atau masuk dengan</div>
+                                </div>
+
+                                <div className="d-flex justify-content-center mb-3">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-danger"
+                                        onClick={() => handleGoogleSuccess()}
+                                    >
+                                        <i className="tf-icons bx bxl-google"></i>&nbsp;Login dengan Google
+                                    </button>
+
+                                </div>
+
+                                <div className="d-flex justify-content-center">
+                                    <Link href={process.env.NEXT_PUBLIC_API_BASE_URL as string}>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-gray"
+                                        >
+                                            <i className="tf-icons bx bx-back"></i>&nbsp;Back to landing Page
+                                        </button>
+                                    </Link>
+
+
+                                </div>
                                 {/*<p className="text-center">*/}
                                 {/*    <span>Belum mempunyai akun? klik </span>*/}
                                 {/*    <a href="/auth-register-basic.html">*/}
