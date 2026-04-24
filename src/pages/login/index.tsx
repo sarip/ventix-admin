@@ -112,7 +112,7 @@ export default function Login() {
                                     <div className="mb-3 form-password-toggle">
                                         <div className="d-flex justify-content-between">
                                             <label className="form-label" htmlFor="password">Password</label>
-                                            <a href="/forgot-password">
+                                            <a href={process.env.NEXT_PUBLIC_SITE_URL + '/forgot-password'}>
                                                 <small>Lupa Password?</small>
                                             </a>
                                         </div>
