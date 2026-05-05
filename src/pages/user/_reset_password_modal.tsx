@@ -178,20 +178,20 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                         </div>
 
                         {/* Options */}
-                        <div className="mb-3">
-                            <div className="form-check">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id="send-email"
-                                    checked={sendEmail}
-                                    onChange={(e) => setSendEmail(e.target.checked)}
-                                />
-                                <label className="form-check-label" htmlFor="send-email">
-                                    Send password via email to user
-                                </label>
-                            </div>
-                        </div>
+                        {/*<div className="mb-3">*/}
+                        {/*    <div className="form-check">*/}
+                        {/*        <input*/}
+                        {/*            className="form-check-input"*/}
+                        {/*            type="checkbox"*/}
+                        {/*            id="send-email"*/}
+                        {/*            checked={sendEmail}*/}
+                        {/*            onChange={(e) => setSendEmail(e.target.checked)}*/}
+                        {/*        />*/}
+                        {/*        <label className="form-check-label" htmlFor="send-email">*/}
+                        {/*            Send password via email to user*/}
+                        {/*        </label>*/}
+                        {/*    </div>*/}
+                        {/*</div>*/}
 
                         {/* Warning */}
                         <div className="alert alert-warning mb-0">

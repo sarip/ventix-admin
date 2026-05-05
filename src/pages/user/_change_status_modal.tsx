@@ -149,7 +149,7 @@ const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
                                     >
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>
-                                        <option value="Suspended">Suspended</option>
+                                        <option value="Suspend">Suspend</option>
                                     </select>
                                 </div>
 

@@ -20,7 +20,7 @@ class Event extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'events_organizer_id', 'user_id_pic', 'event_category', 'title', 'description', 'start_date', 'end_date', 'location_name', 'latitude', 'longitude', 'price_pool', 'registration_fee', 'thumbnail_url', 'events_status'
+        'is_external', 'external_url', 'events_organizer_id', 'user_id_pic', 'event_category', 'title', 'description', 'start_date', 'end_date', 'location_name', 'latitude', 'longitude', 'price_pool', 'registration_fee', 'thumbnail_url', 'events_status', 'location'
     ];
 
     // Dates

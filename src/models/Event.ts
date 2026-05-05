@@ -12,6 +12,8 @@ import { InUser } from "@/models/User";
 
 export interface InEventForm {
     id: number | null;
+    is_external: string | "";
+    external_url: string | "";
     events_organizer_id: number | null;
     user_id_pic: number | null;
     event_category: string;
@@ -30,8 +32,23 @@ export interface InEventForm {
     sponsor_logos?: any[]; // For frontend state
 }
 
+export interface InExternalForm {
+    id: null;
+    is_external: string;
+    external_url: string;
+    title: string;
+    location: string;
+    start_date: string;
+    end_date: string;
+    event_category: string;
+    events_status: string;
+    thumbnail_url: string;
+}
+
 export interface InEvent {
     id: number;
+    is_external: string | "";
+    external_url: string | "";
     events_organizer_id: number;
     user_id_pic: number;
     event_category: string;
@@ -39,6 +56,7 @@ export interface InEvent {
     description: string;
     start_date: string;
     end_date: string;
+    location: string;
     location_name: string;
     latitude: string;
     longitude: string;
@@ -59,6 +77,9 @@ class Event {
     async list(query: Record<string, any> = {}): Promise<ListResponse<InEvent[]>> {
         return await APIClient.get('events', query);
     }
+    async listExternal(query: Record<string, any> = {}): Promise<ListResponse<InEvent[]>> {
+        return await APIClient.get('events-external', query);
+    }
 
     async create(Event: InEventForm): Promise<PostResponse> {
         return await APIClient.post('/event', Event);
@@ -68,7 +89,7 @@ class Event {
     }
 
     async update(id: number, Event: InEventForm): Promise<PutResponse<InEvent>> {
-        return await APIClient.put(`/event/${id}`, Event);
+        return await APIClient.post(`/event/${id}`, Event);
     }
 
     async delete(id: number): Promise<DeleteResponse> {

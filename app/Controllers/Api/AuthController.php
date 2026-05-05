@@ -83,8 +83,12 @@ class AuthController extends ApiController
             return $this->errorOutput("Invalid username or password", 401);
         }
 
-        if ($user->status !== 'Active') {
+        if ($user->status === 'Inactive') {
             return $this->errorOutput("Your account is " . $user->status . ". Please check your email for verification.", 401);
+        }
+
+        if ($user->status === 'Suspend') {
+            return $this->errorOutput("Your account is " . $user->status . ". Please contact your administator.", 401);
         }
 
 
@@ -101,6 +105,11 @@ class AuthController extends ApiController
 //            'event_note' => "Logged in From : {$this->request->getUserAgent()}",
 //            'ip_address' => $this->request->getIPAddress(),
 //        ]);
+
+        $User = new User();
+        $User->update($user->id, [
+            'last_login' => date("Y-m-d H:i:s"),
+        ]);
 
         unset($user->password);
         return $this->successOutput([
@@ -165,20 +174,6 @@ class AuthController extends ApiController
             }
         }
 
-
-        $requestservice = Services::request();
-        $request = $requestservice->getGet();
-        if (!empty($request['role']) && $user) {
-            $UserSysRole = new SysUsersRole();
-            $usersysrole = $UserSysRole->where('role_name', $user->role)->first();
-
-            if ($usersysrole->scope !== $request['role']) {
-                return $this->errorOutput("Silahkan Login di halaman {$usersysrole->scope}");
-            }
-        }
-
-
-
         // REGISTER
         $isNewUser = $this->request->getJsonVar('isNewUser');
         if($isNewUser && !$user) {
@@ -189,10 +184,11 @@ class AuthController extends ApiController
                 'email' => $this->request->getJsonVar('email'),
                 'password' => $this->request->getJsonVar('password'),
                 'phone' => $this->request->getJsonVar('phone'),
-                'role' => $this->request->getJsonVar('role') === 'GUEST' ?  'General_User' : 'EO Admin',
+                'role' => 'General_User',
                 'status' => 'Active',
                 'created_at' => date('Y-m-d H:i:s'),
                 'email_verified_at' => date('Y-m-d H:i:s'),
+                'last_login' => date('Y-m-d H:i:s'),
             ]);
             $user = $UserModel->find($id);
         }
@@ -209,6 +205,18 @@ class AuthController extends ApiController
                 'Akun Anda berstatus ' . $user->status . '. Silakan cek email untuk verifikasi.',
                 401
             );
+        }
+
+
+        $requestservice = Services::request();
+        $request = $requestservice->getGet();
+        if (!empty($request['role']) && $user) {
+            $UserSysRole = new SysUsersRole();
+            $usersysrole = $UserSysRole->where('role_name', $user->role)->first();
+
+            if ($usersysrole->scope !== $request['role']) {
+                return $this->errorOutput("Silahkan Login di halaman {$usersysrole->scope}");
+            }
         }
 
         $user->source = 'users';

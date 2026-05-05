@@ -77,6 +77,15 @@ const routes: Route[] = [
             },
         ]
     },
+    {
+        path: '/event_external',
+        side_menu: true,
+        tooltip: "Event External",
+        icon: 'bx-calendar-event',
+        title: 'Event External',
+        is_superadmin: true,
+    },
+
 
     {
         path: '#',

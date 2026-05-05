@@ -39,7 +39,7 @@ class User extends Model
     ];
 
     // Dates
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
@@ -81,7 +81,7 @@ class User extends Model
     protected $beforeUpdate = ['hashPassword'];
     protected $beforeFind = [];
     protected $afterFind = ['removePassword'];
-    protected $beforeDelete = ['logBeforeDelete', 'softDeleteInstead'];
+    protected $beforeDelete = ['logBeforeDelete'];
     protected $afterInsert = ['logAfterInsert'];
     protected $afterUpdate = ['logAfterUpdate'];
     protected $afterDelete = [];

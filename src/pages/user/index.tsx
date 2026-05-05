@@ -268,6 +268,28 @@ export default function UserPage() {
         });
     };
 
+    const remove = async (id: number) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Once deleted, you will not be able to recover this data",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes",
+            cancelButtonText: "No",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const response = await Model.delete(id);
+                if (response.success) {
+                    showToast("Successfully Deleted", "success");
+                    listData();
+                }
+            }
+        });
+    };
+
+
     const permissions = currentUser ? getUserPermissions(currentUser) : null;
 
     return (
@@ -327,7 +349,7 @@ export default function UserPage() {
                                 <option value="">All Status</option>
                                 <option value="Active">Active</option>
                                 <option value="Inactive">Inactive</option>
-                                <option value="Suspended">Suspended</option>
+                                <option value="Suspend">Suspend</option>
                             </select>
                         </div>
 
@@ -432,6 +454,13 @@ export default function UserPage() {
                                                 >
                                                     <i className="bx bx-edit"></i>
                                                 </button>
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    onClick={() => remove(user.id)}
+                                                    title="Delete User"
+                                                >
+                                                    <i className="bx bx-trash"></i>
+                                                </button>
                                                 {/*)}*/}
                                                 {/*{currentUser && canChangeStatus(currentUser, user) && (*/}
                                                 <button
@@ -464,7 +493,7 @@ export default function UserPage() {
                 {pagination && (
                     <div className="card-footer">
                         <div className="row align-items-center">
-                            <div className="col-sm-12 col-md-6">
+                        <div className="col-sm-12 col-md-6">
                                 <div className="dataTables_info">
                                     Showing {users.length} of {pagination.total || 0} users
                                     {pagination.filtered_total !== pagination.total && (

@@ -173,26 +173,26 @@ export default function UserDetailPage() {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="mt-4 d-grid gap-2">
-                                {currentUser && canEditUser(currentUser, user) && (
-                                    <button className="btn btn-warning" onClick={handleEdit}>
-                                        <i className="bx bx-edit me-1"></i>
-                                        Edit User
-                                    </button>
-                                )}
-                                {currentUser && canChangeStatus(currentUser, user) && (
-                                    <button className="btn btn-secondary" onClick={handleChangeStatus}>
-                                        <i className="bx bx-check-circle me-1"></i>
-                                        Change Status
-                                    </button>
-                                )}
-                                {currentUser && canResetPassword(currentUser, user) && (
-                                    <button className="btn btn-primary" onClick={handleResetPassword}>
-                                        <i className="bx bx-lock me-1"></i>
-                                        Reset Password
-                                    </button>
-                                )}
-                            </div>
+                            {/*<div className="mt-4 d-grid gap-2">*/}
+                            {/*    {currentUser && canEditUser(currentUser, user) && (*/}
+                            {/*        <button className="btn btn-warning" onClick={handleEdit}>*/}
+                            {/*            <i className="bx bx-edit me-1"></i>*/}
+                            {/*            Edit User*/}
+                            {/*        </button>*/}
+                            {/*    )}*/}
+                            {/*    {currentUser && canChangeStatus(currentUser, user) && (*/}
+                            {/*        <button className="btn btn-secondary" onClick={handleChangeStatus}>*/}
+                            {/*            <i className="bx bx-check-circle me-1"></i>*/}
+                            {/*            Change Status*/}
+                            {/*        </button>*/}
+                            {/*    )}*/}
+                            {/*    {currentUser && canResetPassword(currentUser, user) && (*/}
+                            {/*        <button className="btn btn-primary" onClick={handleResetPassword}>*/}
+                            {/*            <i className="bx bx-lock me-1"></i>*/}
+                            {/*            Reset Password*/}
+                            {/*        </button>*/}
+                            {/*    )}*/}
+                            {/*</div>*/}
                         </div>
                     </div>
                 </div>

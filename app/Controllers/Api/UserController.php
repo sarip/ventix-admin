@@ -395,18 +395,18 @@ class UserController extends ApiController
         $currentUser = $this->getCurrentUser();
 
         if (!$currentUser) {
-            return $this->failUnauthorized('User not authenticated');
+            return $this->errorOutput('User not authenticated');
         }
 
         // Prevent changing own status
-        if ($id == $currentUser->id) {
-            return $this->failForbidden('You cannot change your own status');
+        if ($id == $currentUser['id']) {
+            return $this->errorOutput('You cannot change your own status');
         }
 
         $targetUser = $this->userModel->find($id);
 
         if (!$targetUser) {
-            return $this->failNotFound('User not found');
+            return $this->errorOutput('User not found');
         }
 
         // Check access permission
@@ -484,17 +484,17 @@ class UserController extends ApiController
         $this->userModel->update($id, ['password' => $newPassword]);
 
         // Invalidate all sessions
-        invalidate_user_sessions($id);
+//        invalidate_user_sessions($id);
 
         // Send email with new password (optional)
-        $sendEmail = $this->request->getJsonVar('send_email') ?? false;
-        if ($sendEmail) {
-            send_password_reset_email($targetUser, $newPassword);
-        }
+//        $sendEmail = $this->request->getJsonVar('send_email') ?? false;
+//        if ($sendEmail) {
+//            send_password_reset_email($targetUser, $newPassword);
+//        }
 
         return $this->successOutput([
             'message' => 'Password reset successfully.',
-            'email_sent' => $sendEmail
+//            'email_sent' => $sendEmail
         ]);
     }
 
@@ -510,22 +510,22 @@ class UserController extends ApiController
         $currentUser = $this->getCurrentUser();
 
         if (!$currentUser) {
-            return $this->failUnauthorized('User not authenticated');
+            return $this->errorOutput('User not authenticated');
         }
 
-        if ($id == $currentUser->id) {
-            return $this->failForbidden('You cannot delete your own account');
+        if ($id == $currentUser['id']) {
+            return $this->errorOutput('You cannot delete your own account');
         }
 
         $targetUser = $this->userModel->find($id);
 
         if (!$targetUser) {
-            return $this->failNotFound('User not found');
+            return $this->errorOutput('User not found');
         }
 
         // Check access permission
         if (!$this->canAccessUser($currentUser, $targetUser)) {
-            return $this->failForbidden('You do not have permission to delete this user');
+            return $this->errorOutput('You do not have permission to delete this user');
         }
 
         // Soft delete: just set status to Inactive

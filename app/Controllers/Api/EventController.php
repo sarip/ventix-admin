@@ -9,6 +9,7 @@
 namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
+use App\Libraries\Validate;
 use App\Models\Event;
 use App\Models\EventsAd;
 use App\Models\EventsAgenda;
@@ -46,11 +47,11 @@ class EventController extends ApiController
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['events_organizer_id', 'title'],
+            'search' => ['is_external', 'external_url', 'events_organizer_id', 'user_id_pic', 'event_category', 'title', 'description', 'start_date', 'end_date', 'location_name', 'latitude', 'longitude', 'price_pool', 'registration_fee', 'thumbnail_url', 'events_status'],
         ];
 
         $current_user = $this->request->current_user;
-        $where_eo = [];
+        $where_eo['is_external'] = 'N';
 
         if (!empty($current_user['eo_id'])) {
             $where_eo['events_organizer_id'] = $current_user['eo_id'];
@@ -93,6 +94,23 @@ class EventController extends ApiController
         return $this->successOutput($output);
     }
 
+    public function external()
+    {
+        $Model = new Event();
+
+        // Define searchable column on this model
+        $searchable_column = [
+            'search' => ['is_external', 'external_url', 'events_organizer_id', 'user_id_pic', 'event_category', 'title', 'description', 'start_date', 'end_date', 'location_name', 'latitude', 'longitude', 'price_pool', 'registration_fee', 'thumbnail_url', 'events_status'],
+        ];
+
+        $current_user = $this->request->current_user;
+        // Execute search filter
+        $output = SearchFilter::execute($Model, $searchable_column, 'events', ['is_external' => "Y"]);
+
+        // Return output
+        return $this->successOutput($output);
+    }
+
     /**
      * Create Event
      *
@@ -125,26 +143,58 @@ class EventController extends ApiController
     public function create()
     {
         $Event = new Event();
-        $create_data = [
-            'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
-            'user_id_pic' => $this->request->getJsonVar('user_id_pic'),
-            'event_category' => $this->request->getJsonVar('event_category'),
-            'title' => $this->request->getJsonVar('title'),
-            'description' => $this->request->getJsonVar('description'),
-            'start_date' => $this->request->getJsonVar('start_date'),
-            'end_date' => $this->request->getJsonVar('end_date'),
-            'location_name' => $this->request->getJsonVar('location_name'),
-            'latitude' => $this->request->getJsonVar('latitude'),
-            'longitude' => $this->request->getJsonVar('longitude'),
-            'price_pool' => $this->request->getJsonVar('price_pool'),
-            'registration_fee' => $this->request->getJsonVar('registration_fee'),
-            'thumbnail_url' => $this->request->getJsonVar('thumbnail_url'),
-            'events_status' => $this->request->getJsonVar('events_status')
+        $data = [
+            'event_category'  => $this->request->getPost('event_category'),
+            'title'           => $this->request->getPost('title'),
+            'start_date'      => $this->request->getPost('start_date'),
+            'end_date'        => $this->request->getPost('end_date'),
+            'location'        => $this->request->getPost('location'),
+            'events_status'   => $this->request->getPost('events_status'),
+            'is_external'     => "Y",
+            'external_url'    => $this->request->getPost('external_url')
         ];
 
-        $id = $Event->insert($create_data);
+        // =========================
+        // UPLOAD THUMBNAIL
+        // =========================
+        $file = $this->request->getFile('thumbnail_url');
 
-        return $this->successOutput(['id' => $id], 201);
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+
+            $newName = $file->getRandomName();
+
+            $file->move(FCPATH . 'uploads/event', $newName);
+
+            $data['thumbnail_url'] =  $newName;
+        }
+
+
+        // =========================
+        // VALIDATION
+        // =========================
+        $rules = [
+            'event_category' => 'required',
+            'title'          => 'required',
+            'start_date'     => 'required',
+            'end_date'       => 'required',
+            'events_status'  => 'required',
+        ];
+
+
+        $validate = Validate::run($data, $rules);
+
+        if ($validate !== true) {
+            return $this->errorOutput($validate, 400);
+        }
+
+        // =========================
+        // INSERT DB
+        // =========================
+        $id = $Event->insert($data);
+
+        return $this->successOutput([
+            'id' => $id
+        ], 201);
     }
 
 
@@ -397,25 +447,59 @@ class EventController extends ApiController
     public function update($id)
     {
         $Event = new Event();
-        $update_data = [
-            'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
-            'user_id_pic' => $this->request->getJsonVar('user_id_pic'),
-            'event_category' => $this->request->getJsonVar('event_category'),
-            'title' => $this->request->getJsonVar('title'),
-            'description' => $this->request->getJsonVar('description'),
-            'start_date' => $this->request->getJsonVar('start_date'),
-            'end_date' => $this->request->getJsonVar('end_date'),
-            'location_name' => $this->request->getJsonVar('location_name'),
-            'latitude' => $this->request->getJsonVar('latitude'),
-            'longitude' => $this->request->getJsonVar('longitude'),
-            'price_pool' => $this->request->getJsonVar('price_pool'),
-            'registration_fee' => $this->request->getJsonVar('registration_fee'),
-            'thumbnail_url' => $this->request->getJsonVar('thumbnail_url'),
-            'events_status' => $this->request->getJsonVar('events_status')
+        $data = [
+            'event_category'  => $this->request->getPost('event_category'),
+            'title'           => $this->request->getPost('title'),
+            'start_date'      => $this->request->getPost('start_date'),
+            'end_date'        => $this->request->getPost('end_date'),
+            'location'        => $this->request->getPost('location'),
+            'events_status'   => $this->request->getPost('events_status'),
+            'is_external'     => "Y",
+            'external_url'    => $this->request->getPost('external_url')
         ];
 
-        $Event->update($id, $update_data);
+        // =========================
+        // UPLOAD THUMBNAIL
+        // =========================
+        $file = $this->request->getFile('thumbnail_url');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
 
+            $newName = $file->getRandomName();
+            $file->move(FCPATH . 'uploads/event', $newName);
+
+            $data['thumbnail_url'] = $newName;
+
+            // hapus file lama (jika ada)
+            if (!empty($old['thumbnail_url'])) {
+                $oldPath = FCPATH . 'uploads/event/' . $old['thumbnail_url'];
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
+            }
+        }
+
+        // =========================
+        // VALIDATION
+        // =========================
+        $rules = [
+            'event_category' => 'required',
+            'title'          => 'required',
+            'start_date'     => 'required',
+            'end_date'       => 'required',
+            'events_status'  => 'required',
+        ];
+
+
+        $validate = Validate::run($data, $rules);
+
+        if ($validate !== true) {
+            return $this->errorOutput($validate, 400);
+        }
+
+        // =========================
+        // INSERT DB
+        // =========================
+        $Event->update($id, $data);
         $data = $Event->find($id);
 
         return $this->successOutput(['event' => $data]);

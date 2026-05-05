@@ -114,9 +114,10 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->delete('eventsorganizer/(:num)', 'EventsOrganizerController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('events', 'EventController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('events-external', 'EventController::external', ['filter' => 'PermissionFilter']);
     $routes->post('event', 'EventController::create', ['filter' => 'PermissionFilter']);
     $routes->post('event/saveAll', 'EventController::saveAll', ['filter' => 'PermissionFilter']);
-    $routes->put('event/(:num)', 'EventController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('event/(:num)', 'EventController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('event/(:num)', 'EventController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('events_agendas', 'EventsAgendaController::index', ['filter' => 'PermissionFilter']);
