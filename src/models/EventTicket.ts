@@ -14,12 +14,12 @@ export interface InEventTicketForm {
     event_id: number | null;
     name: string;
     description?: string | null;
-    price: number;
-    final_price: number;
+    price: number | string;
+    final_price: number | string;
     is_taxable: 'Y' | 'N',
     tax_id: number | string,
-    total_capacity: number;
-    remaining_capacity: number;
+    total_capacity: number | string;
+    remaining_capacity: number | string;
     max_per_order?: number;
     sales_start_date?: string | null;
     sales_end_date?: string | null;

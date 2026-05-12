@@ -36,12 +36,21 @@ const FacilityBookingPage: React.FC = () => {
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
-    const [sortBy, setSortBy] = useState<string>('booking_date');
+    const [sortBy, setSortBy] = useState<string>('id');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [loadingStatusId, setLoadingStatusId] = useState<number | null>(null);
     const [formData, setFormData] = useState<InFacilityBookingForm>({
         facility_id: 0,
         user_id: 0,
+        guest_name: '',
+        guest_email: '',
+        guest_phone: '',
+        booking_code: '',
+        booking_source: 'MEMBER',
+        subtotal_amount: 0,
+        admin_fee_amount: 0,
         booking_date: '',
         start_time: '',
         end_time: '',
@@ -87,9 +96,17 @@ const FacilityBookingPage: React.FC = () => {
     };
 
     const create = () => {
+        setEditingId(null);
         setFormData({
             facility_id: 0,
             user_id: 0,
+            guest_name: '',
+            guest_email: '',
+            guest_phone: '',
+            booking_code: '',
+            booking_source: 'MEMBER',
+            subtotal_amount: 0,
+            admin_fee_amount: 0,
             booking_date: '',
             start_time: '',
             end_time: '',
@@ -99,10 +116,37 @@ const FacilityBookingPage: React.FC = () => {
         setShowForm(true);
     };
 
+    const edit = async (booking: InFacilityBooking) => {
+        setEditingId(booking.id);
+        setFormData({
+            id: booking.id,
+            facility_id: booking.facility_id,
+            user_id: booking.user_id,
+            guest_name: booking.guest_name,
+            guest_email: booking.guest_email,
+            guest_phone: booking.guest_phone,
+            booking_code: booking.facility_code,
+            booking_source: booking.booking_source,
+            subtotal_amount: booking.subtotal_amount,
+            admin_fee_amount: booking.admin_fee_amount,
+            booking_date: booking.booking_date,
+            start_time: booking.start_time,
+            end_time: booking.end_time,
+            notes: booking.notes
+        });
+        setValidationError([]);
+        setShowForm(true);
+    };
+
     const save = useCallback(async (data: InFacilityBookingForm) => {
         try {
-            await BookingModel.create(data);
-            showToast('Booking successfully created', 'success');
+            if (editingId) {
+                await BookingModel.update(editingId, data);
+                showToast('Booking successfully updated', 'success');
+            } else {
+                await BookingModel.create(data);
+                showToast('Booking successfully created', 'success');
+            }
             setShowForm(false);
             loadBookings();
         } catch (error: any) {
@@ -113,15 +157,18 @@ const FacilityBookingPage: React.FC = () => {
             });
             setValidationError(result);
         }
-    }, []);
+    }, [editingId]);
 
     const updateStatus = async (id: number, status: string) => {
+        setLoadingStatusId(id);
         try {
             await BookingModel.updateStatus(id, status);
             showToast("Status updated successfully", "success");
             loadBookings(lastQuery);
         } catch (error) {
             showToast("Failed to update status", "error");
+        } finally {
+            setLoadingStatusId(null);
         }
     };
 
@@ -226,8 +273,9 @@ const FacilityBookingPage: React.FC = () => {
                                                 <small className="text-muted">{booking.facility?.category}</small>
                                             </td>
                                             <td>
-                                                <div className="fw-semibold">{booking.user?.name || 'N/A'}</div>
-                                                <small className="text-muted">{booking.user?.email}</small>
+                                                <div className="fw-semibold">{booking.user?.name || booking.guest_name || 'N/A'}</div>
+                                                <small className="text-muted">{booking.user?.email || booking.guest_email}</small> <br />
+                                                <small className="text-muted">{booking.user?.phone || booking.guest_phone}</small>
                                             </td>
                                             <td>
                                                 <div>{formatDate(booking.booking_date)}</div>
@@ -244,7 +292,7 @@ const FacilityBookingPage: React.FC = () => {
                                                     <a href={`/uploads/payment_proof/${booking.payment_proof}`} target="_blank" rel="noreferrer">
                                                         <img
                                                             src={`/uploads/payment_proof/${booking.payment_proof}`}
-                                                            alt="Proof"
+                                                            alt="Payment Proof"
                                                             style={{
                                                                 height: '48px',
                                                                 width: '64px',
@@ -258,22 +306,30 @@ const FacilityBookingPage: React.FC = () => {
                                                     </a>
                                                 ) : (
                                                     <span className="badge bg-secondary" style={{ fontSize: '11px' }}>
-                                                        Not uploaded
+                                                        No proof yet
                                                     </span>
                                                 )}
                                             </td>
                                             <td>
                                                 {booking.status && (
                                                     <StatusDropdown
-                                                        currentStatus={booking.status}
+                                                        currentStatus={booking.status?.name || booking.status}
                                                         bookingId={booking.id}
                                                         onStatusChange={updateStatus}
+                                                        isLoading={loadingStatusId === booking.id}
                                                     />
                                                 )}
                                             </td>
                                             <td>
                                                 <button
-                                                    className="btn btn-sm btn-icon btn-danger"
+                                                    className="btn btn-sm btn-icon btn-warning"
+                                                    onClick={() => edit(booking)}
+                                                    title="Edit"
+                                                >
+                                                    <i className="bx bx-edit"></i>
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-icon btn-danger ms-1"
                                                     onClick={() => remove(booking.id)}
                                                     title="Cancel"
                                                 >
@@ -310,7 +366,7 @@ const FacilityBookingPage: React.FC = () => {
             {/* BOOKING FORM MODAL */}
             {showForm && (
                 <FacilityBookingForm
-                    title="New Booking"
+                    title={editingId ? "Edit Booking" : "New Booking"}
                     data={formData}
                     onHide={() => setShowForm(false)}
                     onSave={save}

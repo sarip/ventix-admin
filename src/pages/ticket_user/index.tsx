@@ -217,8 +217,8 @@ const TicketUserPage: React.FC = () => {
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="fw-semibold">{ticket.user?.name || 'N/A'}</div>
-                                                <small className="text-muted">{ticket.user?.email}</small>
+                                                <div className="fw-semibold">{ticket.user?.name || ticket.guest_name || 'N/A'}</div>
+                                                <small className="text-muted">{ticket.user?.email || ticket.guest_email || 'N/A'}</small>
                                             </td>
                                             <td>
                                                 <div className="fw-semibold">{ticket.ticket?.name || 'N/A'}</div>

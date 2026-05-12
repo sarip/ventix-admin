@@ -9,11 +9,13 @@ import APIClient from '../lib/ApiClient';
 import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types/apiTypes';
 
 export interface InEventCatForm {
+    id: number | null,
     name: string;
     description: string;
 }
 
 export interface InEventCat {
+    id: number | null,
     name: string;
     description: string;
 }

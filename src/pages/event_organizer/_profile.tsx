@@ -18,7 +18,7 @@ const Profile: React.FC<ProfileProps> = ({ show, onHide, data, onApprove, onReje
         switch (status) {
             case 'Approved': return <Badge bg="success">Approved</Badge>;
             case 'Rejected': return <Badge bg="danger">Rejected</Badge>;
-            default: return <Badge bg="warning text-dark">Pending Review</Badge>;
+            default: return <Badge bg="warning" text="dark">Pending Review</Badge>;
         }
     };
 
@@ -43,10 +43,12 @@ const Profile: React.FC<ProfileProps> = ({ show, onHide, data, onApprove, onReje
                         </div>
                         <div className="flex-grow-1">
                             <h4 className="mb-1">{data.eo_name}</h4>
-                            <div className="d-flex align-items-center flex-wrap">
-                                <span className="text-muted me-3"><i className="bx bx-buildings me-1"></i>{data.company_name}</span>
-                                {/*<span className="me-3">{getStatusBadge(data.verification_status)}</span>*/}
-                                {/*<span className="badge bg-label-info">{data.organization_type}</span>*/}
+                            <div className="d-flex align-items-center flex-wrap gap-2">
+                                <span className="text-muted me-1"><i className="bx bx-buildings me-1"></i>{data.company_name}</span>
+                                <span>{getStatusBadge(data.verification_status)}</span>
+                                {data.organization_type && (
+                                    <span className="badge bg-label-info">{data.organization_type}</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -99,43 +101,69 @@ const Profile: React.FC<ProfileProps> = ({ show, onHide, data, onApprove, onReje
                                 {data.description || <em className="text-muted">No description provided.</em>}
                             </div>
                         </div>
-                        {/*<div className="col-12 mt-4">*/}
-                        {/*    <h6 className="text-uppercase text-muted fw-bold small mb-3">Legal Verification</h6>*/}
-                        {/*    <div className="card border shadow-none">*/}
-                        {/*        <div className="card-body d-flex align-items-center p-3">*/}
-                        {/*            <div className="avatar bg-label-primary rounded me-3 d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>*/}
-                        {/*                <i className="bx bx-file-blank fs-3"></i>*/}
-                        {/*            </div>*/}
-                        {/*            <div className="flex-grow-1">*/}
-                        {/*                <h6 className="mb-0">Legal Compliance Document</h6>*/}
-                        {/*                <small className="text-muted">Filename: {data.legal_doc_path || 'Not uploaded'}</small>*/}
-                        {/*            </div>*/}
-                        {/*            {data.legal_doc_path && (*/}
-                        {/*                <div className="ms-auto">*/}
-                        {/*                    <a*/}
-                        {/*                        href={`${baseUrl}/uploads/legality/${data.legal_doc_path}`}*/}
-                        {/*                        target="_blank"*/}
-                        {/*                        rel="noreferrer"*/}
-                        {/*                        className="btn btn-sm btn-primary"*/}
-                        {/*                    >*/}
-                        {/*                        <i className="bx bx-show me-1"></i> View Document*/}
-                        {/*                    </a>*/}
-                        {/*                </div>*/}
-                        {/*            )}*/}
-                        {/*        </div>*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-                        {/*{data.verified_at && (*/}
-                        {/*    <div className="col-12 mt-4">*/}
-                        {/*        <div className="alert alert-info py-2 px-3 d-flex align-items-center mb-0">*/}
-                        {/*            <i className="bx bx-info-circle me-2"></i>*/}
-                        {/*            <div>*/}
-                        {/*                Verified on <strong>{data.verified_at}</strong>*/}
-                        {/*                {data.verification_note && <div className="small mt-1 mt-1 border-top pt-1">Note: {data.verification_note}</div>}*/}
-                        {/*            </div>*/}
-                        {/*        </div>*/}
-                        {/*    </div>*/}
-                        {/*)}*/}
+                        <div className="col-12 mt-4">
+                            <h6 className="text-uppercase text-muted fw-bold small mb-3">Legal Verification</h6>
+                            <div className="card border shadow-none">
+                                <div className="card-body d-flex align-items-center p-3">
+                                    <div className="avatar bg-label-primary rounded me-3 d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
+                                        <i className="bx bx-file-blank fs-3"></i>
+                                    </div>
+                                    <div className="flex-grow-1">
+                                        <h6 className="mb-0">Legal Compliance Document</h6>
+                                        <small className="text-muted">Filename: {data.legal_doc_path || 'Not uploaded'}</small>
+                                    </div>
+                                    {data.legal_doc_path && (
+                                        <div className="ms-auto d-flex gap-2">
+                                            <a
+                                                href={`${baseUrl}/uploads/legality/${data.legal_doc_path}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="btn btn-sm btn-primary"
+                                            >
+                                                <i className="bx bx-show me-1"></i> View Document
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-12 mt-4">
+                            <div
+                                className={`alert py-2 px-3 d-flex align-items-start mb-0 ${
+                                    data.verification_status === 'Approved'
+                                        ? 'alert-success'
+                                        : data.verification_status === 'Rejected'
+                                            ? 'alert-danger'
+                                            : 'alert-warning text-dark'
+                                }`}
+                            >
+                                <i
+                                    className={`bx me-2 mt-1 ${
+                                        data.verification_status === 'Approved'
+                                            ? 'bx-check-circle'
+                                            : data.verification_status === 'Rejected'
+                                                ? 'bx-x-circle'
+                                                : 'bx-time-five'
+                                    }`}
+                                ></i>
+
+                                <div>
+                                    <strong>{data.verification_status}</strong>
+
+                                    {data.verified_at && (
+                                        <>
+                                            {' '}on <strong>{data.verified_at}</strong>
+                                        </>
+                                    )}
+
+                                    {data.verification_note && (
+                                        <div className="small mt-1 border-top pt-1">
+                                            Note: {data.verification_note}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Modal.Body>
@@ -143,7 +171,7 @@ const Profile: React.FC<ProfileProps> = ({ show, onHide, data, onApprove, onReje
                 <div>
                     <Button variant="label-dark" onClick={onHide}>Close</Button>
                 </div>
-                {/*{data.verification_status === 'Pending' && (*/}
+                {/*{(!data.verification_status || data.verification_status === 'Pending') && (*/}
                 {/*    <div className="d-flex gap-2">*/}
                 {/*        <Button variant="danger" onClick={() => onReject(data.id)}>*/}
                 {/*            <i className="bx bx-x me-1"></i> Reject*/}

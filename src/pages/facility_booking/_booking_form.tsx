@@ -26,12 +26,15 @@ const FacilityBookingForm: React.FC<FormProps> = ({ title, data, onHide, onSave,
     const [calculation, setCalculation] = useState<InBookingCalculation | null>(null);
     const [availability, setAvailability] = useState<{ available: boolean; message?: string } | null>(null);
     const [isCalculating, setIsCalculating] = useState(false);
+    const [bookingSource, setBookingSource] = useState<'MEMBER' | 'GUEST'>('MEMBER');
     const FacilityModel = new Facility();
     const UserModel = new User();
     const BookingModel = new FacilityBooking();
 
     useEffect(() => {
         setFormData(data);
+        // Determine booking source based on data
+        setBookingSource(data.booking_source === 'GUEST' ? 'GUEST' : 'MEMBER');
     }, [data]);
 
     useEffect(() => {
@@ -45,6 +48,16 @@ const FacilityBookingForm: React.FC<FormProps> = ({ title, data, onHide, onSave,
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleBookingSourceChange = (e: any) => {
+        const source = e.target.value as 'MEMBER' | 'GUEST';
+        setBookingSource(source);
+        if (source === 'MEMBER') {
+            setFormData(prev => ({ ...prev, booking_source: 'MEMBER', guest_name: '', guest_email: '', guest_phone: '' }));
+        } else {
+            setFormData(prev => ({ ...prev, booking_source: 'GUEST', user_id: 0 }));
+        }
     };
 
     const checkAvailabilityAndCalculate = async () => {
@@ -113,6 +126,110 @@ const FacilityBookingForm: React.FC<FormProps> = ({ title, data, onHide, onSave,
                             <Row className="g-3">
                                 <Col md={6}>
                                     <BootstrapForm.Group>
+                                        <BootstrapForm.Label>Booking Type *</BootstrapForm.Label>
+                                        <div>
+                                            <BootstrapForm.Check
+                                                type="radio"
+                                                name="booking_source"
+                                                value="MEMBER"
+                                                label="MEMBER"
+                                                checked={bookingSource === 'MEMBER'}
+                                                onChange={handleBookingSourceChange}
+                                            />
+                                            <BootstrapForm.Check
+                                                type="radio"
+                                                name="booking_source"
+                                                value="GUEST"
+                                                label="GUEST"
+                                                checked={bookingSource === 'GUEST'}
+                                                onChange={handleBookingSourceChange}
+                                            />
+                                        </div>
+                                    </BootstrapForm.Group>
+                                </Col>
+
+                                {bookingSource === 'MEMBER' ? (
+                                    <Col md={6}>
+                                        <BootstrapForm.Group>
+                                            <BootstrapForm.Label>User *</BootstrapForm.Label>
+                                            <Select2Component
+                                                fetchData={UserModel.list}
+                                                dropdownParent="#modal-facility-booking"
+                                                placeholder="Select User"
+                                                name="user_id"
+                                                onChange={handleInputChange}
+                                                validation={errors.user_id}
+                                                selectedId={formData.user_id}
+                                                dataKey="users"
+                                                showKey="name"
+                                                id="id"
+                                            />
+                                        </BootstrapForm.Group>
+                                    </Col>
+                                ) : (
+                                    <>
+                                        <Col md={6}>
+                                            <BootstrapForm.Group>
+                                                <BootstrapForm.Label>Guest Name *</BootstrapForm.Label>
+                                                <BootstrapForm.Control
+                                                    type="text"
+                                                    name="guest_name"
+                                                    placeholder="Enter guest name"
+                                                    value={formData.guest_name}
+                                                    onChange={handleInputChange}
+                                                    isInvalid={!!errors.guest_name}
+                                                    required
+                                                />
+                                                {errors.guest_name && (
+                                                    <BootstrapForm.Control.Feedback type="invalid">
+                                                        {errors.guest_name}
+                                                    </BootstrapForm.Control.Feedback>
+                                                )}
+                                            </BootstrapForm.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <BootstrapForm.Group>
+                                                <BootstrapForm.Label>Guest Email *</BootstrapForm.Label>
+                                                <BootstrapForm.Control
+                                                    type="email"
+                                                    name="guest_email"
+                                                    placeholder="Enter guest email"
+                                                    value={formData.guest_email}
+                                                    onChange={handleInputChange}
+                                                    isInvalid={!!errors.guest_email}
+                                                    required
+                                                />
+                                                {errors.guest_email && (
+                                                    <BootstrapForm.Control.Feedback type="invalid">
+                                                        {errors.guest_email}
+                                                    </BootstrapForm.Control.Feedback>
+                                                )}
+                                            </BootstrapForm.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <BootstrapForm.Group>
+                                                <BootstrapForm.Label>Guest Phone *</BootstrapForm.Label>
+                                                <BootstrapForm.Control
+                                                    type="tel"
+                                                    name="guest_phone"
+                                                    placeholder="Enter guest phone"
+                                                    value={formData.guest_phone}
+                                                    onChange={handleInputChange}
+                                                    isInvalid={!!errors.guest_phone}
+                                                    required
+                                                />
+                                                {errors.guest_phone && (
+                                                    <BootstrapForm.Control.Feedback type="invalid">
+                                                        {errors.guest_phone}
+                                                    </BootstrapForm.Control.Feedback>
+                                                )}
+                                            </BootstrapForm.Group>
+                                        </Col>
+                                    </>
+                                )}
+
+                                <Col md={6}>
+                                    <BootstrapForm.Group>
                                         <BootstrapForm.Label>Facility *</BootstrapForm.Label>
                                         <Select2Component
                                             fetchData={(query) => FacilityModel.list({ ...query, filter: 'is_available=1' })}
@@ -123,24 +240,6 @@ const FacilityBookingForm: React.FC<FormProps> = ({ title, data, onHide, onSave,
                                             validation={errors.facility_id}
                                             selectedId={formData.facility_id}
                                             dataKey="facilities"
-                                            showKey="name"
-                                            id="id"
-                                        />
-                                    </BootstrapForm.Group>
-                                </Col>
-
-                                <Col md={6}>
-                                    <BootstrapForm.Group>
-                                        <BootstrapForm.Label>User *</BootstrapForm.Label>
-                                        <Select2Component
-                                            fetchData={UserModel.list}
-                                            dropdownParent="#modal-facility-booking"
-                                            placeholder="Select User"
-                                            name="user_id"
-                                            onChange={handleInputChange}
-                                            validation={errors.user_id}
-                                            selectedId={formData.user_id}
-                                            dataKey="users"
                                             showKey="name"
                                             id="id"
                                         />

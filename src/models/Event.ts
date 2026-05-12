@@ -54,6 +54,7 @@ export interface InEvent {
     event_category: string;
     title: string;
     description: string;
+    dashboard_status: string | null;
     start_date: string;
     end_date: string;
     location: string;

@@ -761,13 +761,13 @@ class AuthController extends ApiController
             // =============================
             // Upload Legality Document
             // =============================
-//            $legalityDoc = $this->request->getFile('legal_document');
-//            $legalityDocName = null;
-//            if ($legalityDoc && $legalityDoc->isValid() && !$legalityDoc->hasMoved()) {
-//                $legalityDocName = $legalityDoc->getRandomName();
-//                $uploadPathLegality = FCPATH . 'uploads/legality';
-//                $legalityDoc->move($uploadPathLegality, $legalityDocName);
-//            }
+            $legalityDoc = $this->request->getFile('legal_doc');
+            $legalityDocName = null;
+            if ($legalityDoc && $legalityDoc->isValid() && !$legalityDoc->hasMoved()) {
+                $legalityDocName = $legalityDoc->getRandomName();
+                $uploadPathLegality = FCPATH . 'uploads/legality';
+                $legalityDoc->move($uploadPathLegality, $legalityDocName);
+            }
 
             // =============================
             // Create User
@@ -784,7 +784,7 @@ class AuthController extends ApiController
                 'eo_name' => $this->request->getPost('eo_name'),
                 'company_name' => $this->request->getPost('company_name'),
 //                'organization_type' => $this->request->getPost('organization_type'),
-//                'legal_doc_path' => $legalityDocName,
+                'legal_doc_path' => $legalityDocName,
                 'website' => $this->request->getPost('website'),
                 'address' => $this->request->getPost('address'),
                 //                'tax_id'        => $this->request->getPost('tax_id'),
@@ -793,7 +793,7 @@ class AuthController extends ApiController
                 'phone' => $this->request->getPost('phone'),
                 'description' => $this->request->getPost('description'),
                 'logo_path' => $logoName,
-                'verification_status' => 'Approved',
+                'verification_status' => 'Pending',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ], true);
@@ -845,37 +845,37 @@ class AuthController extends ApiController
 //                    'email' => $this->request->getPost('email'),
 //                ], $adminEmail);
 //            }
-//            // =============================
-//            // Database & Real-time Notifications
-//            // =============================
-//            $notificationService = new NotificationService();
-//            $redisNotif = new RedisNotification('alerts');
-//            $appuserModel = new Appuser();
-//            $validators = $appuserModel->whereIn('role', ['validator', 'super_admin', 'admin', 'leader'])->where('status', 'Active')->findAll();
-//
-//            foreach ($validators as $validator) {
-//                // Database
-//                $notifId = $notificationService->create(
-//                    $validator->id,
-//                    'registration:new_eo',
-//                    'events_organizer',
-//                    $eo_id,
-//                    'New EO Registration',
-//                    "EO " . $this->request->getPost('eo_name') . " has registered and needs review.",
-//                    ['eo_name' => $this->request->getPost('eo_name'), 'company_name' => $this->request->getPost('company_name')]
-//                );
-//
-//                // Real-time (WebSocket)
-//                if ($notifId) {
-//                    $redisNotif->publish('alert', [
-//                        'userId' => $validator->id,
-//                        'id' => $notifId,
-//                        'type' => 'registration:new_eo',
-//                        'message' => "EO " . $this->request->getPost('eo_name') . " has registered.",
-//                        'severity' => 'info'
-//                    ]);
-//                }
-//            }
+            // =============================
+            // Database & Real-time Notifications
+            // =============================
+            $notificationService = new NotificationService();
+            $redisNotif = new RedisNotification('alerts');
+            $appuserModel = new Appuser();
+            $validators = $appuserModel->whereIn('role', ['super_admin'])->where('status', 'Active')->findAll();
+
+            foreach ($validators as $validator) {
+                // Database
+                $notifId = $notificationService->create(
+                    $validator->id,
+                    'registration:new_eo',
+                    'events_organizer',
+                    $eo_id,
+                    'New EO Registration',
+                    "EO " . $this->request->getPost('eo_name') . " has registered and needs review.",
+                    ['eo_name' => $this->request->getPost('eo_name'), 'company_name' => $this->request->getPost('company_name')]
+                );
+
+                // Real-time (WebSocket)
+                if ($notifId) {
+                    $redisNotif->publish('alert', [
+                        'userId' => $validator->id,
+                        'id' => $notifId,
+                        'type' => 'registration:new_eo',
+                        'message' => "EO " . $this->request->getPost('eo_name') . " has registered.",
+                        'severity' => 'info'
+                    ]);
+                }
+            }
 
             $is_google = $this->request->getPost('is_google');
             if(!empty($is_google)) {

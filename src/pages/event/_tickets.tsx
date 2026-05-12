@@ -30,12 +30,12 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
             event_id: eventId || 0,
             name: '',
             description: null,
-            price: 0,
-            final_price: 0,
+            price: "",
+            final_price: "",
             is_taxable: 'N',
             tax_id: "",
-            total_capacity: 0,
-            remaining_capacity: 0,
+            total_capacity: "",
+            remaining_capacity: "",
             max_per_order: 5,
             sales_start_date: null,
             sales_end_date: null,
@@ -53,15 +53,17 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
 
         // Auto-sync remaining_capacity when total_capacity changes
         if (field === 'total_capacity' && updated[index]._isNew) {
-            updated[index].remaining_capacity = value;
+            updated[index].remaining_capacity = value || "";
         }
 
 
         const ticket = updated[index];
+        const price = Number(ticket.price) || 0;
+
         if (ticket.is_taxable === 'Y') {
-            ticket.final_price = calculateFinalPrice(ticket.price, Number(ticket.tax_id));
+            ticket.final_price = calculateFinalPrice(price, Number(ticket.tax_id));
         } else {
-            ticket.final_price = ticket.price;
+            ticket.final_price = price;
             ticket.tax_id = '';
         }
 
@@ -196,8 +198,16 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                                     type="number"
                                                     min="0"
                                                     step="1000"
-                                                    value={ticket.price}
-                                                    onChange={(e) => updateRow(actualIndex, 'price', parseFloat(e.target.value) || 0)}
+                                                    value={ticket.price ?? ""}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+
+                                                        updateRow(
+                                                            actualIndex,
+                                                            'price',
+                                                            value === "" ? "" : Number(value)
+                                                        );
+                                                    }}
                                                     placeholder="0"
                                                 />
                                             </BootstrapForm.Group>
@@ -241,7 +251,7 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                                     type="number"
                                                     readOnly={true}
                                                     disabled={true}
-                                                    value={ticket.final_price}
+                                                    value={ticket.final_price ?? ""}
                                                 />
                                             </BootstrapForm.Group>
 
@@ -307,8 +317,17 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                                 <BootstrapForm.Control
                                                     type="number"
                                                     min="0"
-                                                    value={ticket.total_capacity}
-                                                    onChange={(e) => updateRow(actualIndex, 'total_capacity', parseInt(e.target.value) || 0)}
+                                                    defaultValue="0"
+                                                    value={ticket.total_capacity ?? ""}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+
+                                                        updateRow(
+                                                            actualIndex,
+                                                            'total_capacity',
+                                                            value === "" ? "" : Number(value)
+                                                        );
+                                                    }}
                                                     placeholder="0"
                                                 />
                                             </BootstrapForm.Group>
@@ -320,9 +339,17 @@ const EventTicketsStep: React.FC<EventTicketsStepProps> = ({ eventId, tickets, o
                                                 <BootstrapForm.Control
                                                     type="number"
                                                     min="0"
-                                                    max={ticket.total_capacity}
-                                                    value={ticket.remaining_capacity}
-                                                    onChange={(e) => updateRow(actualIndex, 'remaining_capacity', parseInt(e.target.value) || 0)}
+                                                    max={Number(ticket.total_capacity) || undefined}
+                                                    value={ticket.remaining_capacity ?? ""}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+
+                                                        updateRow(
+                                                            actualIndex,
+                                                            'remaining_capacity',
+                                                            value === "" ? "" : Number(value)
+                                                        );
+                                                    }}
                                                     placeholder="0"
                                                 />
                                             </BootstrapForm.Group>

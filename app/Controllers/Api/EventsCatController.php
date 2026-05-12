@@ -9,6 +9,7 @@
 namespace App\Controllers\Api;
 
 use App\Filters\SearchFilter;
+use App\Models\Event;
 use App\Models\EventsCat;
 
 class EventsCatController extends ApiController
@@ -95,18 +96,18 @@ class EventsCatController extends ApiController
 
      *
      */
-    public function update($name)
+    public function update($id)
     {
         $EventsCat = new EventsCat();
 
         $update_data = [
-            'description' => $this->request->getJSON()->description ?? null
+            'name' => $this->request->getJsonVar('name'),
+            'description' => $this->request->getJsonVar('description')
         ];
 
-        $EventsCat
-            ->set($update_data)
-            ->where('name', $name)
-            ->update();
+        $id = $EventsCat->update($id, $update_data);
+
+
 
         return $this->successOutput([
             'eventscat' => $update_data
@@ -128,9 +129,34 @@ class EventsCatController extends ApiController
      * @apiHeader {String} key Token
      * @apiParam {Number} name EventsCat name
      */
-    public function delete($name) {
+    public function delete($id)
+    {
         $EventsCat = new EventsCat();
-        $EventsCat->where('name', $name)->delete();
+        $Event = new Event();
+
+        $event_cat = $EventsCat->find($id);
+
+        if (!$event_cat) {
+            return $this->errorOutput(
+                'Kategori tidak ditemukan',
+                404
+            );
+        }
+
+
+        $event = $Event
+            ->where('event_category', $event_cat->name)
+            ->first();
+
+        if ($event) {
+            return $this->errorOutput(
+                "Kategori {$event_cat->name} masih digunakan event",
+                422
+            );
+        }
+
+
+        $EventsCat->delete($id);
 
         return $this->successOutput([], 200);
     }

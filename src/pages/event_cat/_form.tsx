@@ -24,6 +24,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }) => {
     const [formData, setFormData] = useState<InEventCatForm>({
+        id: null,
         name: "",
         description: ""
     });
@@ -92,7 +93,6 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                     placeholder="name"
                                     value={formData.name}
                                     onChange={handleInputChange}
-                                    readOnly={title === "Update Data" ? true: false}
                                 />
                                 {!!errors?.name && (
                                     <div className="invalid-feedback">{errors.name}</div>

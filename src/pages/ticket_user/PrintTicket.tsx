@@ -104,15 +104,15 @@ const PrintTicket: React.FC<PrintTicketProps> = ({ ticket, show, onHide }) => {
                                             <h5 className="section-title">Attendee Information</h5>
                                             <div className="detail-item">
                                                 <span className="label">Name:</span>
-                                                <span className="value">{ticket.user?.name || 'N/A'}</span>
+                                                <span className="value">{ticket.user?.name || ticket.guest_name || 'N/A'}</span>
                                             </div>
                                             <div className="detail-item">
                                                 <span className="label">Email:</span>
-                                                <span className="value">{ticket.user?.email || 'N/A'}</span>
+                                                <span className="value">{ticket.user?.email || ticket.guest_email || 'N/A'}</span>
                                             </div>
                                             <div className="detail-item">
                                                 <span className="label">Phone:</span>
-                                                <span className="value">{ticket.user?.phone || 'N/A'}</span>
+                                                <span className="value">{ticket.user?.phone || ticket.guest_phone || 'N/A'}</span>
                                             </div>
                                         </div>
 

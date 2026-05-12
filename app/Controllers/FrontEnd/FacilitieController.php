@@ -10,6 +10,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
+use App\Libraries\CommissionCal;
 use App\Libraries\CommissionEngine;
 use App\Libraries\EmailNotificationService;
 use App\Models\EventsOrganizer;
@@ -168,8 +169,20 @@ class FacilitieController extends ApiController
         $Model = new FacilityBooking();
         $item = $Model->find($id);
 
+        if(empty($item)) {
+            $item  = $Model->where('facility_code', $id)->first();
+            if(empty($item)) {
+                return $this->errorOutput("Booking not found");
+            }
+        }
+
         $Facility = new Facilitie();
         $item->facility = $Facility->find($item->facility_id);
+
+        $item->status_badge = status_badge(
+            $item->status,
+            FacilitybookingStatu::class
+        );
 
         $EventOrganizer = new EventsOrganizer();
         $item->facility->event_organizer = $EventOrganizer->find($item->facility->events_organizer_id);
@@ -188,14 +201,45 @@ class FacilitieController extends ApiController
         $booking_date = $this->request->getVar('date');
         $start_time = $this->request->getVar('start_time');
         $end_time = $this->request->getVar('end_time');
-        $current_user = Services::request()->current_user ?? null;
+
+        $current_user = $this->request->current_user;
+        $id = "";
+        $name = "";
+        $phone = "";
+        $email = "";
+        $bookingSource = 'MEMBER';
+        if($current_user) {
+            $id = $current_user['id'];
+            $name = $current_user['name'];
+            $phone = $current_user['phone'];
+            $email = $current_user['email'];
+        } else {
+            $name = $this->request->getJsonVar('guest_name');
+            $email = $this->request->getJsonVar('guest_email');
+            $phone = $this->request->getJsonVar('guest_phone');
+            $bookingSource = 'GUEST';
+        }
+
+
+        if(empty($name) || empty($email) || empty($phone)) {
+            return $this->errorOutput('Guest name, email, and phone are required for guest checkout', 400);
+        }
+
+        $isMember = !empty($current_user);
+
+
+
         $create_data = [
             'facility_id' => $this->request->getJsonVar('facility_id'),
             'booking_date' => $booking_date,
             'start_time' => $start_time,
             'end_time' => $end_time,
             'facility_code' => generate_order_facility_code(),
-            'user_id'       => $current_user['id'],
+            'user_id'       => $id,
+            'guest_name' => $name,
+            'guest_email' => $email,
+            'guest_phone' => $phone,
+            'booking_source' => $bookingSource,
             'status'        => 'Pending'
         ];
 
@@ -249,6 +293,26 @@ class FacilitieController extends ApiController
         $create_data['total_price'] = $totalPrice;
         $create_data['total_hours'] = $totalHours;
 
+
+        $adminFeeAmount = 0;
+        $grandTotal = $totalPrice;
+
+        if (!$isMember) {
+
+            $adminFeeAmount = CommissionCal::total(
+                $totalPrice,
+                'event',
+                'guest_admin_fee'
+            );
+
+            $grandTotal = $totalPrice + $adminFeeAmount;
+        }
+
+        
+        $create_data['subtotal_amount'] = $totalPrice;
+        $create_data['admin_fee_amount'] = $adminFeeAmount;
+        $create_data['total_price'] = $grandTotal;
+
         $FacilityBooking = new FacilityBooking();
         $id = $FacilityBooking->insert($create_data);
 
@@ -258,7 +322,17 @@ class FacilitieController extends ApiController
 
         // Send Facility Booking Created email
         $User = new User();
-        $buyer = $User->find($current_user['id']);
+        if($current_user) {
+            $buyer = $User->find($current_user['id']);
+        } else {
+            $facilityBooking = $FacilityBooking->find($id);
+            $buyer = (object)[
+                'id' => null,
+                'name' => $facilityBooking->guest_name,
+                'email' => $facilityBooking->guest_email,
+                'phone' => $facilityBooking->guest_phone,
+            ];
+        }
         if ($buyer) {
             $freshBooking = $FacilityBooking->find($id);
             $Facilitie = new Facilitie();

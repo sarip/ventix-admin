@@ -285,11 +285,32 @@
                         </tbody>
                     </table>
                     <?php if (!empty($order->total_amount) && $order->total_amount > 0): ?>
-                    <div class="total-row">
-                        <span class="label">Total Pembayaran</span>
-                        <span class="amount">Rp
-                            <?= number_format($order->total_amount, 0, ',', '.') ?>
-                        </span>
+                    <div style="margin-top:20px">
+                        <div class="total-row">
+                            <span class="label">Subtotal</span>
+                            <span>
+                                Rp <?= number_format($order->subtotal_amount ?? 0, 0, ',', '.') ?>
+                            </span>
+                        </div>
+
+                        <?php if (($order->admin_fee_amount ?? 0) > 0): ?>
+                            <div class="total-row">
+                                <span class="label">
+                                    Biaya Admin
+                                </span>
+                                <span>
+                                    Rp <?= number_format($order->admin_fee_amount, 0, ',', '.') ?>
+                                </span>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="total-row">
+                            <span class="label">Total Pembayaran</span>
+                            <span class="amount">
+                                Rp <?= number_format($order->total_amount ?? 0, 0, ',', '.') ?>
+                            </span>
+                        </div>
+
                     </div>
                     <?php endif; ?>
                 <?php endif; ?>

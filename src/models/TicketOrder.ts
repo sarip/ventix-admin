@@ -23,6 +23,12 @@ export interface InOrderItem {
 export interface InTicketOrder {
     id: number;
     user_id: number;
+    guest_name: string | null;
+    guest_email: string | null;
+    guest_phone: string | null;
+    order_source: string;
+    subtotal_amount: string;
+    admin_fee_amount: string;
     order_code: string;
     total_amount: string;
     status: string;

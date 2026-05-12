@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import {Offcanvas, Button, Badge} from 'react-bootstrap';
+import { Offcanvas, Button, Badge } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
@@ -18,7 +18,7 @@ import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import { ListResponse } from "@/types/apiTypes";
 import OneGalery from "@/pages/_components/OneGalery";
-import {useUserStore} from "@/store/store";
+import { useUserStore } from "@/store/store";
 
 interface ValidationErrorProps {
     field: string;
@@ -273,8 +273,8 @@ const EventOrganizerPage: React.FC = () => {
                                 <th>Address</th>
                                 <th>Tax ID</th>
                                 {/*<th>Org Type</th>*/}
-                                {/*<th>Status</th>*/}
-                                {/*<th>Legality</th>*/}
+                                <th>Status</th>
+                                <th>Legality</th>
                                 <th>Description</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
@@ -291,10 +291,10 @@ const EventOrganizerPage: React.FC = () => {
                                                 <i className="bx bx-show"></i>
                                             </button>
                                             {user.role === 'super_admin' && (
-                                            <button className="btn btn-md btn-icon btn-danger me-2"
-                                                onClick={() => remove(item.id)} title="Delete">
-                                                <i className="bx bx-trash"></i>
-                                            </button>
+                                                <button className="btn btn-md btn-icon btn-danger me-2"
+                                                    onClick={() => remove(item.id)} title="Delete">
+                                                    <i className="bx bx-trash"></i>
+                                                </button>
                                             )}
                                             <button className="btn btn-md btn-icon btn-warning"
                                                 onClick={() => update(item)} title="Edit">
@@ -313,18 +313,18 @@ const EventOrganizerPage: React.FC = () => {
                                     <td>{item.address}</td>
                                     <td>{item.tax_id}</td>
                                     {/*<td><span className="badge bg-label-info">{item.organization_type}</span></td>*/}
-                                    {/*<td>*/}
-                                    {/*    <Badge bg={item.verification_status === 'Approved' ? 'success' : (item.verification_status === 'Rejected' ? 'danger' : 'warning text-dark')}>*/}
-                                    {/*        {item.verification_status || 'Pending'}*/}
-                                    {/*    </Badge>*/}
-                                    {/*</td>*/}
-                                    {/*<td>*/}
-                                    {/*    {item.legal_doc_path ? (*/}
-                                    {/*        <a href={`${process.env.NEXT_PUBLIC_BASE_URL?.replace('/api/v1/', '')}/uploads/legality/${item.legal_doc_path}`} target="_blank" rel="noreferrer" className="btn btn-xs btn-outline-primary">*/}
-                                    {/*            <i className="bx bx-file me-1"></i> View*/}
-                                    {/*        </a>*/}
-                                    {/*    ) : '-'}*/}
-                                    {/*</td>*/}
+                                    <td>
+                                        <Badge bg={item.verification_status === 'Approved' ? 'success' : (item.verification_status === 'Rejected' ? 'danger' : 'warning')} text={item.verification_status !== 'Approved' && item.verification_status !== 'Rejected' ? 'dark' : undefined}>
+                                            {item.verification_status || 'Pending'}
+                                        </Badge>
+                                    </td>
+                                    <td>
+                                        {item.legal_doc_path ? (
+                                            <a href={`${process.env.NEXT_PUBLIC_BASE_URL?.replace('/api/v1/', '')}/uploads/legality/${item.legal_doc_path}`} target="_blank" rel="noreferrer" className="btn btn-xs btn-outline-primary">
+                                                <i className="bx bx-file me-1"></i> View
+                                            </a>
+                                        ) : '-'}
+                                    </td>
                                     <td>{item.description}</td>
                                     <td>{item.created_at}</td>
                                     <td>{item.updated_at}</td>

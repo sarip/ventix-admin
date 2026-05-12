@@ -10,6 +10,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
+use App\Libraries\EventStatusService;
 use App\Models\Event;
 use App\Models\EventsAd;
 use App\Models\EventsAgenda;
@@ -26,18 +27,57 @@ class EventController extends ApiController
     public function index()
     {
         $Model = new Event();
-
+        $statusService = new \App\Services\EventStatusService();
         // Define searchable column on this model
         $searchable_column = [
             'search' => ['events_organizer_id', 'title'],
         ];
 
-        // Execute search filter
-        $Model->whereIn('events_status', ['ongoing', 'upcoming', 'closed']);
-        $output = SearchFilter::execute($Model, $searchable_column, 'events', []);
+        $status = $this->request->getGet('status');
+        $now = date('Y-m-d H:i:s');
+
+        if ($status == 'upcoming') {
+
+            $Model
+                ->where('events_status', 'launch')
+                ->where('start_date >', $now);
+
+        } elseif ($status == 'ongoing') {
+
+            $Model
+                ->where('events_status', 'launch')
+                ->where('start_date <=', $now)
+                ->where('end_date >=', $now);
+
+        } elseif ($status == 'finished') {
+
+            $Model
+                ->where('events_status', 'launch')
+                ->where('end_date <', $now);
+
+        } elseif ($status == 'sold_out') {
+
+            $Model
+                ->where('events_status', 'launch')
+                ->where("
+            NOT EXISTS (
+                SELECT 1
+                FROM event_ticket t
+                WHERE t.event_id = events.id
+                AND t.remaining_capacity > 0
+            )
+        ");
+
+        }
+
+        // Landing page ONLY shows events with DB status = 'Launch'
+        // Draft and Closed events must NOT appear
+        $where = ['events_status' => 'launch'];
+        $output = SearchFilter::execute($Model, $searchable_column, 'events', $where);
         $db = \Config\Database::connect();
-        array_walk($output['events'], function (&$item) use ($db) {
+        array_walk($output['events'], function (&$item) use ($db, $statusService) {
             $EventTicket = new EventTicket();
+            $item->dashboard_status = $statusService->getDashboardStatus($item);
             $summary = $EventTicket
                 ->selectSum('total_capacity')
                 ->selectSum('remaining_capacity')
@@ -57,9 +97,9 @@ class EventController extends ApiController
                     ", [$item->id])->getRow()->registered;
 
             $item->ticket_summary = [
-                'total_capacity'     => $total,
+                'total_capacity' => $total,
                 'remaining_capacity' => $remaining,
-                'registered'         => $registered,
+                'registered' => $registered,
             ];
 
 
@@ -81,9 +121,12 @@ class EventController extends ApiController
         // Execute search filter
         SearchFilter::executeOnly($Model, $searchable_column, ['id' => $id]);
         $event = $Model->first();
-        if(empty($event)) {
+        if (empty($event)) {
             return $this->errorOutput("event not found");
         }
+
+        $statusService = new \App\Services\EventStatusService();
+        $event->dashboard_status = $statusService->getDashboardStatus($event);
 
         $EventTicket = new EventTicket();
         $event->event_tickets = $EventTicket->where('event_id', $id)->findAll();
@@ -97,7 +140,6 @@ class EventController extends ApiController
 
 
         $EventsSponsor = new EventsSponsor();
-//        $event->event_sponsor = $EventsSponsor->where('events_id', $id)->findAll();
         $event->event_sponsor = $EventsSponsor->limit(5)->findAll();
 
         $summary = $EventTicket
@@ -120,15 +162,14 @@ class EventController extends ApiController
                     ", [$id])->getRow()->registered;
 
         $event->ticket_summary = [
-            'total_capacity'     => $total,
+            'total_capacity' => $total,
             'remaining_capacity' => $remaining,
-            'registered'            => $registered
+            'registered' => $registered
         ];
 
 
         $EventAd = new EventsAd();
         $event->events_ads = $EventAd->where('events_id', $id)->orderBy('sort_order', 'ASC')->findAll();
-        // Map image_url to full URL for frontend preview
         array_walk($event->events_ads, function (&$ad) {
             $ad->preview_url = base_url('uploads/ads/' . $ad->image_url);
         });
@@ -142,11 +183,14 @@ class EventController extends ApiController
         $Model = new Event();
         $title = deslugify($slug);
         $event = $Model->like('title', $title)->first();
-        if(empty($event)) {
+        if (empty($event)) {
             return $this->errorOutput("event not found");
         }
 
         $id = $event->id;
+
+        $statusService = new \App\Services\EventStatusService();
+        $event->dashboard_status = $statusService->getDashboardStatus($event);
 
         $EventTicket = new EventTicket();
         $event->event_tickets = $EventTicket->where('event_id', $id)->findAll();
@@ -160,7 +204,6 @@ class EventController extends ApiController
 
 
         $EventsSponsor = new EventsSponsor();
-//        $event->event_sponsor = $EventsSponsor->where('events_id', $id)->findAll();
         $event->event_sponsor = $EventsSponsor->limit(5)->findAll();
 
         $summary = $EventTicket
@@ -183,15 +226,14 @@ class EventController extends ApiController
                     ", [$id])->getRow()->registered;
 
         $event->ticket_summary = [
-            'total_capacity'     => $total,
+            'total_capacity' => $total,
             'remaining_capacity' => $remaining,
-            'registered'            => $registered
+            'registered' => $registered
         ];
 
 
         $EventAd = new EventsAd();
         $event->events_ads = $EventAd->where('events_id', $id)->orderBy('sort_order', 'ASC')->findAll();
-        // Map image_url to full URL for frontend preview
         array_walk($event->events_ads, function (&$ad) {
             $ad->preview_url = base_url('uploads/ads/' . $ad->image_url);
         });

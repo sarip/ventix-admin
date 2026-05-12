@@ -13,7 +13,9 @@ use App\Models\Facilitie;
 use App\Models\FacilityBooking;
 use App\Models\FacilitybookingStatu;
 use App\Models\User;
+use App\Models\FacilityPricing;
 use App\Libraries\CommissionEngine;
+use App\Libraries\CommissionCal;
 use App\Libraries\EmailNotificationService;
 
 class FacilityBookingController extends ApiController
@@ -110,28 +112,140 @@ class FacilityBookingController extends ApiController
      */
     public function create()
     {
-        $FacilityBooking = new FacilityBooking();
+        $Facilitie = new Facilitie();
+        $User = new User();
+        $booking_date = $this->request->getJsonVar('booking_date');
+        $start_time = $this->request->getJsonVar('start_time');
+        $end_time = $this->request->getJsonVar('end_time');
+        $booking_source = $this->request->getJsonVar('booking_source');
+
+        $user_id = $this->request->getJsonVar('user_id');
+        $id = "";
+        $name = "";
+        $phone = "";
+        $email = "";
+        if($booking_source === 'MEMBER') {
+            $current_user = $User->find($user_id);
+            $name = $current_user->name;
+            $phone = $current_user->phone;
+            $email = $current_user->email;
+        } else {
+            $name = $this->request->getJsonVar('guest_name');
+            $email = $this->request->getJsonVar('guest_email');
+            $phone = $this->request->getJsonVar('guest_phone');
+        }
+
+
+        if(empty($name) || empty($email) || empty($phone)) {
+            return $this->errorOutput('Guest name, email, and phone are required for guest checkout', 400);
+        }
+
+
+
         $create_data = [
-            'user_id' => $this->request->getJsonVar('user_id'),
             'facility_id' => $this->request->getJsonVar('facility_id'),
+            'booking_date' => $booking_date,
+            'start_time' => $start_time,
+            'end_time' => $end_time,
             'facility_code' => generate_order_facility_code(),
-            'booking_date' => $this->request->getJsonVar('booking_date'),
-            'start_time' => $this->request->getJsonVar('start_time'),
-            'end_time' => $this->request->getJsonVar('end_time'),
-            'total_hours' => $this->request->getJsonVar('total_hours'),
-            'total_price' => $this->request->getJsonVar('total_price'),
-            'status' => "Pending"
+            'user_id'       => $user_id,
+            'guest_name' => $name,
+            'guest_email' => $email,
+            'guest_phone' => $phone,
+            'booking_source' => $booking_source,
+            'status'        => 'Pending'
         ];
 
+        $facility = $Facilitie->find($create_data['facility_id']);
+        if(empty($facility)) {
+            return $this->errorOutput("Facility not found");
+        }
+
+        // Gabungkan date + time
+        $start = strtotime($create_data['booking_date'] . ' ' . $create_data['start_time']);
+        $end   = strtotime($create_data['booking_date'] . ' ' . $create_data['end_time']);
+
+        if ($end <= $start) {
+            return $this->errorOutput("End time must be greater than start time");
+        }
+
+        $dayType = $this->getDayType($create_data['booking_date']);
+
+        $pricingModel = new FacilityPricing();
+
+        $pricings = $pricingModel
+            ->where('facility_id', $create_data['facility_id'])
+            ->where('day_type', $dayType)
+            ->orderBy('start_time', 'ASC')
+            ->findAll();
+
+
+        $bookingStart = strtotime("$booking_date $start_time");
+        $bookingEnd   = strtotime("$booking_date $end_time");
+
+        $totalHours = 0;
+        $totalPrice = 0;
+
+        foreach ($pricings as $price) {
+
+            $priceStart = strtotime("$booking_date {$price->start_time}");
+            $priceEnd   = strtotime("$booking_date {$price->end_time}");
+
+            // Cari irisan waktu
+            $start = max($bookingStart, $priceStart);
+            $end   = min($bookingEnd, $priceEnd);
+
+            if ($start < $end) {
+                $hours = ($end - $start) / 3600;
+
+                $totalHours += $hours;
+                $totalPrice += $hours * $price->price_per_hour;
+            }
+        }
+
+        $create_data['total_price'] = $totalPrice;
+        $create_data['total_hours'] = $totalHours;
+
+
+        $adminFeeAmount = 0;
+        $grandTotal = $totalPrice;
+
+        if ($booking_source !== 'MEMBER') {
+
+            $adminFeeAmount = CommissionCal::total(
+                $totalPrice,
+                'event',
+                'guest_admin_fee'
+            );
+
+            $grandTotal = $totalPrice + $adminFeeAmount;
+        }
+
+        
+        $create_data['subtotal_amount'] = $totalPrice;
+        $create_data['admin_fee_amount'] = $adminFeeAmount;
+        $create_data['total_price'] = $grandTotal;
+
+        $FacilityBooking = new FacilityBooking();
         $id = $FacilityBooking->insert($create_data);
 
-        // Integrate Commission Engine
         $commissionEngine = new CommissionEngine();
-        $commissions = $commissionEngine->processOrder($id, 'facility', $create_data['total_price']);
+        $commissions = $commissionEngine->processOrder($id, 'facility', $totalPrice);
+
 
         // Send Facility Booking Created email
         $User = new User();
-        $buyer = $User->find($create_data['user_id']);
+        if($booking_source === 'MEMBER') {
+            $buyer = $User->find($user_id);
+        } else {
+            $facilityBooking = $FacilityBooking->find($id);
+            $buyer = (object)[
+                'id' => null,
+                'name' => $facilityBooking->guest_name,
+                'email' => $facilityBooking->guest_email,
+                'phone' => $facilityBooking->guest_phone,
+            ];
+        }
         if ($buyer) {
             $freshBooking = $FacilityBooking->find($id);
             $Facilitie = new Facilitie();
@@ -141,7 +255,9 @@ class FacilityBookingController extends ApiController
             }
         }
 
-        return $this->successOutput(['id' => $id, 'commissions' => $commissions], 201);
+        $data = $FacilityBooking->find($id);
+
+        return $this->successOutput(['id' => $id, 'data' => $data], 201);
     }
 
 
@@ -171,18 +287,126 @@ class FacilityBookingController extends ApiController
      */
     public function update($id)
     {
+        $Facilitie = new Facilitie();
+        $booking_date = $this->request->getJsonVar('booking_date');
+        $start_time = $this->request->getJsonVar('start_time');
+        $end_time = $this->request->getJsonVar('end_time');
+        $booking_source = $this->request->getJsonVar('booking_source');
+
+        $user_id = $this->request->getJsonVar('user_id');
+        $name = "";
+        $phone = "";
+        $email = "";
+        
+        // Check if booking exists
         $FacilityBooking = new FacilityBooking();
+        $existingBooking = $FacilityBooking->find($id);
+        if (empty($existingBooking)) {
+            return $this->errorOutput("Booking not found", 404);
+        }
+
+        $User = new User();
+        if($booking_source === 'MEMBER') {
+            $current_user = $User->find($user_id);
+            $name = $current_user->name;
+            $phone = $current_user->phone;
+            $email = $current_user->email;
+        } else {
+            $name = $this->request->getJsonVar('guest_name');
+            $email = $this->request->getJsonVar('guest_email');
+            $phone = $this->request->getJsonVar('guest_phone');
+        }
+
+        if(empty($name) || empty($email) || empty($phone)) {
+            return $this->errorOutput('Guest name, email, and phone are required', 400);
+        }
+
         $update_data = [
-            'user_id' => $this->request->getJsonVar('user_id'),
             'facility_id' => $this->request->getJsonVar('facility_id'),
-            'facility_code' => $this->request->getJsonVar('facility_code'),
-            'booking_date' => $this->request->getJsonVar('booking_date'),
-            'start_time' => $this->request->getJsonVar('start_time'),
-            'end_time' => $this->request->getJsonVar('end_time'),
-            'total_hours' => $this->request->getJsonVar('total_hours'),
-            'total_price' => $this->request->getJsonVar('total_price'),
-            'status' => $this->request->getJsonVar('status')
+            'booking_date' => $booking_date,
+            'start_time' => $start_time,
+            'end_time' => $end_time,
+            'user_id'       => $user_id,
+            'guest_name' => $name,
+            'guest_email' => $email,
+            'guest_phone' => $phone,
+            'booking_source' => $booking_source,
         ];
+
+        // Keep facility_code from existing booking
+        if (!empty($existingBooking->facility_code)) {
+            $update_data['facility_code'] = $existingBooking->facility_code;
+        }
+
+        $facility = $Facilitie->find($update_data['facility_id']);
+        if(empty($facility)) {
+            return $this->errorOutput("Facility not found", 404);
+        }
+
+        // Gabungkan date + time
+        $start = strtotime($update_data['booking_date'] . ' ' . $update_data['start_time']);
+        $end   = strtotime($update_data['booking_date'] . ' ' . $update_data['end_time']);
+
+        if ($end <= $start) {
+            return $this->errorOutput("End time must be greater than start time", 400);
+        }
+
+        $dayType = $this->getDayType($update_data['booking_date']);
+
+        $pricingModel = new FacilityPricing();
+
+        $pricings = $pricingModel
+            ->where('facility_id', $update_data['facility_id'])
+            ->where('day_type', $dayType)
+            ->orderBy('start_time', 'ASC')
+            ->findAll();
+
+
+        $bookingStart = strtotime("$booking_date $start_time");
+        $bookingEnd   = strtotime("$booking_date $end_time");
+
+        $totalHours = 0;
+        $totalPrice = 0;
+
+        foreach ($pricings as $price) {
+
+            $priceStart = strtotime("$booking_date {$price->start_time}");
+            $priceEnd   = strtotime("$booking_date {$price->end_time}");
+
+            // Cari irisan waktu
+            $start = max($bookingStart, $priceStart);
+            $end   = min($bookingEnd, $priceEnd);
+
+            if ($start < $end) {
+                $hours = ($end - $start) / 3600;
+
+                $totalHours += $hours;
+                $totalPrice += $hours * $price->price_per_hour;
+            }
+        }
+
+        $update_data['total_price'] = $totalPrice;
+        $update_data['total_hours'] = $totalHours;
+
+
+        $adminFeeAmount = 0;
+        $grandTotal = $totalPrice;
+
+        if ($booking_source !== 'MEMBER') {
+
+            $adminFeeAmount = CommissionCal::total(
+                $totalPrice,
+                'event',
+                'guest_admin_fee'
+            );
+
+            $grandTotal = $totalPrice + $adminFeeAmount;
+        }
+
+        
+        $update_data['subtotal_amount'] = $totalPrice;
+        $update_data['admin_fee_amount'] = $adminFeeAmount;
+        $update_data['total_price'] = $grandTotal;
 
         $FacilityBooking->update($id, $update_data);
 
@@ -192,19 +416,11 @@ class FacilityBookingController extends ApiController
         $orderCommissionModel = new \App\Models\OrderCommission();
         $orderCommissionModel->where('order_id', $id)->where('module', 'facility')->delete();
 
-        $commissions = $commissionEngine->processOrder($id, 'facility', $update_data['total_price']);
-
-        // Adjust total_price if there's a guest fee
-        if (isset($commissions['guest_fee'])) {
-            $totalPriceWithFee = (float) $update_data['total_price'] + $commissions['guest_fee'];
-            $FacilityBooking->update($id, [
-                'total_price' => $totalPriceWithFee
-            ]);
-        }
+        $commissions = $commissionEngine->processOrder($id, 'facility', $totalPrice);
 
         $data = $FacilityBooking->find($id);
 
-        return $this->successOutput(['facilitybooking' => $data, 'commissions' => $commissions]);
+        return $this->successOutput(['booking' => $data, 'commissions' => $commissions]);
     }
 
 
@@ -395,7 +611,7 @@ class FacilityBookingController extends ApiController
         $updated = $FacilityBooking->find($id);
 
         $User = new User();
-        $updated->user = $User->find($updated->user_id);
+        // $updated->user = $User->find($updated->user_id);
 
         $Facility = new Facilitie();
         $updated->facility = $Facility->find($updated->facility_id);
@@ -405,14 +621,24 @@ class FacilityBookingController extends ApiController
             FacilitybookingStatu::class
         );
 
-        // Send status-based email notifications
-        $buyer = $User->find($booking->user_id);
+
+        $User = new User();
+        $facilityBooking = $FacilityBooking->find($id);
         $facility = $Facility->find($booking->facility_id);
-        if ($buyer && $facility) {
+        if($booking->booking_source === 'MEMBER') {
+            $buyer = $User->find($booking->user_id);
+        } else {
+            $buyer = (object)[
+                'id' => null,
+                'name' => $facilityBooking->guest_name,
+                'email' => $facilityBooking->guest_email,
+                'phone' => $facilityBooking->guest_phone,
+            ];
+        }
+        if ($buyer) {
             $emailSvc = new EmailNotificationService();
             $freshBooking = $FacilityBooking->find($id);
-
-            if (strtolower($status) === 'pending') {
+           if (strtolower($status) === 'pending') {
                 $emailSvc->sendFacilityPaymentSubmitted($freshBooking, $buyer, $facility);
             } elseif (strtolower($status) === 'confirmed') {
                 $emailSvc->sendFacilityPaymentAccepted($freshBooking, $buyer, $facility);
@@ -420,5 +646,24 @@ class FacilityBookingController extends ApiController
         }
 
         return $this->successOutput(['booking' => $updated]);
+    }
+
+    /**
+     * Get Day Type
+     * Determine if date is weekday or weekend
+     *
+     * @param string $date
+     * @return string
+     */
+    private function getDayType(string $date): string
+    {
+        $day = date('N', strtotime($date)); // 1=Mon, 7=Sun
+
+        if ($day >= 6) {
+            return 'Weekend';
+        }
+
+        // kalau ada tabel hari libur → cek di sini
+        return 'Weekday';
     }
 }

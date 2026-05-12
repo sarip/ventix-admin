@@ -8,7 +8,7 @@ interface Select2ComponentProps {
     dropdownParent?: string;
     placeholder: string;
     name: string;
-    onChange: (e: any) => void;
+    onChange: (e: any, selectedItem?: any) => void;
     validation?: string;
     selectedId?: number | string;
     dataKey: string;
@@ -19,19 +19,19 @@ interface Select2ComponentProps {
 }
 
 const Select2Component: React.FC<Select2ComponentProps> = ({
-                                                               fetchData,
-                                                               dropdownParent = "",
-                                                               placeholder,
-                                                               name,
-                                                               onChange,
-                                                               validation,
-                                                               selectedId,
-                                                               dataKey,
-                                                               showKey,
-                                                               filterKey = "name",
-                                                               id="id",
-                                                               disabled = false
-                                                           }) => {
+    fetchData,
+    dropdownParent = "",
+    placeholder,
+    name,
+    onChange,
+    validation,
+    selectedId,
+    dataKey,
+    showKey,
+    filterKey = "name",
+    id = "id",
+    disabled = false
+}) => {
     const selectRef = useRef<HTMLSelectElement>(null);
     const autoId = useId(); // ✅ generate unique ID per component
 
@@ -68,9 +68,10 @@ const Select2Component: React.FC<Select2ComponentProps> = ({
                             (item: any) => ({
                                 id: item[id],
                                 text: item[showKey],
+                                itemData: item
                             })
                         );
-                        console.log({'results': results});
+                        console.log({ 'results': results });
 
                         success({
                             results,
@@ -92,11 +93,11 @@ const Select2Component: React.FC<Select2ComponentProps> = ({
             .select2(select2Options)
             .on("select2:select", (e: any) => {
                 const selected = e.params.data;
-                console.log({'selected' : selected})
-                onChange({ target: { name, value: selected.id } });
+                console.log({ 'selected': selected })
+                onChange({ target: { name, value: selected.id } }, selected.itemData);
             })
             .on("select2:clear", () => {
-                onChange({ target: { name, value: "" } });
+                onChange({ target: { name, value: "" } }, null);
             });
 
         // 🧭 Load selected item jika ada
@@ -108,13 +109,13 @@ const Select2Component: React.FC<Select2ComponentProps> = ({
                 .then((res) => {
                     const items = res[dataKey] || [];
                     const found = items.find((x: any) => x[id] == selectedId);
-                    console.log({'found' : found})
+                    console.log({ 'found': found })
                     if (found) {
                         const newOption = new Option(found[showKey], found[id].toString(), true, true);
                         $select.empty().append(newOption).trigger("change");
                     }
                 })
-                .catch(() => {});
+                .catch(() => { });
         }
 
         // ✅ Style error jika ada

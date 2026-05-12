@@ -78,43 +78,9 @@ export default function NotificationPopup({ userId, token }: NotificationPopupPr
         const { entity_type, entity_id } = notification;
 
         switch (entity_type) {
-            case 'schedule':
-            case 'pm':
-            case 'preventive_maintenance':
-                // Navigate to schedule maintenance page
-                router.push(`/schedule_maintenance`);
-                break;
-            case 'schedule_run':
-            case 'task_result':
-                // Navigate to maintenance result page
-                router.push(`/maintenance_result`);
-                break;
-            case 'work_order':
-            case 'wo':
-                // Navigate to work order page
-                router.push(`/work_order`);
-                break;
-            case 'ticket':
-                // Navigate to ticket page
-                router.push(`/ticket`);
-                break;
-            case 'inventory':
-                // Navigate to inventory page
-                router.push(`/inventory`);
-                break;
-            case 'vendor':
-            case 'vendor_contract':
-                // Navigate to vendors page
-                router.push(`/vendors`);
-                break;
-            case 'incident':
-                // Navigate to incident page
-                router.push(`/incident`);
-                break;
-            case 'events_organizer':
             case 'registration':
                 // Navigate to EO list page
-                router.push(`/event_organizer`);
+                router.push(`/eo_verification`);
                 break;
             default:
                 // For unknown types, log to console

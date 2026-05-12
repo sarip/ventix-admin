@@ -18,7 +18,7 @@ $routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'],
     $routes->get('facilities', 'FacilitieController::index', ['filter' => 'TokenFeFilter']);
     $routes->get('facility-booking-status', 'FacilitieController::bookingStatus', ['filter' => 'TokenFeFilter']);
     $routes->get('facility-bookings', 'FacilitieController::myBooking', ['filter' => 'TokenFeFilter']);
-    $routes->get('facility-bookings/(:num)', 'FacilitieController::findMyBook/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('facility-bookings/(:any)', 'FacilitieController::findMyBook/$1', ['filter' => 'TokenFeFilter']);
     $routes->post('facility-bookings/(:num)/upload-payment', 'FacilitieController::uploadPayment/$1', ['filter' => 'TokenFeFilter']);
     $routes->post('facilities/book', 'FacilitieController::booking', ['filter' => 'TokenFeFilter']);
     $routes->get('facilities/(:num)', 'FacilitieController::find/$1', ['filter' => 'TokenFeFilter']);
@@ -99,8 +99,8 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
 
     $routes->get('events_cat', 'EventsCatController::index', ['filter' => 'PermissionFilter']);
     $routes->post('eventscat', 'EventsCatController::create', ['filter' => 'PermissionFilter']);
-    $routes->put('eventscat/(:any)', 'EventsCatController::update/$1', ['filter' => 'PermissionFilter']);
-    $routes->delete('eventscat/(:any)', 'EventsCatController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('eventscat/(:num)', 'EventsCatController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('eventscat/(:num)', 'EventsCatController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('events_status', 'EventsStatuController::index', ['filter' => 'PermissionFilter']);
     $routes->post('eventsstatu', 'EventsStatuController::create', ['filter' => 'PermissionFilter']);
@@ -272,6 +272,12 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('commissionrule', 'CommissionRuleController::create', ['filter' => 'PermissionFilter']);
     $routes->put('commissionrule/(:num)', 'CommissionRuleController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('commissionrule/(:num)', 'CommissionRuleController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // EO VERIFICATION MODERATION
+    $routes->get('admin/eo/verifications', 'EoVerificationController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('admin/eo/verifications/(:num)', 'EoVerificationController::show/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('admin/eo/approve', 'EoVerificationController::approve', ['filter' => 'PermissionFilter']);
+    $routes->post('admin/eo/reject', 'EoVerificationController::reject', ['filter' => 'PermissionFilter']);
 
     // NOTIFICATIONS
     $routes->get('notifications', 'NotificationController::index', ['filter' => 'tokenFilter']);

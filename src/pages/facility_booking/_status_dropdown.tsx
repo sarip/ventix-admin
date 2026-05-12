@@ -10,9 +10,10 @@ interface StatusDropdownProps {
     currentStatus: string;
     bookingId: number;
     onStatusChange: (id: number, status: string) => void;
+    isLoading?: boolean;
 }
 
-const StatusDropdown: React.FC<StatusDropdownProps> = ({ currentStatus, bookingId, onStatusChange }) => {
+const StatusDropdown: React.FC<StatusDropdownProps> = ({ currentStatus, bookingId, onStatusChange, isLoading = false }) => {
     const [statuses, setStatuses] = useState<InFacilityBookingStatus[]>([]);
     const StatusModel = new FacilityBookingStatus();
 
@@ -46,12 +47,22 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({ currentStatus, bookingI
             <Dropdown.Toggle
                 variant={getStatusBadgeColor(currentStatus)}
                 size="sm"
+                disabled={isLoading}
                 style={{
                     backgroundColor: currentStatusData?.color_code,
-                    borderColor: currentStatusData?.color_code
+                    borderColor: currentStatusData?.color_code,
+                    opacity: isLoading ? 0.6 : 1,
+                    cursor: isLoading ? 'not-allowed' : 'pointer'
                 }}
             >
-                {currentStatusData?.display_name || currentStatus}
+                {isLoading ? (
+                    <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Updating...
+                    </>
+                ) : (
+                    currentStatusData?.display_name || currentStatus
+                )}
             </Dropdown.Toggle>
 
             <Dropdown.Menu>
@@ -60,6 +71,7 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({ currentStatus, bookingI
                         key={status.id}
                         onClick={() => onStatusChange(bookingId, status.name)}
                         active={currentStatus === status.name}
+                        disabled={isLoading}
                     >
                         <span
                             className="badge me-2"

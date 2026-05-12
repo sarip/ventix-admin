@@ -260,11 +260,55 @@
                         </strong></div>
                 </div>
 
-                <div class="amount-box">
-                    <span class="label">Total Pembayaran</span>
-                    <span class="amount">Rp
-                        <?= number_format($order->total_amount, 0, ',', '.') ?>
-                    </span>
+                <div class="amount-box" style="display:block">
+
+                    <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                        <span class="label">
+                            Subtotal
+                        </span>
+
+                        <span style="font-size:14px;font-weight:600;color:#111827">
+                            Rp <?= number_format((float) ($order->subtotal_amount ?? 0), 0, ',', '.') ?>
+                        </span>
+                    </div>
+
+                    <?php if (!empty($order->admin_fee_amount) && $order->admin_fee_amount > 0): ?>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                            <span class="label">
+                                Biaya Admin
+                            </span>
+
+                            <span style="font-size:14px;font-weight:600;color:#111827">
+                                Rp <?= number_format((float) $order->admin_fee_amount, 0, ',', '.') ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
+
+                    <div
+                        style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            border-top:1px solid #e5e7eb;
+                            padding-top:14px;
+                            margin-top:14px;
+                        "
+                    >
+                        <span
+                            style="
+                                font-size:15px;
+                                font-weight:700;
+                                color:#111827;
+                            "
+                        >
+                            Total Pembayaran
+                        </span>
+
+                        <span class="amount">
+                            Rp <?= number_format((float) ($order->total_amount ?? 0), 0, ',', '.') ?>
+                        </span>
+                    </div>
+
                 </div>
 
                 <!-- Progress Steps -->

@@ -18,6 +18,7 @@ use App\Models\EventsOrganizer;
 use App\Models\EventsSponsor;
 use App\Models\EventTicket;
 use App\Models\User;
+use App\Services\EventStatusService;
 
 class EventController extends ApiController
 {
@@ -44,6 +45,7 @@ class EventController extends ApiController
     public function index()
     {
         $Model = new Event();
+        $statusService = new EventStatusService();
 
         // Define searchable column on this model
         $searchable_column = [
@@ -59,11 +61,12 @@ class EventController extends ApiController
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'events', $where_eo);
-        array_walk($output['events'], function (&$item) {
+        array_walk($output['events'], function (&$item) use ($statusService) {
             $User = new User();
             $EventOrganizer = new EventsOrganizer();
             $item->user = $User->find($item->user_id_pic);
             $item->event_organizer = $EventOrganizer->find($item->events_organizer_id);
+            $item->dashboard_status = $statusService->getDashboardStatus($item);
 
             $EventsAgenda = new EventsAgenda();
             $item->events_agendas = $EventsAgenda->where('events_id', $item->id)->findAll();
@@ -144,14 +147,14 @@ class EventController extends ApiController
     {
         $Event = new Event();
         $data = [
-            'event_category'  => $this->request->getPost('event_category'),
-            'title'           => $this->request->getPost('title'),
-            'start_date'      => $this->request->getPost('start_date'),
-            'end_date'        => $this->request->getPost('end_date'),
-            'location'        => $this->request->getPost('location'),
-            'events_status'   => $this->request->getPost('events_status'),
-            'is_external'     => "Y",
-            'external_url'    => $this->request->getPost('external_url')
+            'event_category' => $this->request->getPost('event_category'),
+            'title' => $this->request->getPost('title'),
+            'start_date' => $this->request->getPost('start_date'),
+            'end_date' => $this->request->getPost('end_date'),
+            'location' => $this->request->getPost('location'),
+            'events_status' => $this->request->getPost('events_status'),
+            'is_external' => "Y",
+            'external_url' => $this->request->getPost('external_url')
         ];
 
         // =========================
@@ -165,7 +168,7 @@ class EventController extends ApiController
 
             $file->move(FCPATH . 'uploads/event', $newName);
 
-            $data['thumbnail_url'] =  $newName;
+            $data['thumbnail_url'] = $newName;
         }
 
 
@@ -174,10 +177,10 @@ class EventController extends ApiController
         // =========================
         $rules = [
             'event_category' => 'required',
-            'title'          => 'required',
-            'start_date'     => 'required',
-            'end_date'       => 'required',
-            'events_status'  => 'required',
+            'title' => 'required',
+            'start_date' => 'required',
+            'end_date' => 'required',
+            'events_status' => 'required',
         ];
 
 
@@ -448,14 +451,14 @@ class EventController extends ApiController
     {
         $Event = new Event();
         $data = [
-            'event_category'  => $this->request->getPost('event_category'),
-            'title'           => $this->request->getPost('title'),
-            'start_date'      => $this->request->getPost('start_date'),
-            'end_date'        => $this->request->getPost('end_date'),
-            'location'        => $this->request->getPost('location'),
-            'events_status'   => $this->request->getPost('events_status'),
-            'is_external'     => "Y",
-            'external_url'    => $this->request->getPost('external_url')
+            'event_category' => $this->request->getPost('event_category'),
+            'title' => $this->request->getPost('title'),
+            'start_date' => $this->request->getPost('start_date'),
+            'end_date' => $this->request->getPost('end_date'),
+            'location' => $this->request->getPost('location'),
+            'events_status' => $this->request->getPost('events_status'),
+            'is_external' => "Y",
+            'external_url' => $this->request->getPost('external_url')
         ];
 
         // =========================
@@ -483,10 +486,10 @@ class EventController extends ApiController
         // =========================
         $rules = [
             'event_category' => 'required',
-            'title'          => 'required',
-            'start_date'     => 'required',
-            'end_date'       => 'required',
-            'events_status'  => 'required',
+            'title' => 'required',
+            'start_date' => 'required',
+            'end_date' => 'required',
+            'events_status' => 'required',
         ];
 
 

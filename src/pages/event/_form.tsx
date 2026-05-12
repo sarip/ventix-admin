@@ -86,15 +86,49 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
         setSavedEventId(data.id);
         // Load existing agendas and tickets when editing
         setAgendas((data as any).events_agendas || []);
-        setTickets((data as any).events_tickets || []);
+        // setTickets((data as any).events_tickets || []);
+        setTickets(
+            ((data as any).events_tickets || []).map((ticket: any) => ({
+                ...ticket,
+                price: Number(ticket.price),
+                final_price: Number(ticket.final_price),
+                total_capacity: Number(ticket.total_capacity),
+                remaining_capacity: Number(ticket.remaining_capacity),
+                max_per_order: Number(ticket.max_per_order),
+                sort_order: Number(ticket.sort_order),
+            }))
+        );
         setSponsors((data as any).events_sponsors || []);
         setAds((data as any).events_ads || []);
         setCurrentStep(FormStep.EVENT_INFO);
     }, [data]);
 
 
-    const handleInputChange = (e: React.ChangeEvent<any>) => {
+    const handleInputChange = (e: React.ChangeEvent<any>, selectedItem?: any) => {
         const { name, value } = e.target;
+
+        if (name === 'events_organizer_id' && selectedItem) {
+            const status = selectedItem.verification_status;
+            if (status === 'Pending' || status === 'Rejected') {
+                swal.fire(
+                    'EO Tidak Aktif',
+                    `Status event organizer ini masih ${status}. Silakan pilih coba lagi nanti.`,
+                    'warning'
+                );
+
+                // Clear the Select2 visual value since it's invalid
+                setTimeout(() => {
+                    $(`select[name="${name}"]`).val(null).trigger('change.select2');
+                }, 10);
+
+                setFormData(prevData => ({
+                    ...prevData,
+                    [name]: '',
+                }));
+                return;
+            }
+        }
+
         setFormData(prevData => ({
             ...prevData,
             [name]: value,

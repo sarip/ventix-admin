@@ -13,6 +13,7 @@ import { TicketOrder, InTicketOrder, InOrderItem } from '@/models/TicketOrder';
 import { showToast } from '@/utils/toast';
 import TicketOrderForm from './_form';
 import Filter, { QueryParamsProps } from "./_filter";
+import BookingSource from '../_components/BookingSource';
 
 interface PaginationProps {
     current_page: number;
@@ -43,6 +44,12 @@ const TicketOrderPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState<Partial<InTicketOrder>>({
         user_id: 0,
+        guest_name: null,
+        guest_email: null,
+        guest_phone: null,
+        order_source: 'MEMBER',
+        subtotal_amount: '',
+        admin_fee_amount: '',
         order_code: '',
         total_amount: '0',
         status: '',
@@ -91,6 +98,12 @@ const TicketOrderPage: React.FC = () => {
     const create = () => {
         setFormData({
             user_id: 0,
+            guest_name: null,
+            guest_email: null,
+            guest_phone: null,
+            order_source: 'MEMBER',
+            subtotal_amount: '',
+            admin_fee_amount: '',
             order_code: '',
             total_amount: '0',
             status: 'pending',
@@ -235,6 +248,7 @@ const TicketOrderPage: React.FC = () => {
                                 <th style={{ width: '100px' }}>Actions</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('order_code')}>Order Code {getSortIcon('order_code')}</th>
                                 <th>User</th>
+                                <th>Source</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('total_amount')}>Total Amount {getSortIcon('total_amount')}</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('payment_method')}>Payment Method {getSortIcon('payment_method')}</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>Status {getSortIcon('status')}</th>
@@ -275,8 +289,12 @@ const TicketOrderPage: React.FC = () => {
                                                 <span className="font-monospace fw-bold">{order.order_code}</span>
                                             </td>
                                             <td>
-                                                <div className="fw-semibold">{order.user?.name || 'N/A'}</div>
-                                                <small className="text-muted">{order.user?.email}</small>
+                                                <div className="fw-semibold">{order.user?.name || order.guest_name || 'N/A'}</div>
+                                                <small className="text-muted">{order.user?.email || order.guest_email || 'N/A'}</small><br />
+                                                <small className="text-muted">{order.user?.phone || order.guest_phone || 'N/A'}</small>
+                                            </td>
+                                            <td>
+                                                <BookingSource status={order.order_source as string} />
                                             </td>
                                             <td className="fw-bold text-primary">
                                                 {formatCurrency(order.total_amount)}

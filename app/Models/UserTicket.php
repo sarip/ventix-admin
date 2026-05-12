@@ -20,9 +20,9 @@ class UserTicket extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'user_id', 'event_ticket_id', 'ticket_code', 'status', 'check_in_at', 'check_in_by'
+        'user_id', 'guest_name', 'guest_email', 'guest_phone', 'event_ticket_id', 'ticket_code', 'status', 'check_in_at', 'check_in_by'
     ];
-
+    
     // Dates
     protected $useTimestamps = false;
     protected $dateFormat    = 'datetime';

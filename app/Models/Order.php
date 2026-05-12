@@ -20,7 +20,7 @@ class Order extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'user_id', 'order_code', 'total_amount', 'status', 'payment_method', 'payment_proof'
+        'user_id', 'order_source', 'guest_name', 'guest_email', 'guest_phone', 'subtotal_amount', 'admin_fee_amount', 'order_code', 'total_amount', 'status', 'payment_method', 'payment_proof'
     ];
 
     // Dates

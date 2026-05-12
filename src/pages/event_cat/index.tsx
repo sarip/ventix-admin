@@ -45,6 +45,7 @@ const EventCatPage: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [formData, setFormData] = useState<InEventCatForm>({
+        id: null,
         name: "",
         description: ""
     });
@@ -98,6 +99,7 @@ const EventCatPage: React.FC = () => {
 
     const clearFormData = () => {
         setFormData({
+            id: null,
             name: "",
             description: ""
         });
@@ -114,8 +116,8 @@ const EventCatPage: React.FC = () => {
 
     const save = useCallback(async (data: InEventCatForm) => {
         try {
-            if (data.name) {
-                await Model.update(data.name, data);
+            if (data.id) {
+                await Model.update(data.id, data);
             } else {
                 await Model.create(data);
             }
@@ -135,7 +137,7 @@ const EventCatPage: React.FC = () => {
         }
     }, [Model, lastQuery, listData]);
 
-    const remove = async (name: string) => {
+    const remove = async (id: number) => {
         Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this data",
@@ -147,7 +149,7 @@ const EventCatPage: React.FC = () => {
             cancelButtonText: "No",
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const response = await Model.delete(name);
+                const response = await Model.delete(id);
                 if (response.success) {
                     showToast("Successfully Deleted", "success");
                     listData(lastQuery);
@@ -170,24 +172,24 @@ const EventCatPage: React.FC = () => {
     return (
         <>
             <div className=" container-p-y">
-                <h4 className="py-2 breadcrumb-wrapper mb-0">Event Status</h4>
-                Manage your event status
+                <h4 className="py-2 breadcrumb-wrapper mb-0">Event Kategori</h4>
+                Manage your event kategori
             </div>
             <Filter onSubmit={listData} />
             <div className="card mt-2">
                 <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
                     <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
-                        {/*<Button variant="primary" onClick={create}>*/}
-                        {/*    <span><i className="bx bx-plus me-0 me-sm-1"></i></span>*/}
-                        {/*    <span className="d-none d-sm-inline-block">Add Data</span>*/}
-                        {/*</Button>*/}
+                        <Button variant="primary" onClick={create}>
+                            <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
+                            <span className="d-none d-sm-inline-block">Add Data</span>
+                        </Button>
                     </div>
                 </h5>
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
                             <tr>
-                                {/*<th style={{width: '10%'}}>Actions</th>*/}
+                                <th style={{width: '10%'}}>Actions</th>
                                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Name {getSortIcon('name')}</th>
                                 <th>Description</th>
 
@@ -196,15 +198,15 @@ const EventCatPage: React.FC = () => {
                         <tbody className="table-border-bottom-0">
                             {EventCats.map((item: InEventCat, key: number) => (
                                 <tr className="odd" key={key}>
-                                    {/*<td>*/}
-                                    {/*    <div className="d-flex align-items-sm-center justify-content-sm-center">*/}
-                                    {/*        <button className="btn btn-md btn-icon btn-danger me-2"*/}
-                                    {/*                onClick={() => remove(item.name)}><i className="bx bx-trash"></i>*/}
-                                    {/*        </button>*/}
-                                    {/*        <button className="btn btn-md btn-icon btn-warning"*/}
-                                    {/*                onClick={() => update(item)}><i className="bx bx-edit"></i></button>*/}
-                                    {/*    </div>*/}
-                                    {/*</td>*/}
+                                    <td>
+                                        <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                            <button className="btn btn-md btn-icon btn-danger me-2"
+                                                    onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
+                                            </button>
+                                            <button className="btn btn-md btn-icon btn-warning"
+                                                    onClick={() => update(item)}><i className="bx bx-edit"></i></button>
+                                        </div>
+                                    </td>
                                     <td>{item.name}</td>
                                     <td>{item.description}</td>
                                 </tr>

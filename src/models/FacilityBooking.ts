@@ -9,6 +9,13 @@ export interface InFacilityBooking {
     id: number;
     facility_id: number;
     user_id: number;
+    guest_name: string;
+    guest_email: string;
+    guest_phone: string;
+    booking_code: string;
+    subtotal_amount: number;
+    admin_fee_amount: number;
+    booking_source: string;
     facility_code: string;
     booking_date: string;
     start_time: string;
@@ -17,6 +24,7 @@ export interface InFacilityBooking {
     total_price: number;
     status_id: number;
     notes: string;
+    payment_proof?: string;
     created_at: string;
     updated_at: string;
     facility?: {
@@ -28,6 +36,7 @@ export interface InFacilityBooking {
         id: number;
         name: string;
         email: string;
+        phone: string;
     };
     status?: {
         id: number;
@@ -40,6 +49,13 @@ export interface InFacilityBookingForm {
     id?: number;
     facility_id: number;
     user_id: number;
+    guest_name: string;
+    guest_email: string;
+    guest_phone: string;
+    booking_code: string;
+    booking_source: string;
+    subtotal_amount: number;
+    admin_fee_amount: number;
     booking_date: string;
     start_time: string;
     end_time: string;

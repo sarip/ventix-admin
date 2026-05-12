@@ -12,6 +12,9 @@ import {InEvent} from "@/models/Event";
 export interface InTicketUser {
     id: number;
     user_id: number;
+    guest_name: string | null;
+    guest_email: string | null;
+    guest_phone: string | null;
     event_ticket_id: number;
     ticket_code: string;
     status: 'VALID' | 'USED' | 'CANCELLED';

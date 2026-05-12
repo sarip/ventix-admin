@@ -10,6 +10,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\Api\ApiController;
 use App\Filters\SearchFilter;
+use App\Libraries\CommissionCal;
 use App\Libraries\CommissionEngine;
 use App\Libraries\EmailNotificationService;
 use App\Models\Event;
@@ -138,15 +139,42 @@ class OrderController extends ApiController
     {
         $db = \Config\Database::connect();
         $db->transBegin();
+        $current_user = $this->request->current_user;
+        $id = "";
+        $name = "";
+        $phone = "";
+        $email = "";
+        $admin_fee_amount = 0;
+        if($current_user) {
+            $id = $current_user['id'];
+            $name = $current_user['name'];
+            $phone = $current_user['phone'];
+            $email = $current_user['email'];
+        } else {
+            $name = $this->request->getJsonVar('guest_name');
+            $email = $this->request->getJsonVar('guest_email');
+            $phone = $this->request->getJsonVar('guest_phone');
+        }
+
+
+        if(empty($name) || empty($email) || empty($phone)) {
+            return $this->errorOutput('Guest name, email, and phone are required for guest checkout', 400);
+        }
+
+        $isMember = !empty($current_user);
+
 
         try {
             $Order       = new Order();
             $OrderItem   = new OrderItem();
             $EventTicket = new EventTicket();
-            $current_user = $this->request->current_user;
             // 1. Create Order
             $orderData = [
-                'user_id'        => $current_user['id'],
+                'user_id'        => $id,
+                'order_source' => $current_user ? 'MEMBER' : 'GUEST',
+                'guest_name' => $name,
+                'guest_email' => $email,
+                'guest_phone' => $phone,
                 'order_code'     => generate_order_code(),
                 'total_amount'   => 0,
                 'status'         => 'Pending',
@@ -198,15 +226,33 @@ class OrderController extends ApiController
                 ]);
             }
 
+            $adminFeeAmount = 0;
+            $grandTotal = $totalAmount;
+
+            if (!$isMember) {
+
+                $adminFeeAmount = CommissionCal::total(
+                    $totalAmount,
+                    'event',
+                    'guest_admin_fee'
+                );
+
+                $grandTotal = $totalAmount + $adminFeeAmount;
+            }
+
+            $updateOrder = [
+                'subtotal_amount' => $totalAmount,
+                'admin_fee_amount' => $adminFeeAmount,
+                'total_amount' => $grandTotal,
+            ];
+
             // 6. Update order total
-            $Order->update($orderId, [
-                'total_amount' => $totalAmount
-            ]);
+            $Order->update($orderId, $updateOrder);
 
 
             // Integrate Commission Engine
             $commissionEngine = new CommissionEngine();
-            $commissions = $commissionEngine->processOrder($orderId, 'event', $totalAmount);
+            $commissions = $commissionEngine->processOrder($orderId, 'event', $grandTotal);
 
 //            // Adjust total_amount if there's a guest fee
 //            if (isset($commissions['guest_fee'])) {
@@ -221,7 +267,19 @@ class OrderController extends ApiController
 
             $order = $Order->find($orderId);
             $User = new User();
-            $buyer = $User->find($order->user_id);
+
+            if($current_user) {
+                $buyer = $User->find($order->user_id);
+            } else {
+                $buyer = (object)[
+                    'id' => null,
+                    'name' => $order->guest_name,
+                    'email' => $order->guest_email,
+                    'phone' => $order->guest_phone,
+                ];
+            }
+            
+
             $emailSvc = new EmailNotificationService();
             if($totalAmount == 0 ){
                 $Order->update($orderId, [
@@ -230,7 +288,7 @@ class OrderController extends ApiController
                 ]);
 
                 foreach ($orderItems as $orderItem) {
-                   $this->_generateTicket($current_user['id'], $orderId, $orderItem->event_ticket_id);
+                   $this->_generateTicket($buyer, $orderId, $orderItem->event_ticket_id);
                 }
 
                 $ticketModel = new UserTicket();
@@ -247,8 +305,8 @@ class OrderController extends ApiController
                     ->join('event_ticket', 'event_ticket.id = user_tickets.event_ticket_id')
                     ->join('events', 'events.id = event_ticket.event_id')
                     ->where('order_items.order_id', $orderId)
-                    ->where('user_tickets.user_id', $current_user['id'])
                     ->findAll();
+                    // ->where('user_tickets.user_id', $current_user['id'])
                 $emailSvc->sendOrderPaymentAccepted($order, $buyer, array_values($tickets), 'order_payment_accepted_free');
             }else{
                 $allItems = (new OrderItem())->where('order_id', $orderId)->findAll();
@@ -286,8 +344,11 @@ class OrderController extends ApiController
 
 
             $emailSvc = new EmailNotificationService();
-            $User = new User();
-            $buyer = $User->find($order->user_id);
+            $buyer = (object)[
+                'name' => $order->guest_name,
+                'email' => $order->guest_email,
+                'phone' => $order->guest_phone,
+            ];
             $emailSvc->sendOrderPaymentSubmitted($order, $buyer);
         }
 
@@ -299,11 +360,14 @@ class OrderController extends ApiController
     }
 
 
-    private function _generateTicket($user_id, $order_id, $event_ticket_id)
+    private function _generateTicket($buyer, $order_id, $event_ticket_id)
     {
         $UserTicket = new UserTicket();
         return $UserTicket->insert([
-            'user_id' => $user_id,
+            'user_id' => $buyer->id,
+            'guest_name' => $buyer->name,
+            'guest_email' => $buyer->email,
+            'guest_phone' => $buyer->phone,
             'event_ticket_id' => $event_ticket_id,
             'ticket_code' => generate_ticket_code($order_id, $event_ticket_id),
             'status' => 'VALID'

@@ -177,22 +177,75 @@ const TicketOrderForm: React.FC<FormProps> = ({ title, data, onHide, onSave, val
                                 <Col md={12}>
                                     <h6 className="border-bottom pb-2 mb-3">Order Information</h6>
                                 </Col>
-
                                 <Col md={6}>
-                                    <label className="form-label">User *</label>
-                                    <Select2Component
-                                        fetchData={UserModel.member}
-                                        dropdownParent="#modal-ticket-order"
-                                        placeholder="Select User"
-                                        name="user_id"
+                                    <label className="form-label">Order Source *</label>
+                                    <select
+                                        className="form-select"
+                                        name="order_source"
                                         onChange={handleInputChange}
-                                        validation={errors.user_id}
-                                        selectedId={formData.user_id}
-                                        dataKey="users"
-                                        filterKey=""
-                                        showKey="username"
-                                    />
+                                        value={formData.order_source}
+                                    >
+                                        <option value="MEMBER">MEMBER</option>
+                                        <option value="GUEST">GUEST</option>
+                                    </select>
                                 </Col>
+
+                                {formData.order_source === 'GUEST' ? (
+                                    <>
+                                        <Col md={6}>
+                                            <label className="form-label">Guest Name *</label>
+                                            <input
+                                                type="text"
+                                                name="guest_name"
+                                                className={`form-control ${errors.guest_name ? 'is-invalid' : ''}`}
+                                                placeholder="Enter guest name"
+                                                value={formData.guest_name || ''}
+                                                onChange={handleInputChange}
+                                            />
+                                            {errors.guest_name && <div className="invalid-feedback">{errors.guest_name}</div>}
+                                        </Col>
+                                        <Col md={6}>
+                                            <label className="form-label">Guest Email</label>
+                                            <input
+                                                type="email"
+                                                name="guest_email"                                              
+                                                className={`form-control ${errors.guest_email ? 'is-invalid' : ''}`}                                    placeholder="Enter guest email"
+                                                value={formData.guest_email || ''}
+                                                onChange={handleInputChange}
+                                            />
+                                            {errors.guest_email && <div className="invalid-feedback">{errors.guest_email}</div>}
+                                        </Col>
+                                        <Col md={6}>
+                                            <label className="form-label">Guest Phone</label>
+                                            <input
+                                                type="text"
+                                                name="guest_phone"
+                                                className={`form-control ${errors.guest_phone ? 'is-invalid' : ''}`}
+                                                placeholder="Enter guest phone"
+                                                value={formData.guest_phone || ''}
+                                                onChange={handleInputChange}
+                                            />
+                                            {errors.guest_phone && <div className="invalid-feedback">{errors.guest_phone}</div>}
+                                        </Col>
+                                    </>
+                                ) : (
+                                    <Col md={6}>
+                                        <label className="form-label">User *</label>
+                                        <Select2Component
+                                            fetchData={UserModel.member}
+                                            dropdownParent="#modal-ticket-order"
+                                            placeholder="Select User"
+                                            name="user_id"
+                                            onChange={handleInputChange}
+                                            validation={errors.user_id}
+                                            selectedId={formData.user_id}
+                                            dataKey="users"
+                                            filterKey=""
+                                            showKey="username"
+                                        />
+                                    </Col>
+                                )}  
+
 
                                 <Col md={6}>
                                     <label className="form-label">Order Code</label>

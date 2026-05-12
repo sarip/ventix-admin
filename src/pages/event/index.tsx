@@ -16,6 +16,7 @@ import { Event, InEvent, InEventForm } from '@/models/Event';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import { ListResponse } from "@/types/apiTypes";
+import EventStatusBadge from "@/pages/_components/EventStatusBadge";
 
 interface ValidationErrorProps {
     field: string;
@@ -158,6 +159,9 @@ const EventPage: React.FC = () => {
             showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
             jQuery("#modal-Event").modal('hide');
             listData(lastQuery);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } catch (error) {
             let lines = error.message.trim().split('\n');
             let result: ValidationErrorProps[] = lines.map(line => {
@@ -202,6 +206,14 @@ const EventPage: React.FC = () => {
         if (!isInitialLoad) listData(lastQuery);
     }, [sortBy, sortOrder]);
 
+    const slugify = (text: string) =>
+        text
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
 
     return (
         <>
@@ -222,32 +234,53 @@ const EventPage: React.FC = () => {
                 <div className="table-responsive text-nowrap">
                     <table className="table">
                         <thead className="border-top">
-                            <tr>
-                                <th style={{ width: '10%' }}>Actions</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('eo_name')}>EO {getSortIcon('eo_name')}</th>
-                                <th>PIC</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('title')}>Title {getSortIcon('title')}</th>
-                                <th>Description</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('start_date')}>Date {getSortIcon('start_date')}</th>
-                                <th>Location</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('price_pool')}>Price Pool {getSortIcon('price_pool')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('registration_fee')}>Registration Fee {getSortIcon('registration_fee')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('events_status')}>Event Status {getSortIcon('events_status')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Created At {getSortIcon('created_at')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>Updated At {getSortIcon('updated_at')}</th>
+                        <tr>
+                            <th style={{width: '10%'}}>Actions</th>
+                            <th style={{cursor: 'pointer'}}
+                                onClick={() => handleSort('eo_name')}>EO {getSortIcon('eo_name')}</th>
+                            <th>PIC</th>
+                            <th style={{cursor: 'pointer'}}
+                                onClick={() => handleSort('title')}>Title {getSortIcon('title')}</th>
+                            <th>Description</th>
+                            <th style={{cursor: 'pointer'}}
+                                onClick={() => handleSort('start_date')}>Date {getSortIcon('start_date')}</th>
+                            <th style={{cursor: 'pointer'}} onClick={() => handleSort('events_status')}>Event
+                                Status {getSortIcon('events_status')}</th>
+                            <th>Dashboard Status</th>
+                            <th>Location</th>
+                            <th style={{cursor: 'pointer'}} onClick={() => handleSort('price_pool')}>Price
+                                Pool {getSortIcon('price_pool')}</th>
+                            <th style={{cursor: 'pointer'}} onClick={() => handleSort('registration_fee')}>Registration
+                                Fee {getSortIcon('registration_fee')}</th>
+                            <th style={{cursor: 'pointer'}} onClick={() => handleSort('created_at')}>Created
+                                At {getSortIcon('created_at')}</th>
+                            <th style={{cursor: 'pointer'}} onClick={() => handleSort('updated_at')}>Updated
+                                At {getSortIcon('updated_at')}</th>
 
-                            </tr>
+                        </tr>
                         </thead>
                         <tbody className="table-border-bottom-0">
-                            {events.map((item: InEvent, key: number) => (
+                        {events.map((item: InEvent, key: number) => (
                                 <tr className="odd" key={key}>
                                     <td>
                                         <div className="d-flex align-items-sm-center justify-content-sm-center">
-                                            <button className="btn btn-md btn-icon btn-danger me-2"
-                                                onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
-                                            </button>
-                                            <button className="btn btn-md btn-icon btn-warning"
-                                                onClick={() => update(item)}><i className="bx bx-edit"></i></button>
+                                            <a
+                                                href={`${process.env.NEXT_PUBLIC_LANDING_PAGE_URL}/events/${slugify(item.title)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-md btn-icon btn-info me-2"
+                                            >
+                                                <i className="bx bx-show"></i>
+                                            </a>
+
+                                            <div className="d-flex align-items-sm-center justify-content-sm-center">
+                                                <button className="btn btn-md btn-icon btn-danger me-2"
+                                                        onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
+                                                </button>
+                                                <button className="btn btn-md btn-icon btn-warning"
+                                                        onClick={() => update(item)}><i className="bx bx-edit"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                     <td>{item.event_organizer?.eo_name}</td>
@@ -255,10 +288,19 @@ const EventPage: React.FC = () => {
                                     <td>{item.title}</td>
                                     <td>{item.description}</td>
                                     <td>{item.start_date} - {item.end_date}</td>
+                                    <td>
+                                        <EventStatusBadge
+                                            status={item.events_status}
+                                        />
+                                    </td>
+                                    <td>
+                                        <EventStatusBadge
+                                            status={item.dashboard_status}
+                                        />
+                                    </td>
                                     <td>{item.location_name}</td>
                                     <td>{item.price_pool}</td>
                                     <td>{item.registration_fee}</td>
-                                    <td>{item.events_status}</td>
                                     <td>{item.created_at}</td>
                                     <td>{item.updated_at}</td>
                                 </tr>

@@ -78,6 +78,14 @@ const routes: Route[] = [
         ]
     },
     {
+        path: '/eo_verification',
+        side_menu: true,
+        tooltip: "EO Verification",
+        icon: 'bx-list-ol',
+        title: 'EO Verification',
+        is_superadmin: true,
+    },
+    {
         path: '/event_external',
         side_menu: true,
         tooltip: "Event External",
@@ -127,6 +135,7 @@ const routes: Route[] = [
                 icon: 'bx-users',
                 title: 'Event Categories',
                 endpoint: 'api/v1/users',
+                is_superadmin: true,
             },
 
         ]

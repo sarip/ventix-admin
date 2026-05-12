@@ -157,6 +157,9 @@ const EventPage: React.FC = () => {
             showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
             jQuery("#modal-Event-external").modal('hide');
             listData(lastQuery);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } catch (error: any) {
             let lines = error.message.trim().split('\n');
             let result: ValidationErrorProps[] = lines.map((line: string) => {
