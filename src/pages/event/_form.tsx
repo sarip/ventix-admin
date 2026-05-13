@@ -382,15 +382,16 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                             <div className="form-group mb-3">
                                                 <label className="form-label" htmlFor="events_organizer_id">PIC</label>
                                                 <Select2Component
-                                                    fetchData={UserModel.list}
+                                                    fetchData={UserModel.lists}
                                                     dropdownParent="#modal-Event"
                                                     placeholder="Pilih opsi"
                                                     name="user_id_pic"
                                                     onChange={handleInputChange}
                                                     validation={errors.user_id_pic}
-                                                    selectedId={formData.user_id_pic}
+                                                    selectedId={formData.user_id_pic as  number}
                                                     dataKey="users"
                                                     showKey="name"
+                                                    id="id"
                                                 />
                                                 {!!errors?.user_id_pic && (
                                                     <div className="invalid-feedback">{errors.user_id_pic}</div>

@@ -139,6 +139,22 @@ class UserController extends ApiController
         return $this->successOutput($output);
     }
 
+     public function lists()
+    {
+        $Model = new User();
+
+        // Define searchable column on this model
+        $searchable_column = [
+            'search' => ['eo_id', 'username', 'name', 'email', 'password', 'phone', 'role', 'profile_picture', 'refferalcode', 'status', 'google_id', 'verification_token', 'reset_token_expiry', 'email_verified_at', 'last_login', 'updated_at'],
+        ];
+
+        // Execute search filter
+        $output = SearchFilter::execute($Model, $searchable_column, 'users');
+
+        // Return output
+        return $this->successOutput($output);
+    }
+
 
     public function member() {
         $Model = new User();

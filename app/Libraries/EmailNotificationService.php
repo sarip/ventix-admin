@@ -41,7 +41,7 @@ class EmailNotificationService
     {
         $this->mailer = \Config\Services::email();
         $this->fromEmail = env('MAIL_FROM_ADDRESS', 'veentixindo@gmail.com');
-        $this->fromName = env('MAIL_FROM_NAME', 'Venntix');
+        $this->fromName = env('MAIL_FROM_NAME', 'Veentix');
     }
 
     // =========================================================================
@@ -68,7 +68,7 @@ class EmailNotificationService
 
         return $this->send(
             $user->email,
-            "Pesanan Baru #{$order->order_code} – Venntix",
+            "Pesanan Baru #{$order->order_code} – Veentix",
             $html,
             "sendOrderCreated"
         );
@@ -257,7 +257,7 @@ class EmailNotificationService
 
         return $this->send(
             $user->email,
-            "Booking Fasilitas #{$booking->facility_code} – Venntix",
+            "Booking Fasilitas #{$booking->facility_code} – Veentix",
             $html,
             "sendFacilityBookingCreated"
         );

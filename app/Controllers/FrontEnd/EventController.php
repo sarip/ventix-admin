@@ -182,7 +182,7 @@ class EventController extends ApiController
     {
         $Model = new Event();
         $title = deslugify($slug);
-        $event = $Model->like('title', $title)->first();
+        $event = $Model->where("LOWER(REGEXP_REPLACE(title, '[^a-zA-Z0-9]+', '-')) =",$slug)->first();
         if (empty($event)) {
             return $this->errorOutput("event not found");
         }
