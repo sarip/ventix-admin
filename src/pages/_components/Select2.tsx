@@ -130,7 +130,7 @@ const Select2Component: React.FC<Select2ComponentProps> = ({
                 $select.select2("destroy");
             }
         };
-    }, [fetchData, dropdownParent, placeholder, selectedId, validation]);
+    }, [fetchData, dropdownParent, placeholder, selectedId, validation, filterKey]);
 
     return (
         <select

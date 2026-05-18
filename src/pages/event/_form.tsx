@@ -391,6 +391,7 @@ const Form: React.FC<FormProps> = ({ title, data, onSave, validationError = [] }
                                                     selectedId={formData.user_id_pic as  number}
                                                     dataKey="users"
                                                     showKey="name"
+                                                    filterKey={`eo_id:${formData.events_organizer_id}`}
                                                     id="id"
                                                 />
                                                 {!!errors?.user_id_pic && (

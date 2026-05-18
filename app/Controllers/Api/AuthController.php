@@ -176,7 +176,7 @@ class AuthController extends ApiController
 
         // REGISTER
         $isNewUser = $this->request->getJsonVar('isNewUser');
-        if($isNewUser && !$user) {
+        if ($isNewUser && !$user) {
             $id = $UserModel->insert([
                 'username' => $this->request->getJsonVar('username'),
                 'google_id' => $googleId,
@@ -285,7 +285,7 @@ class AuthController extends ApiController
             $UserSysRole = new SysUsersRole();
             $usersysrole = $UserSysRole->where('role_name', $user->role)->first();
 
-            if ($usersysrole->scope !== $request['role']) {
+            if ($usersysrole->scope !== $request['role'] && $request['role'] !== "GUEST") {
                 return null;
             }
         }
@@ -382,10 +382,14 @@ class AuthController extends ApiController
 
         }
 
+        $SysUserRole = new SysUsersRole();
+        $user->scope = $SysUserRole->select('scope')->where('role_name', $user->role)->first()->scope ?? null;
+
         return $this->successOutput([
             'id' => $user->id,
             'source' => $this->request->source,
             'username' => $user->username,
+            'role' => $user->role,
             //            'scope' => $user->role_id,
             'fullname' => $fullname,
             'user' => $user,
@@ -495,7 +499,7 @@ class AuthController extends ApiController
             'name' => 'required|min_length[3]',
             'email' => 'required|valid_email|is_unique[users.email]',
             'password' => 'required|min_length[8]',
-            'phone' => 'required|min_length[6]',
+            'phone' => 'required|min_length[6]|is_unique[users.phone]',
 
 
         ];
@@ -722,10 +726,11 @@ class AuthController extends ApiController
         // Validation Rules
         // =============================
         $rules = [
-            'username' => 'required|is_unique[users.username]|min_length[4]|max_length[30]|alpha_numeric',
+            'user_id' => 'required',
+            'username' => 'required',
             'name' => 'required|min_length[3]',
-            'email' => 'required|valid_email|is_unique[events_organizer.email]',
-            'password' => 'required|min_length[8]',
+            'email' => 'required|valid_email',
+            // 'password' => 'required|min_length[8]',
             'phone' => 'required|min_length[6]',
             'eo_name' => 'required|is_unique[events_organizer.eo_name]',
             'company_name' => 'required',
@@ -747,15 +752,24 @@ class AuthController extends ApiController
         $db->transBegin();
 
         try {
+
+            $user_id = $this->request->getPost('user_id');
+
             // =============================
             // Upload Logo
             // =============================
             $logo = $this->request->getFile('logo');
             $logoName = null;
-            if ($logo && $logo->isValid() && !$logo->hasMoved()) {
-                $logoName = $logo->getRandomName();
+            if ($logo && $logo->getError() === 0 && !$logo->hasMoved()) {
                 $uploadPath = FCPATH . 'uploads/event_organizer';
-                $logo->move($uploadPath, $logoName);
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0775, true);
+                }
+                $logoName = $logo->getRandomName();
+                if (!$logo->move($uploadPath, $logoName)) {
+                    log_message('error', 'Logo upload failed: ' . $logo->getErrorString());
+                    throw new \RuntimeException('Gagal mengupload logo. Silakan coba lagi.');
+                }
             }
 
             // =============================
@@ -763,10 +777,35 @@ class AuthController extends ApiController
             // =============================
             $legalityDoc = $this->request->getFile('legal_doc');
             $legalityDocName = null;
-            if ($legalityDoc && $legalityDoc->isValid() && !$legalityDoc->hasMoved()) {
-                $legalityDocName = $legalityDoc->getRandomName();
-                $uploadPathLegality = FCPATH . 'uploads/legality';
-                $legalityDoc->move($uploadPathLegality, $legalityDocName);
+            if ($legalityDoc) {
+                $uploadErr = $legalityDoc->getError();
+
+                if ($uploadErr === UPLOAD_ERR_OK) {
+                    // File uploaded successfully — process it
+                    $uploadPathLegality = FCPATH . 'uploads/legality';
+                    if (!is_dir($uploadPathLegality)) {
+                        mkdir($uploadPathLegality, 0775, true);
+                    }
+                    $legalityDocName = $legalityDoc->getRandomName();
+                    if (!$legalityDoc->move($uploadPathLegality, $legalityDocName)) {
+                        log_message('error', 'Legal doc move() failed: ' . $legalityDoc->getErrorString());
+                        throw new \RuntimeException('Gagal menyimpan dokumen legalitas. Silakan coba lagi.');
+                    }
+                } elseif ($uploadErr !== UPLOAD_ERR_NO_FILE) {
+                    // Real upload error (size limit, partial upload, etc.)
+                    $uploadErrors = [
+                        UPLOAD_ERR_INI_SIZE => 'Ukuran file melebihi batas maksimum server (' . ini_get('upload_max_filesize') . ').',
+                        UPLOAD_ERR_FORM_SIZE => 'Ukuran file melebihi batas yang diizinkan form.',
+                        UPLOAD_ERR_PARTIAL => 'File hanya terupload sebagian. Silakan coba lagi.',
+                        UPLOAD_ERR_NO_TMP_DIR => 'Direktori sementara tidak ditemukan di server.',
+                        UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file ke server. Periksa permission direktori.',
+                        UPLOAD_ERR_EXTENSION => 'Upload diblokir oleh ekstensi PHP.',
+                    ];
+                    $errMsg = $uploadErrors[$uploadErr] ?? 'Upload dokumen legalitas gagal (error code: ' . $uploadErr . ').';
+                    log_message('error', 'Legal doc upload error code ' . $uploadErr . ': ' . $errMsg);
+                    throw new \RuntimeException($errMsg);
+                }
+                // UPLOAD_ERR_NO_FILE → field kosong, lanjut tanpa error
             }
 
             // =============================
@@ -774,16 +813,16 @@ class AuthController extends ApiController
             // =============================
             $userModel = new User();
 
-            if ($userModel->where('email', $this->request->getPost('email'))->first()) {
-                throw new \Exception('Email sudah terdaftar');
-            }
+            // if ($userModel->where('email', $this->request->getPost('email'))->first()) {
+            //     throw new \Exception('Email sudah terdaftar');
+            // }
 
 
             $eoModel = new EventsOrganizer();
             $eo_id = $eoModel->insert([
                 'eo_name' => $this->request->getPost('eo_name'),
                 'company_name' => $this->request->getPost('company_name'),
-//                'organization_type' => $this->request->getPost('organization_type'),
+                //                'organization_type' => $this->request->getPost('organization_type'),
                 'legal_doc_path' => $legalityDocName,
                 'website' => $this->request->getPost('website'),
                 'address' => $this->request->getPost('address'),
@@ -800,18 +839,23 @@ class AuthController extends ApiController
 
             $verification_token = bin2hex(random_bytes(32));
 
-            $userId = $userModel->insert([
+            // $userId = $userModel->insert([
+            //     'eo_id' => $eo_id,
+            //     'username' => $this->request->getPost('username'),
+            //     'name' => $this->request->getPost('name'),
+            //     'email' => $this->request->getPost('email'),
+            //     'password' => $this->request->getPost('password'),
+            //     'phone' => $this->request->getPost('phone'),
+            //     'role' => 'EO Admin',
+            //     'status' => 'Inactive',
+            //     'verification_token' => $verification_token,
+            //     'created_at' => date('Y-m-d H:i:s')
+            // ], true);
+
+            $userId = $userModel->update($user_id, [
                 'eo_id' => $eo_id,
-                'username' => $this->request->getPost('username'),
-                'name' => $this->request->getPost('name'),
-                'email' => $this->request->getPost('email'),
-                'password' => $this->request->getPost('password'),
-                'phone' => $this->request->getPost('phone'),
-                'role' => 'EO Admin',
-                'status' => 'Inactive',
-                'verification_token' => $verification_token,
-                'created_at' => date('Y-m-d H:i:s')
-            ], true);
+                'role' => 'EO Admin'
+            ]);
 
 
 
@@ -824,18 +868,21 @@ class AuthController extends ApiController
 
             $db->transCommit();
 
+            // Send pending-review notification email to the registrant
+            $userObj = $userModel->find($user_id);
+            helper('email_helper');
+            send_eo_registration_pending_email($userObj, $this->request->getPost('eo_name'));
 
             // Send Verification Email
-
             $is_google = $this->request->getPost('is_google');
-            if(empty($is_google)) {
-                helper('email_helper');
-                $userObj = $userModel->find($userId);
-                send_verification_email($userObj, $verification_token);
-            }
+            // if (empty($is_google)) {
+            //     helper('email_helper');
+            //     $userObj = $userModel->find($userId);
+            //     send_verification_email($userObj, $verification_token);
+            // }
 
 
-//            // Send notification to verification team (Admin/Validator)
+            //            // Send notification to verification team (Admin/Validator)
 //            $adminEmails = ['admin.utama@veentix.com', 'sarip@veentix.com'];
 //            foreach ($adminEmails as $adminEmail) {
 //                send_new_eo_registration_notification((object) [
@@ -878,7 +925,7 @@ class AuthController extends ApiController
             }
 
             $is_google = $this->request->getPost('is_google');
-            if(!empty($is_google)) {
+            if (!empty($is_google)) {
                 $google_token = $this->request->getPost('google_token');
                 $googleUser = $this->verifyGoogleToken($google_token);
 
@@ -887,10 +934,10 @@ class AuthController extends ApiController
                 }
                 $googleId = $googleUser['sub'] ?? null;
                 $userModel->skipValidation(true)->update($userId, [
-                    'google_id'             => $googleId,
-                    'email_verified_at'     => date('Y-m-d H:i:s'),
-                    'status'                => 'Active',
-                    'verification_token'    => ''
+                    'google_id' => $googleId,
+                    'email_verified_at' => date('Y-m-d H:i:s'),
+                    'status' => 'Active',
+                    'verification_token' => ''
                 ]);
                 $userObj = $userModel->find($userId);
 
