@@ -243,6 +243,70 @@ if (!function_exists('send_eo_registration_pending_email')) {
     }
 }
 
+if (!function_exists('send_fo_registration_pending_email')) {
+    /**
+     * Send pending review notification to the user who just registered as EO
+     *
+     * @param object $user  User object (must have ->email, ->name)
+     * @param string $eoName  The EO/organizer name
+     * @return bool
+     */
+    function send_fo_registration_pending_email(object $user, string $eoName): bool
+    {
+        $email = \Config\Services::email();
+
+        $email->setFrom('veentixindo@gmail.com', 'Veentix');
+        $email->setTo($user->email);
+        $email->setSubject('Pendaftaran Facility Organizer – Sedang Ditinjau');
+
+        $name = $user->name ?? $user->full_name ?? 'Pengguna';
+
+        $message = "
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset='UTF-8'></head>
+            <body style='font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0;'>
+                <div style='max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);'>
+                    <div style='background: #6C47FF; padding: 32px 40px;'>
+                        <h1 style='color: #ffffff; margin: 0; font-size: 22px;'>Veentix</h1>
+                    </div>
+                    <div style='padding: 36px 40px;'>
+                        <h2 style='color: #1a1a2e; margin-top: 0;'>Pendaftaran FO Berhasil Dikirim</h2>
+                        <p style='color: #444; line-height: 1.7;'>Halo <strong>" . htmlspecialchars($name) . "</strong>,</p>
+                        <p style='color: #444; line-height: 1.7;'>
+                            Terima kasih telah mendaftar sebagai <strong>Facility Organizer</strong> dengan nama <strong>" . htmlspecialchars($eoName) . "</strong> di Veentix.
+                        </p>
+                        <div style='background: #f0ecff; border-left: 4px solid #6C47FF; padding: 16px 20px; border-radius: 4px; margin: 24px 0;'>
+                            <p style='margin: 0; color: #3d2b99; font-size: 15px;'>
+                                Tim kami akan meninjau dokumen legalitas Anda. Anda akan mendapatkan notifikasi setelah proses verifikasi selesai.
+                            </p>
+                        </div>
+                        <p style='color: #444; line-height: 1.7;'>
+                            Estimasi waktu verifikasi biasanya <strong>1–3 hari kerja</strong>. Jika ada pertanyaan, silakan hubungi kami di
+                            <a href='mailto:veentixindo@gmail.com' style='color: #6C47FF;'>veentixindo@gmail.com</a>.
+                        </p>
+                        <p style='color: #888; font-size: 13px; margin-top: 32px;'>Salam,<br><strong>Tim Veentix</strong></p>
+                    </div>
+                    <div style='background: #f4f4f4; padding: 16px 40px; text-align: center;'>
+                        <p style='color: #aaa; font-size: 12px; margin: 0;'>© " . date('Y') . " Veentix. Semua hak dilindungi.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        ";
+
+        $email->setMessage($message);
+
+        if ($email->send()) {
+            log_message('info', 'EO registration pending email sent to: ' . $user->email);
+            return true;
+        } else {
+            log_message('error', 'Failed to send EO pending email to: ' . $user->email . ' – ' . $email->printDebugger(['headers']));
+            return false;
+        }
+    }
+}
+
 if (!function_exists('send_new_eo_registration_notification')) {
     /**
      * Send notification to admin/verification team for new EO registration

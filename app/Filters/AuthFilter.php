@@ -3,6 +3,7 @@
 namespace App\Filters;
 
 use App\Models\Appuser;
+use App\Models\SysUsersRole;
 use App\Models\User;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
@@ -58,10 +59,29 @@ class AuthFilter implements FilterInterface
 
             }
 
+            $EventOrganizer = new \App\Models\EventsOrganizer();
+            $eo = $EventOrganizer->where('owner_user_id', $user->id)->findAll();
+            $eo_ids = array_map(function($eo) {
+                return $eo->id;
+            }, $eo);
+
+
+            $FacilityOrganizer = new \App\Models\FacilitiesOrganizer();
+            $fo = $FacilityOrganizer->where('owner_user_id', $user->id)->findAll();
+            $fo_ids = array_map(function($fo) {
+                return $fo->id;
+            }, $fo);
+
+
+            $SysUserRole = new SysUsersRole();
+            $user->scope = $SysUserRole->select('scope')->where('role_name', $user->role)->first()->scope ?? null;
+
+            $user = array_merge((array)$user, ['eo_ids' => $eo_ids, 'fo_ids' => $fo_ids, 'scope' => $user->scope]);
+
             Services::request()->current_user = (array) $user;
-            Services::request()->id = $user->id;
+            Services::request()->id = $user['id'];
             $GLOBALS['endpoint'] = $request->getServer()['PATH_INFO'];
-            $GLOBALS['user_role'] = $user->role;
+            $GLOBALS['user_role'] = $user['role'];
         } catch (\Exception $ex) {
             $response = service('response');
             $response->setBody('Access denied');

@@ -55,24 +55,25 @@ class OrderController extends ApiController
         $current_user = $this->request->current_user;
         $where_eo = [];
 
-        if (!empty($current_user['eo_id'])) {
 
-            $db = \Config\Database::connect();
+        $db = \Config\Database::connect();
 
-            $orderIds = $db->table('order_items oi')
-                ->select('oi.order_id')
-                ->join('event_ticket et', 'et.id = oi.event_ticket_id')
-                ->join('events e', 'e.id = et.event_id')
-                ->where('e.events_organizer_id', $current_user['eo_id'])
-                ->groupBy('oi.order_id')
-                ->get()
-                ->getResultArray();
-
-
-            $where_eo['group_or'] = [
-                'orders.id' => $orderIds ? array_column($orderIds, 'order_id') : [-1]
-            ];
+        $order_ids = $db->table('order_items oi')
+            ->select('oi.order_id')
+            ->join('event_ticket et', 'et.id = oi.event_ticket_id')
+            ->join('events e', 'e.id = et.event_id');
+            
+        if($current_user['scope'] !== 'SUPERADMIN') {
+            $order_ids->whereIn('e.events_organizer_id', $current_user['eo_ids'] ? $current_user['eo_ids'] : [-1]);
         }
+
+        $orderIds = $order_ids->groupBy('oi.order_id')
+            ->get()
+            ->getResultArray();
+
+        $where_eo['group_or'] = [
+            'orders.id' => $orderIds ? array_column($orderIds, 'order_id') : [-1]
+        ];
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'orders', $where_eo);

@@ -9,10 +9,10 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class SysUsersRolePermission extends Model
+class SysModule extends Model
 {
     protected $DBGroup          = 'default';
-    protected $table            = 'sys_users_role_permission';
+    protected $table            = 'sys_modules';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $insertID         = 0;
@@ -20,7 +20,7 @@ class SysUsersRolePermission extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'role_name', 'module_slug', 'can_read', 'can_create', 'can_update', 'can_delete'
+        'parent_id', 'module_name', 'module_slug', 'group_name', 'path', 'icon', 'endpoint', 'tooltip', 'is_sidebar', 'is_group', 'is_superadmin', 'sort_order'
     ];
 
     // Dates

@@ -9,10 +9,10 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class SysUsersRolePermission extends Model
+class FacilitiesOrganizer extends Model
 {
     protected $DBGroup          = 'default';
-    protected $table            = 'sys_users_role_permission';
+    protected $table            = 'facilities_organizer';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $insertID         = 0;
@@ -20,7 +20,7 @@ class SysUsersRolePermission extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'role_name', 'module_slug', 'can_read', 'can_create', 'can_update', 'can_delete'
+        'owner_user_id', 'facility_name', 'company_name', 'legal_doc_path', 'verification_status', 'verified_at', 'verified_by', 'verification_note', 'email', 'phone', 'website', 'address', 'logo_path', 'tax_id', 'description', 'facility_slug'
     ];
 
     // Dates

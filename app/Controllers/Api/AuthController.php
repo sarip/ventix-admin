@@ -20,6 +20,8 @@ use App\Models\UserLogged;
 use App\Libraries\NotificationService;
 use App\Libraries\RedisNotification;
 use App\Libraries\ValidatePassword;
+use App\Models\FacilitiesOrganizer;
+use App\Models\UserBusinessType;
 
 class AuthController extends ApiController
 {
@@ -384,6 +386,8 @@ class AuthController extends ApiController
 
         $SysUserRole = new SysUsersRole();
         $user->scope = $SysUserRole->select('scope')->where('role_name', $user->role)->first()->scope ?? null;
+
+
 
         return $this->successOutput([
             'id' => $user->id,
@@ -820,6 +824,7 @@ class AuthController extends ApiController
 
             $eoModel = new EventsOrganizer();
             $eo_id = $eoModel->insert([
+                'owner_user_id' => $user_id,
                 'eo_name' => $this->request->getPost('eo_name'),
                 'company_name' => $this->request->getPost('company_name'),
                 //                'organization_type' => $this->request->getPost('organization_type'),
@@ -853,7 +858,6 @@ class AuthController extends ApiController
             // ], true);
 
             $userId = $userModel->update($user_id, [
-                'eo_id' => $eo_id,
                 'role' => 'EO Admin'
             ]);
 
@@ -986,7 +990,7 @@ class AuthController extends ApiController
                 return $this->errorOutput("User tidak ditemukan", 404);
             }
 
-            $eo = $eoModel->find($user->eo_id);
+            $eo = $eoModel->where('owner_user_id', $userId)->first();
             if (!$eo) {
                 return $this->errorOutput("Data EO tidak ditemukan", 404);
             }
@@ -1153,6 +1157,434 @@ class AuthController extends ApiController
             return $this->errorOutput($e->getMessage(), 400);
         }
     }
+
+
+    public function registerFo()
+    {
+        helper(['form']);
+
+        // =============================
+        // Validation Rules
+        // =============================
+        $rules = [
+            'user_id' => 'required',
+            'username' => 'required',
+            'name' => 'required|min_length[3]',
+            'email' => 'required|valid_email',
+            // 'password' => 'required|min_length[8]',
+            'phone' => 'required|min_length[6]',
+            'fo_name' => 'required|is_unique[facilities_organizer.facility_name]',
+            'company_name' => 'required',
+            //            'legal_document' => [
+//                'rules' => 'uploaded[legal_document]|max_size[legal_document,5120]|ext_in[legal_document,pdf,jpg,jpeg,png]',
+//                'errors' => [
+//                    'uploaded' => 'Dokumen legalitas wajib diupload',
+//                    'max_size' => 'Ukuran dokumen maksimal 5MB',
+//                    'ext_in' => 'Format dokumen harus PDF atau Gambar (JPG/PNG)',
+//                ]
+//            ]
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->errorOutput(json_encode($this->validator->getErrors()), 400);
+        }
+
+        $db = db_connect();
+        $db->transBegin();
+
+        try {
+
+            $user_id = $this->request->getPost('user_id');
+
+            // =============================
+            // Upload Logo
+            // =============================
+            $logo = $this->request->getFile('logo');
+            $logoName = null;
+            if ($logo && $logo->getError() === 0 && !$logo->hasMoved()) {
+                $uploadPath = FCPATH . 'uploads/event_organizer';
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0775, true);
+                }
+                $logoName = $logo->getRandomName();
+                if (!$logo->move($uploadPath, $logoName)) {
+                    log_message('error', 'Logo upload failed: ' . $logo->getErrorString());
+                    throw new \RuntimeException('Gagal mengupload logo. Silakan coba lagi.');
+                }
+            }
+
+            // =============================
+            // Upload Legality Document
+            // =============================
+            $legalityDoc = $this->request->getFile('legal_doc');
+            $legalityDocName = null;
+            if ($legalityDoc) {
+                $uploadErr = $legalityDoc->getError();
+
+                if ($uploadErr === UPLOAD_ERR_OK) {
+                    // File uploaded successfully — process it
+                    $uploadPathLegality = FCPATH . 'uploads/legality';
+                    if (!is_dir($uploadPathLegality)) {
+                        mkdir($uploadPathLegality, 0775, true);
+                    }
+                    $legalityDocName = $legalityDoc->getRandomName();
+                    if (!$legalityDoc->move($uploadPathLegality, $legalityDocName)) {
+                        log_message('error', 'Legal doc move() failed: ' . $legalityDoc->getErrorString());
+                        throw new \RuntimeException('Gagal menyimpan dokumen legalitas. Silakan coba lagi.');
+                    }
+                } elseif ($uploadErr !== UPLOAD_ERR_NO_FILE) {
+                    // Real upload error (size limit, partial upload, etc.)
+                    $uploadErrors = [
+                        UPLOAD_ERR_INI_SIZE => 'Ukuran file melebihi batas maksimum server (' . ini_get('upload_max_filesize') . ').',
+                        UPLOAD_ERR_FORM_SIZE => 'Ukuran file melebihi batas yang diizinkan form.',
+                        UPLOAD_ERR_PARTIAL => 'File hanya terupload sebagian. Silakan coba lagi.',
+                        UPLOAD_ERR_NO_TMP_DIR => 'Direktori sementara tidak ditemukan di server.',
+                        UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file ke server. Periksa permission direktori.',
+                        UPLOAD_ERR_EXTENSION => 'Upload diblokir oleh ekstensi PHP.',
+                    ];
+                    $errMsg = $uploadErrors[$uploadErr] ?? 'Upload dokumen legalitas gagal (error code: ' . $uploadErr . ').';
+                    log_message('error', 'Legal doc upload error code ' . $uploadErr . ': ' . $errMsg);
+                    throw new \RuntimeException($errMsg);
+                }
+                // UPLOAD_ERR_NO_FILE → field kosong, lanjut tanpa error
+            }
+
+            // =============================
+            // Create User
+            // =============================
+            $userModel = new User();
+
+            // if ($userModel->where('email', $this->request->getPost('email'))->first()) {
+            //     throw new \Exception('Email sudah terdaftar');
+            // }
+
+
+            $foModel = new FacilitiesOrganizer();
+            $fo_id = $foModel->insert([
+                'owner_user_id' => $user_id,
+                'facility_name' => $this->request->getPost('fo_name'),
+                'company_name' => $this->request->getPost('company_name'),
+                //                'organization_type' => $this->request->getPost('organization_type'),
+                'legal_doc_path' => $legalityDocName,
+                'website' => $this->request->getPost('website'),
+                'address' => $this->request->getPost('address'),
+                //                'tax_id'        => $this->request->getPost('tax_id'),
+                'fo_slug' => generate_slug($this->request->getPost('fo_name')),
+                'email' => $this->request->getPost('email'),
+                'phone' => $this->request->getPost('phone'),
+                'description' => $this->request->getPost('description'),
+                'logo_path' => $logoName,
+                'verification_status' => 'Pending',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ], true);
+
+            $verification_token = bin2hex(random_bytes(32));
+
+            // $userId = $userModel->insert([
+            //     'eo_id' => $eo_id,
+            //     'username' => $this->request->getPost('username'),
+            //     'name' => $this->request->getPost('name'),
+            //     'email' => $this->request->getPost('email'),
+            //     'password' => $this->request->getPost('password'),
+            //     'phone' => $this->request->getPost('phone'),
+            //     'role' => 'EO Admin',
+            //     'status' => 'Inactive',
+            //     'verification_token' => $verification_token,
+            //     'created_at' => date('Y-m-d H:i:s')
+            // ], true);
+
+            $userId = $userModel->update($user_id, [
+                'role' => 'FO Admin'
+            ]);
+
+
+
+            if (!$userId) {
+                $modelErrors = $userModel->errors();
+                $dbError = $db->error();
+
+                throw new \Exception('System bermasalah silahkan coba lagi');
+            }
+
+            $db->transCommit();
+
+            // Send pending-review notification email to the registrant
+            $userObj = $userModel->find($user_id);
+            helper('email_helper');
+            send_fo_registration_pending_email($userObj, $this->request->getPost('fo_name'));
+
+            // Send Verification Email
+            $is_google = $this->request->getPost('is_google');
+        
+            // =============================
+            // Database & Real-time Notifications
+            // =============================
+            $notificationService = new NotificationService();
+            $redisNotif = new RedisNotification('alerts');
+            $appuserModel = new Appuser();
+            $validators = $appuserModel->whereIn('role', ['super_admin'])->where('status', 'Active')->findAll();
+
+            foreach ($validators as $validator) {
+                // Database
+                $notifId = $notificationService->create(
+                    $validator->id,
+                    'registration:new_fo',
+                    'facilities_organizer',
+                    $fo_id,
+                    'New FO Registration',
+                    "FO " . $this->request->getPost('fo_name') . " has registered and needs review.",
+                    ['fo_name' => $this->request->getPost('fo_name'), 'company_name' => $this->request->getPost('company_name')]
+                );
+
+                // Real-time (WebSocket)
+                if ($notifId) {
+                    $redisNotif->publish('alert', [
+                        'userId' => $validator->id,
+                        'id' => $notifId,
+                        'type' => 'registration:new_fo',
+                        'message' => "FO " . $this->request->getPost('fo_name') . " has registered.",
+                        'severity' => 'info'
+                    ]);
+                }
+            }
+
+            $UserBisnisType = new UserBusinessType();
+            $UserBisnisType->insert([
+                'user_id' => $user_id,
+                'business_type' => 'FACILITY'
+            ]);
+
+            $is_google = $this->request->getPost('is_google');
+            if (!empty($is_google)) {
+                $google_token = $this->request->getPost('google_token');
+                $googleUser = $this->verifyGoogleToken($google_token);
+
+                if (!$googleUser) {
+                    return $this->errorOutput('Google token tidak valid atau sudah expired', 401);
+                }
+                $googleId = $googleUser['sub'] ?? null;
+                $userModel->skipValidation(true)->update($userId, [
+                    'google_id' => $googleId,
+                    'email_verified_at' => date('Y-m-d H:i:s'),
+                    'status' => 'Active',
+                    'verification_token' => ''
+                ]);
+                $userObj = $userModel->find($userId);
+
+                $userObj->source = 'users';
+                $token = $this->generateToken($userObj);
+
+                unset($userObj->password);
+                return $this->successOutput([
+                    'key' => $token,
+                    'user' => $userObj,
+                ]);
+
+            }
+
+            return $this->successOutput(['data' => $userObj, 'message' => 'Registration successful. Please check your email for verification.']);
+
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            return $this->errorOutput($e->getMessage());
+        }
+    }
+    
+    public function updateFo()
+    {
+        helper(['form']);
+
+        $db = db_connect();
+        $db->transBegin();
+
+        try {
+            $userModel = new User();
+            $foModel = new FacilitiesOrganizer();
+
+            // =============================
+            // Get Input (pakai ID sebagai acuan)
+            // =============================
+            $userId = $this->request->getPost('user_id');
+
+            if (empty($userId)) {
+                return $this->errorOutput("User ID wajib diisi", 400);
+            }
+
+            $user = $userModel->find($userId);
+            if (!$user) {
+                return $this->errorOutput("User tidak ditemukan", 404);
+            }
+
+            $fo = $foModel->where('owner_user_id', $userId)->first();
+            if (!$fo) {
+                return $this->errorOutput("Data FO tidak ditemukan", 404);
+            }
+
+            // =============================
+            // Validation (basic only)
+            // =============================
+            $rules = [
+                'username' => 'required|min_length[4]|max_length[30]|alpha_numeric',
+                'name' => 'required|min_length[3]',
+                'email' => 'required|valid_email',
+                'phone' => 'required|min_length[6]',
+                'fo_name' => 'required',
+                'company_name' => 'required',
+                'password' => 'permit_empty|min_length[8]',
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->errorOutput(json_encode($this->validator->getErrors(), true), 400);
+            }
+
+            // =============================
+            // Get Input Clean
+            // =============================
+            $input = [
+                'username' => $this->request->getPost('username'),
+                'name' => $this->request->getPost('name'),
+                'email' => $this->request->getPost('email'),
+                'phone' => $this->request->getPost('phone'),
+                'facility_name' => $this->request->getPost('fo_name'),
+                'company_name' => $this->request->getPost('company_name'),
+                'website' => $this->request->getPost('website'),
+                'address' => $this->request->getPost('address'),
+                'description' => $this->request->getPost('description'),
+            ];
+
+            $password = $this->request->getPost('password');
+
+            // =============================
+            // Uniqueness Check
+            // =============================
+
+            // username
+            $existUsername = $userModel
+                ->where('username', $input['username'])
+                ->where('id !=', $userId)
+                ->first();
+
+            if ($existUsername) {
+                throw new \Exception("Username sudah digunakan");
+            }
+
+            // email (users)
+            $existEmailUser = $userModel
+                ->where('email', $input['email'])
+                ->where('id !=', $userId)
+                ->first();
+
+            if ($existEmailUser) {
+                throw new \Exception("Email sudah digunakan");
+            }
+
+            // email (FO)
+            $existEmailFo = $foModel
+                ->where('email', $input['email'])
+                ->where('id !=', $fo->id)
+                ->first();
+
+            if ($existEmailFo) {
+                throw new \Exception("Email FO sudah digunakan");
+            }
+
+            // fo_name
+            $existFoName = $foModel
+                ->where('facility_name', $input['facility_name'])
+                ->where('id !=', $fo->id)
+                ->first();
+
+            if ($existFoName) {
+                throw new \Exception("Nama FO sudah digunakan");
+            }
+
+            // =============================
+            // Upload Logo (optional)
+            // =============================
+            $logo = $this->request->getFile('logo');
+            $logoName = $fo->logo_path;
+
+            if ($logo && $logo->isValid() && !$logo->hasMoved()) {
+                $logoName = $logo->getRandomName();
+                $uploadPath = FCPATH . 'uploads/event_organizer';
+
+                $logo->move($uploadPath, $logoName);
+
+                // optional: hapus logo lama
+                if (!empty($fo->logo_path) && file_exists($uploadPath . '/' . $fo->logo_path)) {
+                    unlink($uploadPath . '/' . $fo->logo_path);
+                }
+            }
+
+            // =============================
+            // Update FO
+            // =============================
+            $foModel->update($fo->id, [
+                'facility_name' => $input['facility_name'],
+                'company_name' => $input['company_name'],
+                'website' => $input['website'],
+                'address' => $input['address'],
+                'email' => $input['email'],
+                'phone' => $input['phone'],
+                'description' => $input['description'],
+                'logo_path' => $logoName,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            // =============================
+            // Prepare User Update
+            // =============================
+            $userData = [
+                'username' => $input['username'],
+                'name' => $input['name'],
+                'email' => $input['email'],
+                'phone' => $input['phone'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+
+            // password optional
+            if (!empty($password)) {
+                $userData['password'] = $password;
+            }
+
+            // =============================
+            // Handle Email Change → Reverify
+            // =============================
+            if ($input['email'] !== $user->email) {
+                $verification_token = bin2hex(random_bytes(32));
+
+                $userData['verification_token'] = $verification_token;
+                $userData['status'] = 'Inactive';
+
+                helper('email_helper');
+                send_verification_email($user, $verification_token);
+            }
+
+            // =============================
+            // Update User
+            // =============================
+            $userModel->update($userId, $userData);
+
+            // =============================
+            // Commit
+            // =============================
+            $db->transCommit();
+
+            return $this->successOutput([
+                'message' => 'Data FO berhasil diperbarui'
+            ]);
+
+        } catch (\Throwable $e) {
+            $db->transRollback();
+
+            log_message('error', $e->getMessage());
+
+            return $this->errorOutput($e->getMessage(), 400);
+        }
+    }
+
+    
 
     /**
      * Verify email with token — renders a user-facing HTML page.

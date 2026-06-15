@@ -55,8 +55,8 @@ class EventController extends ApiController
         $current_user = $this->request->current_user;
         $where_eo['is_external'] = 'N';
 
-        if (!empty($current_user['eo_id'])) {
-            $where_eo['events_organizer_id'] = $current_user['eo_id'];
+        if($current_user['scope'] !== 'SUPERADMIN') {
+            $where_eo['group_or'] = ['events_organizer_id' => $current_user['eo_ids'] ? $current_user['eo_ids'] : [-1]];
         }
 
         // Execute search filter

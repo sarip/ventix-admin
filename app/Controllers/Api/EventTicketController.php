@@ -52,21 +52,19 @@ class EventTicketController extends ApiController
 
         $Model->join('events e', 'e.id = event_ticket.event_id');
         $Model->select('event_ticket.*, e.events_organizer_id');
-        if (!empty($current_user['eo_id'])) {
-            $db = \Config\Database::connect();
+        $db = \Config\Database::connect();
 
-            $eventIds = $db->table('events')
-                ->select('id')
-                ->where('events_organizer_id', $current_user['eo_id'])
-                ->get()
-                ->getResultArray();
+        $event = $db->table('events')
+            ->select('id');
 
+            if($current_user['scope'] !== 'SUPERADMIN') {
+                $event->where('events_organizer_id', $current_user['eo_id']);
+            }
+        $eventIds = $event->get()->getResultArray();
 
-            $where_eo['group_or'] = [
-                'event_ticket.event_id' =>  $eventIds ? array_column($eventIds, 'id') : [-1]
-            ];
-
-        }
+        $where_eo['group_or'] = [
+            'event_ticket.event_id' =>  $eventIds ? array_column($eventIds, 'id') : [-1]
+        ];
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'event_ticket', $where_eo);

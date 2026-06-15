@@ -44,10 +44,12 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('login', 'AuthController::login');
     $routes->post('auth/google', 'AuthController::loginWithGoogle');
     $routes->post('register-eo', 'AuthController::registerEo');
+    $routes->post('register-fo', 'AuthController::registerFo');
     $routes->get('verify-email/(:any)', 'AuthController::verifyEmail/$1');
     $routes->post('register-member', 'AuthController::registerMember');
     $routes->put('update-member', 'AuthController::updateMember');
     $routes->post('update-eo', 'AuthController::updateEo');
+    $routes->post('update-fo', 'AuthController::updateFo');
     $routes->post('resend-verification', 'AuthController::resendVerification');
     $routes->post('forgot-password', 'AuthController::forgotPassword');
     $routes->post('reset-password', 'AuthController::resetPassword');

@@ -21,6 +21,7 @@ class EventsOrganizer extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'eo_name',
+        'owner_user_id',
         'company_name',
         'organization_type',
         'legal_doc_path',

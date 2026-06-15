@@ -51,20 +51,21 @@ class UserTicketController extends ApiController
 
         $current_user = $this->request->current_user;
         $where_eo = [];
-        if (!empty($current_user['eo_id'])) {
-            $db = \Config\Database::connect();
-            $ticketIds = $db->table('event_ticket et')
-                ->select('et.id')
-                ->join('events e', 'e.id = et.event_id')
-                ->where('e.events_organizer_id', $current_user['eo_id'])
-                ->get()
-                ->getResultArray();
+        $db = \Config\Database::connect();
+        $ticket = $db->table('event_ticket et')
+            ->select('et.id')
+            ->join('events e', 'e.id = et.event_id');
+            
 
-
-            $where_eo['group_or'] = [
-                'event_ticket_id' => $ticketIds ? array_column($ticketIds, 'id') : [-1]
-            ];
+        if($current_user['scope'] !== 'SUPERADMIN') {
+            $ticket->where('e.events_organizer_id', $current_user['eo_id']);
         }
+        $ticketIds = $ticket->get()->getResultArray();
+
+
+        $where_eo['group_or'] = [
+            'event_ticket_id' => $ticketIds ? array_column($ticketIds, 'id') : [-1]
+        ];
 
 
         // Execute search filter

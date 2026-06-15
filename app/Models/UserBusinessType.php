@@ -9,10 +9,10 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class SysUsersRolePermission extends Model
+class UserBusinessType extends Model
 {
     protected $DBGroup          = 'default';
-    protected $table            = 'sys_users_role_permission';
+    protected $table            = 'user_business_types';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $insertID         = 0;
@@ -20,14 +20,14 @@ class SysUsersRolePermission extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'role_name', 'module_slug', 'can_read', 'can_create', 'can_update', 'can_delete'
+        'user_id', 'business_type'
     ];
 
     // Dates
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
+    protected $updatedField  = '';
     protected $deletedField  = null;
 
     // Validation

@@ -54,10 +54,10 @@ class FacilityBookingController extends ApiController
 
 
 
-        if (!empty($current_user['eo_id'])) {
+        if($current_user['scope'] !== 'SUPERADMIN') {
 
             $Facilitie = new Facilitie();
-            $facilities = $Facilitie->select('id')->where('events_organizer_id', $current_user['eo_id'])->findAll();
+            $facilities = $Facilitie->select('id')->whereIn('facility_organizer_id', $current_user['fo_ids'] ?? [-1])->findAll();
 
             $model_where['group_or'] = [
                 'facility_id' => $facilities ? array_column($facilities, 'id') : [-1]

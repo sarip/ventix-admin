@@ -69,14 +69,15 @@ class DashboardController extends ApiController
         $where_eo = [];
         $db = \Config\Database::connect();
         $facilityIds = [];
-        if (!empty($current_user['eo_id'])) {
+        if (!empty($current_user['fo_ids']) && count($current_user['fo_ids']) > 0 ) {
             $rows = $db->table('facilities')
                 ->select('id')
-                ->where('events_organizer_id', $current_user['eo_id'])
+                ->whereIn('facility_organizer_id', $current_user['fo_ids'])
                 ->get()
                 ->getResultArray();
 
             $facilityIds = array_column($rows, 'id');
+
 
             // jika EO tidak punya facility → force empty
             if (empty($facilityIds)) {
@@ -159,18 +160,18 @@ class DashboardController extends ApiController
 
         // 3. FACILITY STATISTICS
         $facilityStats = [];
-        $facilityStats['total_facilities'] = !empty($current_user['eo_id'])
-            ? $Facility->where('events_organizer_id', $current_user['eo_id'])->countAllResults()
+        $facilityStats['total_facilities'] = !empty($current_user['fo_ids']) && count($current_user['fo_ids']) > 0
+            ? $Facility->whereIn('facility_organizer_id', $current_user['fo_ids'])->countAllResults()
             : $Facility->countAllResults();
 
-        $facilityStats['available_facilities'] = !empty($current_user['eo_id'])
-            ? $Facility->where('events_organizer_id', $current_user['eo_id'])
+        $facilityStats['available_facilities'] = !empty($current_user['fo_ids']) && count($current_user['fo_ids']) > 0
+            ? $Facility->whereIn('facility_organizer_id', $current_user['fo_ids'])
                 ->where('is_available', 1)
                 ->countAllResults()
             : $Facility->where('is_available', 1)->countAllResults();
 
-        $facilityStats['unavailable_facilities'] = !empty($current_user['eo_id'])
-            ? $Facility->where('events_organizer_id', $current_user['eo_id'])
+        $facilityStats['unavailable_facilities'] = !empty($current_user['fo_ids']) && count($current_user['fo_ids']) > 0
+            ? $Facility->whereIn('facility_organizer_id', $current_user['fo_ids'])
                 ->where('is_available', 0)
                 ->countAllResults()
             : $Facility->where('is_available', 0)->countAllResults();
@@ -220,7 +221,7 @@ class DashboardController extends ApiController
             )
             ->where('facility_bookings.booking_date >=', $start_current_month)
             ->where('facility_bookings.booking_date <=', $end_current_month);
-        if (!empty($current_user['eo_id'])) {
+        if (!empty($facilityIds)) {
             $topFacilitiesQuery->whereIn('facilities.id', $facilityIds);
         }
         $topFacilities = $topFacilitiesQuery->groupBy('facilities.id')

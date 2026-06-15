@@ -46,9 +46,10 @@ class EventsOrganizerController extends ApiController
         $where_eo = [];
 
 
-        if (!empty($current_user['eo_id'])) {
-            $where_eo['id'] = $current_user['eo_id'];
+        if($current_user['scope'] !== 'SUPERADMIN') {
+            $where_eo['owner_user_id'] = $current_user['id'] ? $current_user['id'] : [-1];
         }
+
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'events_organizer', $where_eo);
 

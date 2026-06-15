@@ -11,6 +11,7 @@ namespace App\Controllers\Api;
 use App\Filters\SearchFilter;
 use App\Models\EventsOrganizer;
 use App\Models\Facilitie;
+use App\Models\FacilitiesOrganizer;
 use App\Models\FacilityPricing;
 use App\Models\User;
 
@@ -47,16 +48,16 @@ class FacilitieController extends ApiController
         $current_user = $this->request->current_user;
         $where_eo = [];
 
-        if(!empty($current_user['eo_id'])) {
-            $where_eo['events_organizer_id'] = $current_user['eo_id'];
+        if($current_user['scope'] !== 'SUPERADMIN') {
+            $where_eo['group_or'] = ['facility_organizer_id' => $current_user['fo_ids'] ? $current_user['fo_ids'] : [-1]];
         }
 
         // Execute search filter
         $output = SearchFilter::execute($Model, $searchable_column, 'facilities', $where_eo);
         array_walk($output['facilities'], function(&$item) {
 
-            $EventOrganizer = new EventsOrganizer();
-            $item->event_organizer = $EventOrganizer->find($item->events_organizer_id);
+            $FacilitiesOrganizer = new FacilitiesOrganizer();
+            $item->facility_organizer = $FacilitiesOrganizer->find($item->facility_organizer_id);
 
             $User = new User();
             $item->user_pic = $User->find($item->user_id_pic);
