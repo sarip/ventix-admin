@@ -32,6 +32,9 @@ export interface InUser {
     phone: string;
     role: UserRole;
     profile_picture: string | null;
+    cover_photo: string | null;
+    bio: string | null;
+    show_ratings: boolean | number;
     refferalcode: string;
     status: UserStatus;
     last_login: string | null;
@@ -47,6 +50,12 @@ export interface InUser {
     eo_name?: string;
     company_name?: string;
     eo_detail?: EODetail | null;
+
+    // Profile data
+    followers_count?: number;
+    following_count?: number;
+    experiences?: any[];
+    ratings?: any[];
 }
 
 // User Form Interface (for create/edit)
@@ -163,6 +172,48 @@ class User {
      */
     async delete(id: number): Promise<DeleteResponse> {
         return await APIClient.delete(`/user/${id}`);
+    }
+
+    /**
+     * Get public profile by username
+     */
+    async getProfile(username: string): Promise<{ profile: any }> {
+        return await APIClient.get(`profile/${username}`);
+    }
+
+    /**
+     * Update own profile
+     */
+    async updateProfile(data: any): Promise<any> {
+        return await APIClient.post('profile/update', data);
+    }
+
+    /**
+     * Follow/Unfollow
+     */
+    async toggleFollow(data: { following_id: number, following_type: 'EO' | 'FACILITY' | 'MEMBER' }): Promise<any> {
+        return await APIClient.post('profile/follow', data);
+    }
+
+    /**
+     * Get following list
+     */
+    async getFollowing(): Promise<{ following: any[] }> {
+        return await APIClient.get('profile/following');
+    }
+
+    /**
+     * Manage experience
+     */
+    async manageExperience(data: any): Promise<any> {
+        return await APIClient.post('profile/experience', data);
+    }
+
+    /**
+     * Manage rating
+     */
+    async manageRating(data: any): Promise<any> {
+        return await APIClient.post('profile/rating', data);
     }
 }
 

@@ -2,7 +2,8 @@
  * Facility List Page
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { Button, Badge } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
@@ -11,7 +12,9 @@ import { Facility, InFacility, InFacilityForm } from '@/models/Facility';
 import { showToast } from '@/utils/toast';
 import FacilityFormModal from './_form';
 import FacilityPricingModal from './_pricing';
+import FacilityProfilingModal from './_profiling';
 import Filter, { QueryParamsProps } from "./_filter";
+import { API_BASE_URL } from '@/lib/ApiClient';
 
 interface PaginationProps {
     current_page: number;
@@ -31,26 +34,24 @@ const FacilityListPage: React.FC = () => {
     const [facilities, setFacilities] = useState<InFacility[]>([]);
     const [pagination, setPagination] = useState<PaginationProps | null>(null);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [searchQuery, setSearchQuery] = useState<string>('');
-    const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [showForm, setShowForm] = useState(false);
     const [showPricing, setShowPricing] = useState(false);
+    const [showProfiling, setShowProfiling] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-    const [pageCount, setPageCount] = useState<number>(0);
     const [lastQuery, setLastQuery] = useState<any>({});
     const [sortBy, setSortBy] = useState<string>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [selectedFacility, setSelectedFacility] = useState<InFacility | null>(null);
     const [formData, setFormData] = useState<InFacilityForm>({
         name: '',
-        events_organizer_id: '',
+        facility_organizer_id: 0,
         category: '',
         description: '',
         user_id_pic: 0,
         is_available: true
     });
     const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
-    const FacilityModel = new Facility();
+    const FacilityModel = useMemo(() => new Facility(), []);
 
     const handleSort = (column: string) => {
         if (sortBy === column) {
@@ -77,7 +78,6 @@ const FacilityListPage: React.FC = () => {
             setFacilities(response.facilities || []);
             setPagination(response.pagination);
             setLastQuery(query);
-            setPageCount(response.pagination.page_count);
         } catch (error) {
             showToast('Failed to load facilities', 'error');
         } finally {
@@ -91,52 +91,60 @@ const FacilityListPage: React.FC = () => {
     const create = () => {
         setFormData({
             name: '',
-            events_organizer_id: '',
+            facility_organizer_id: 0,
             category: '',
             description: '',
             user_id_pic: 0,
-            is_available: true
+            is_available: true,
         });
         setValidationError([]);
         setShowForm(true);
     };
 
     const update = (facility: InFacility) => {
+        // Remap amenities: pivot records {amenity_id} → {id: amenity_id}
+        // so _amenities.tsx can match them against the master list by id
+        const remappedAmenities = ((facility as any).facility_amenities || []).map((a: any) => ({
+            ...a,
+            id: a.amenity_id ?? a.id,
+        }));
+
         setFormData({
             id: facility.id,
             name: facility.name,
-            events_organizer_id: facility.events_organizer_id,
+            facility_organizer_id: facility.facility_organizer_id,
             category: facility.category,
             description: facility.description,
             user_id_pic: facility.user_id_pic,
-            is_available: facility.is_available
-        });
+            is_available: facility.is_available,
+            slug: facility.slug || '',
+            email: facility.email || '',
+            phone: facility.phone || '',
+            address: facility.address || '',
+            latitude: facility.latitude ?? null,
+            longitude: facility.longitude ?? null,
+            // Pass profiling data so form tabs are pre-populated
+            facility_gallery: (facility as any).facility_gallery || [],
+            facility_amenities: remappedAmenities,
+            facility_features: (facility as any).facility_features || [],
+            facility_operating_hours: (facility as any).facility_operating_hours || [],
+            facility_rules: (facility as any).facility_rules || [],
+        } as any);
         setValidationError([]);
         setShowForm(true);
     };
 
     const save = useCallback(async (data: InFacilityForm) => {
-        try {
-            if (data.id) {
-                await FacilityModel.update(data.id, data);
-            } else {
-                await FacilityModel.create(data);
-            }
-            showToast(`Facility successfully ${data.id ? 'updated' : 'created'}`, 'success');
-            setShowForm(false);
-            loadFacilities(lastQuery);
-        } catch (error: any) {
-            let lines = error.message.trim().split('\n');
-            let result: ValidationErrorProps[] = lines.map((line: string) => {
-                let [field, ...message] = line.split(' ');
-                return { field, message: message.join(' ') };
-            });
-            setValidationError(result);
-        }
-    }, []);
+        // onSave is called by the form only after a successful saveComplete()
+        // so here we just handle success state: close modal, show toast, reload list
+        showToast(`Facility successfully ${data.id ? 'updated' : 'created'}`, 'success');
+        setShowForm(false);
+        setValidationError([]);
+        loadFacilities(lastQuery);
+    }, [lastQuery]);
 
     const remove = async (id: number) => {
-        Swal.fire({
+        const result = await Swal.fire({
             title: "Are you sure?",
             text: "Once deleted, you will not be able to recover this facility",
             icon: "warning",
@@ -145,20 +153,29 @@ const FacilityListPage: React.FC = () => {
             cancelButtonColor: "#d33",
             confirmButtonText: "Yes, delete it!",
             cancelButtonText: "Cancel",
-        }).then(async (result) => {
-            if (result.isConfirmed) {
+        });
+
+        if (result.isConfirmed) {
+            try {
                 const response = await FacilityModel.delete(id);
                 if (response.success) {
                     showToast("Facility successfully deleted", "success");
                     loadFacilities(lastQuery);
                 }
+            } catch (error: any) {
+                showToast(error.response?.data?.message || 'Failed to delete facility', 'error');
             }
-        });
+        }
     };
 
     const openPricing = (facility: InFacility) => {
         setSelectedFacility(facility);
         setShowPricing(true);
+    };
+
+    const openProfiling = (facility: InFacility) => {
+        setSelectedFacility(facility);
+        setShowProfiling(true);
     };
 
     const getAvailabilityBadge = (is_available: boolean) => {
@@ -201,6 +218,7 @@ const FacilityListPage: React.FC = () => {
                             <thead className="table-light">
                                 <tr>
                                     <th style={{ width: '50px' }}>#</th>
+                                    <th style={{ width: '80px' }}>Banner</th>
                                     <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Name {getSortIcon('name')}</th>
                                     <th style={{ cursor: 'pointer' }} onClick={() => handleSort('category')}>Category {getSortIcon('category')}</th>
                                     <th>PIC</th>
@@ -221,7 +239,40 @@ const FacilityListPage: React.FC = () => {
                                         <tr key={facility.id}>
                                             <td>{((currentPage - 1) * 10) + index + 1}</td>
                                             <td>
-                                                <div className="fw-semibold">{facility.name}</div>
+                                                {(facility as any).banner_image ? (
+                                                    <img
+                                                        src={`${API_BASE_URL}/${(facility as any).banner_image}`}
+                                                        alt={facility.name}
+                                                        style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        style={{
+                                                            width: '60px',
+                                                            height: '40px',
+                                                            backgroundColor: '#e9ecef',
+                                                            borderRadius: '4px',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '10px',
+                                                            color: '#6c757d'
+                                                        }}
+                                                    >
+                                                        No Banner
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <Link
+                                                    href={`/facility/${facility.id}`}
+                                                    className="fw-semibold text-primary text-decoration-none"
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    {facility.name}
+                                                    <i className="bx bx-link-external ms-1 small"></i>
+                                                </Link>
+                                                <br />
                                                 <small className="text-muted">{facility.description}</small>
                                             </td>
                                             <td>{facility.category}</td>
@@ -238,6 +289,13 @@ const FacilityListPage: React.FC = () => {
                                             <td>{getAvailabilityBadge(facility.is_available)}</td>
                                             <td>
                                                 <div className="d-flex gap-1">
+                                                    <Link
+                                                        href={`/facility/${facility.id}`}
+                                                        className="btn btn-sm btn-icon btn-primary"
+                                                        title="View Details"
+                                                    >
+                                                        <i className="bx bx-show"></i>
+                                                    </Link>
                                                     <button
                                                         className="btn btn-sm btn-icon btn-warning"
                                                         onClick={() => update(facility)}
@@ -252,6 +310,13 @@ const FacilityListPage: React.FC = () => {
                                                     >
                                                         <i className="bx bx-dollar"></i>
                                                     </button>
+                                                    {/* <button
+                                                        className="btn btn-sm btn-icon btn-success"
+                                                        onClick={() => openProfiling(facility)}
+                                                        title="Profiling"
+                                                    >
+                                                        <i className="bx bx-building"></i>
+                                                    </button> */}
                                                     <button
                                                         className="btn btn-sm btn-icon btn-danger"
                                                         onClick={() => remove(facility.id)}
@@ -304,6 +369,15 @@ const FacilityListPage: React.FC = () => {
                 <FacilityPricingModal
                     facility={selectedFacility}
                     onHide={() => setShowPricing(false)}
+                />
+            )}
+
+            {/* PROFILING MODAL */}
+            {showProfiling && selectedFacility && (
+                <FacilityProfilingModal
+                    facility={selectedFacility}
+                    show={showProfiling}
+                    onHide={() => setShowProfiling(false)}
                 />
             )}
         </>

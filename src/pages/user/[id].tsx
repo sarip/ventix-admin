@@ -121,20 +121,31 @@ export default function UserDetailPage() {
             <div className="row">
                 {/* Left Column - Basic Info */}
                 <div className="col-lg-4 col-md-6 mb-4">
-                    <div className="card h-100">
-                        <div className="card-body text-center">
+                    <div className="card h-100 overflow-hidden">
+                        {/* Cover Photo */}
+                        <div
+                            className="bg-primary"
+                            style={{
+                                height: '100px',
+                                backgroundImage: user.cover_photo ? `url(${user.cover_photo})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                            }}
+                        ></div>
+
+                        <div className="card-body text-center" style={{ marginTop: '-50px' }}>
                             {/* Profile Picture */}
                             <div className="mb-3">
                                 {user.profile_picture ? (
                                     <img
                                         src={user.profile_picture}
                                         alt={user.name}
-                                        className="rounded-circle"
+                                        className="rounded-circle border border-5 border-white shadow-sm"
                                         style={{ width: '120px', height: '120px', objectFit: 'cover' }}
                                     />
                                 ) : (
                                     <div
-                                        className="rounded-circle mx-auto d-flex align-items-center justify-content-center bg-primary text-white"
+                                        className="rounded-circle mx-auto d-flex align-items-center justify-content-center bg-primary text-white border border-5 border-white shadow-sm"
                                         style={{ width: '120px', height: '120px', fontSize: '3rem' }}
                                     >
                                         {user.name.charAt(0).toUpperCase()}
@@ -150,8 +161,22 @@ export default function UserDetailPage() {
                                 <UserStatusBadge status={user.status} />
                             </div>
 
+                            {/* Social Stats (Followers/Following) */}
+                            {user.role === 'General_User' && (
+                                <div className="d-flex justify-content-center gap-4 mb-4">
+                                    <div className="text-center">
+                                        <h6 className="mb-0">{user.followers_count || 0}</h6>
+                                        <small className="text-muted">Followers</small>
+                                    </div>
+                                    <div className="text-center">
+                                        <h6 className="mb-0">{user.following_count || 0}</h6>
+                                        <small className="text-muted">Following</small>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Referral Code */}
-                            <div className="mt-4">
+                            <div className="mt-4 text-start">
                                 <small className="text-muted d-block mb-1">Referral Code</small>
                                 <div className="input-group input-group-sm">
                                     <input
@@ -222,14 +247,99 @@ export default function UserDetailPage() {
                                     <p className="mb-0 fw-semibold">{user.email}</p>
                                 </div>
                             </div>
-                            <div className="row">
+                            <div className="row mb-3">
                                 <div className="col-md-4">
                                     <small className="text-muted">Phone</small>
                                     <p className="mb-0 fw-semibold">{user.phone || '-'}</p>
                                 </div>
+                                <div className="col-md-8">
+                                    <small className="text-muted">Bio</small>
+                                    <p className="mb-0">{user.bio || 'No bio provided'}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* Member Profile Enhancements (Only for General_User/Member) */}
+                    {user.role === 'General_User' && (
+                        <>
+                            {/* Experiences */}
+                            <div className="card mb-4">
+                                <div className="card-header d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0">
+                                        <i className="bx bx-briefcase me-2"></i>
+                                        Experiences
+                                    </h5>
+                                    <span className="badge bg-label-primary">{user.experiences?.length || 0} Total</span>
+                                </div>
+                                <div className="card-body">
+                                    {user.experiences && user.experiences.length > 0 ? (
+                                        <div className="list-group list-group-flush">
+                                            {user.experiences.map((exp, idx) => (
+                                                <div key={idx} className="list-group-item px-0 border-bottom-0 pb-3">
+                                                    <div className="d-flex align-items-start">
+                                                        <div className="badge bg-label-info p-2 me-3">
+                                                            <i className={`bx ${exp.type === 'EVENT' ? 'bx-calendar-event' : exp.type === 'FACILITY' ? 'bx-building' : 'bx-medal'} fs-4`}></i>
+                                                        </div>
+                                                        <div className="flex-grow-1">
+                                                            <h6 className="mb-1">{exp.title}</h6>
+                                                            <p className="mb-1 text-muted small">{exp.description}</p>
+                                                            <small className="text-primary">{exp.date}</small>
+                                                        </div>
+                                                        {!exp.is_public && <span className="badge bg-label-secondary ms-2">Private</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted mb-0">No experiences listed.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Ratings & Reviews */}
+                            <div className="card mb-4">
+                                <div className="card-header d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0">
+                                        <i className="bx bx-star me-2"></i>
+                                        Ratings & Reviews
+                                    </h5>
+                                    <div className="d-flex align-items-center">
+                                        <small className="text-muted me-2">Show in Profile:</small>
+                                        <span className={`badge ${user.show_ratings ? 'bg-label-success' : 'bg-label-danger'}`}>
+                                            {user.show_ratings ? 'Yes' : 'No'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="card-body">
+                                    {user.ratings && user.ratings.length > 0 ? (
+                                        <div className="list-group list-group-flush">
+                                            {user.ratings.map((rating, idx) => (
+                                                <div key={idx} className="list-group-item px-0 border-bottom-0 pb-3">
+                                                    <div className="d-flex align-items-start">
+                                                        <div className="flex-grow-1">
+                                                            <div className="d-flex align-items-center mb-1">
+                                                                <h6 className="mb-0 me-3">{rating.target_type}: {rating.target_id}</h6>
+                                                                <div className="text-warning">
+                                                                    {[...Array(5)].map((_, i) => (
+                                                                        <i key={i} className={`bx ${i < rating.rating ? 'bxs-star' : 'bx-star'}`}></i>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <p className="mb-0 text-muted small">{rating.comment}</p>
+                                                        </div>
+                                                        {!rating.is_public && <span className="badge bg-label-secondary ms-2">Private</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted mb-0">No ratings or reviews yet.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* Account Information */}
                     <div className="card mb-4">

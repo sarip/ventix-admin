@@ -56,7 +56,7 @@ class FacilitieController extends ApiController
         array_walk($output['data'], function(&$item) {
 
             $EventOrganizer = new EventsOrganizer();
-            $item->event_organizer = $EventOrganizer->find($item->events_organizer_id);
+            $item->event_organizer = $EventOrganizer->find($item->facility_organizer_id);
 
             $User = new User();
             $item->user_pic = $User->find($item->user_id_pic);
@@ -98,7 +98,7 @@ class FacilitieController extends ApiController
         }
 
         $EventOrganizer = new EventsOrganizer();
-        $facilities->event_organizer = $EventOrganizer->find($facilities->events_organizer_id);
+        $facilities->event_organizer = $EventOrganizer->find($facilities->facility_organizer_id);
 
         $User = new User();
         $facilities->user_pic = $User->find($facilities->user_id_pic);
@@ -122,7 +122,7 @@ class FacilitieController extends ApiController
      * @apiGroup Facilitie
      * @apiVersion 1.0.0
      * @apiHeader {String} key Token
-     * @apiBody {String} events_organizer_id events_organizer_id
+     * @apiBody {String} facility_organizer_id facility_organizer_id
      * @apiBody {String} user_id_pic user_id_pic
      * @apiBody {String} name name
      * @apiBody {String} category category
@@ -150,7 +150,7 @@ class FacilitieController extends ApiController
             $item->facility = $Facility->find($item->facility_id);
 
             $EventOrganizer = new EventsOrganizer();
-            $item->facility->event_organizer = $EventOrganizer->find($item->facility->events_organizer_id);
+            $item->facility->event_organizer = $EventOrganizer->find($item->facility->facility_organizer_id);
 
             $User = new User();
             $item->facility->user_pic = $User->find($item->facility->user_id_pic);
@@ -185,7 +185,7 @@ class FacilitieController extends ApiController
         );
 
         $EventOrganizer = new EventsOrganizer();
-        $item->facility->event_organizer = $EventOrganizer->find($item->facility->events_organizer_id);
+        $item->facility->event_organizer = $EventOrganizer->find($item->facility->facility_organizer_id);
 
         $User = new User();
         $item->facility->user_pic = $User->find($item->facility->user_id_pic);
@@ -398,7 +398,7 @@ class FacilitieController extends ApiController
      * @apiVersion 1.0.0
      * @apiHeader {String} key Token
      * @apiParam {Number} id Facilitie id
-     * @apiBody {String} events_organizer_id events_organizer_id
+     * @apiBody {String} facility_organizer_id facility_organizer_id
      * @apiBody {String} user_id_pic user_id_pic
      * @apiBody {String} name name
      * @apiBody {String} category category
@@ -410,7 +410,7 @@ class FacilitieController extends ApiController
     public function update($id) {
         $Facilitie = new Facilitie();
         $update_data = [
-            'events_organizer_id' => $this->request->getJsonVar('events_organizer_id'),
+            'facility_organizer_id' => $this->request->getJsonVar('facility_organizer_id'),
             'user_id_pic' => $this->request->getJsonVar('user_id_pic'),
             'name' => $this->request->getJsonVar('name'),
             'category' => $this->request->getJsonVar('category'),

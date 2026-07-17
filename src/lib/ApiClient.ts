@@ -1,6 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import Swal from 'sweetalert2';
 
+// Export API base URL for image uploads
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+
 class APIClient {
     private axiosInstance: AxiosInstance;
     private baseURL: string;

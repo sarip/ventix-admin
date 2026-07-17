@@ -19,6 +19,8 @@ use App\Models\EventsSponsor;
 use App\Models\EventTicket;
 use App\Models\User;
 use App\Services\EventStatusService;
+use App\Models\MemberFollow;
+use App\Models\Notification;
 
 class EventController extends ApiController
 {
@@ -55,7 +57,7 @@ class EventController extends ApiController
         $current_user = $this->request->current_user;
         $where_eo['is_external'] = 'N';
 
-        if($current_user['scope'] !== 'SUPERADMIN') {
+        if ($current_user['scope'] !== 'SUPERADMIN') {
             $where_eo['group_or'] = ['events_organizer_id' => $current_user['eo_ids'] ? $current_user['eo_ids'] : [-1]];
         }
 
@@ -193,7 +195,40 @@ class EventController extends ApiController
         // =========================
         // INSERT DB
         // =========================
+        $db = \Config\Database::connect();
+        $db->transStart();
+
         $id = $Event->insert($data);
+
+        // =========================
+        // NOTIFY FOLLOWERS
+        // =========================
+        $eo_id = $this->request->getPost('events_organizer_id');
+        if ($eo_id) {
+            $followModel = new MemberFollow();
+            $notificationModel = new Notification();
+            $followers = $followModel->where(['following_id' => $eo_id, 'following_type' => 'EO'])->findAll();
+
+            $eoModel = new EventsOrganizer();
+            $eo = $eoModel->find($eo_id);
+            $eo_name = $eo ? $eo->eo_name : 'Event Organizer';
+
+            foreach ($followers as $follower) {
+                $notificationModel->insert([
+                    'user_id' => $follower->follower_id,
+                    'type' => 'EVENT_NEW',
+                    'entity_type' => 'EVENT',
+                    'entity_id' => $id,
+                    'title' => 'Event Baru dari ' . $eo_name,
+                    'message' => 'EO yang Anda ikuti telah membuat event baru: ' . $data['title'],
+                    'metadata' => json_encode(['event_id' => $id, 'eo_id' => $eo_id]),
+                    'is_read' => 0,
+                    'sent_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+
+        $db->transComplete();
 
         return $this->successOutput([
             'id' => $id
@@ -450,6 +485,10 @@ class EventController extends ApiController
     public function update($id)
     {
         $Event = new Event();
+        $old = $Event->find($id);
+        if (!$old) {
+            return $this->failNotFound('Event not found');
+        }
         $data = [
             'event_category' => $this->request->getPost('event_category'),
             'title' => $this->request->getPost('title'),

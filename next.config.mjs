@@ -1,20 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // output: 'export', // 👈 penting!
-    // images: {
-    //     unoptimized: true, // untuk static hosting di cPanel
-    // },
-    // trailingSlash: true, // opsional, biar URL /about jadi /about/
-    // // ⚡ Tambahkan ini:
-    // basePath: '',
-    // assetPrefix: process.env.NEXT_PUBLIC_SITE_URL || '',
-    // env: {
-    //     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    //     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
-    // },
-    //
-    //
-
     reactStrictMode: false,
     eslint: {
         // Warning: This allows production builds to successfully complete even if
@@ -31,6 +16,21 @@ const nextConfig = {
     experimental: {
         forceSwcTransforms: true,
     },
+
+    // Proxy API requests to the backend on port 8080
+    async rewrites() {
+        return [
+            {
+                source: '/api/v1/:path*',
+                destination: 'http://localhost:8080/api/v1/:path*',
+            },
+            {
+                source: '/frontend/api/v1/:path*',
+                destination: 'http://localhost:8080/frontend/api/v1/:path*',
+            },
+        ];
+    },
+
     webpack: (config) => {
         config.module.rules.push({
             test: /\.(js|jsx)$/,
@@ -49,3 +49,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
