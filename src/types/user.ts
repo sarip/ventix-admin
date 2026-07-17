@@ -5,7 +5,7 @@
  */
 
 // User Roles
-export type UserRole = 'Super Admin' | 'EO Owner' | 'Admin' | 'EO Staff';
+export type UserRole = 'Super Admin' | 'EO Owner' | 'Admin' | 'EO Staff' | 'General_User' | 'Member';
 
 // User Status
 export type UserStatus = 'Active' | 'Inactive' | 'Suspended';
@@ -15,7 +15,9 @@ export const RoleBadgeColors: Record<UserRole, string> = {
     'Super Admin': 'primary', // Purple/Blue
     'EO Owner': 'info',    // Blue
     'Admin': 'warning',    // Orange
-    'EO Staff': 'success'   // Teal/Green
+    'EO Staff': 'success',  // Teal/Green
+    'General_User': 'secondary',
+    'Member': 'secondary'
 };
 
 // Status Badge Colors
@@ -70,7 +72,27 @@ export const RolePermissions: Record<UserRole, PermissionMatrix> = {
         canViewEOFilter: false
     },
     'EO Staff': {
-        canViewAllUsers: false, // Only own EO
+        canViewAllUsers: false,
+        canCreateUser: false,
+        canEditUser: false,
+        canChangeStatus: false,
+        canResetPassword: false,
+        canDeleteUser: false,
+        availableRoles: [],
+        canViewEOFilter: false
+    },
+    'General_User': {
+        canViewAllUsers: false,
+        canCreateUser: false,
+        canEditUser: false,
+        canChangeStatus: false,
+        canResetPassword: false,
+        canDeleteUser: false,
+        availableRoles: [],
+        canViewEOFilter: false
+    },
+    'Member': {
+        canViewAllUsers: false,
         canCreateUser: false,
         canEditUser: false,
         canChangeStatus: false,

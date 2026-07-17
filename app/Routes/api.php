@@ -21,7 +21,15 @@ $routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'],
     $routes->get('facility-bookings/(:any)', 'FacilitieController::findMyBook/$1', ['filter' => 'TokenFeFilter']);
     $routes->post('facility-bookings/(:num)/upload-payment', 'FacilitieController::uploadPayment/$1', ['filter' => 'TokenFeFilter']);
     $routes->post('facilities/book', 'FacilitieController::booking', ['filter' => 'TokenFeFilter']);
-    $routes->get('facilities/(:num)', 'FacilitieController::find/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('facilities/(:num)', 'FacilitieController::detail/$1', ['filter' => 'TokenFeFilter']);
+
+    // FACILITY PROFILE LANDING PAGE APIs
+    $routes->get('facilities/profile/(:segment)', 'FacilityProfileController::show/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('facilities/profile/(:segment)/reviews', 'FacilityProfileController::reviews/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('facilities/profile/(:segment)/related', 'FacilityProfileController::related/$1', ['filter' => 'TokenFeFilter']);
+    $routes->post('facilities/profile/(:segment)/follow', 'FacilityProfileController::follow/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('facilities/profile/(:segment)/statistics', 'FacilityProfileController::statistics/$1', ['filter' => 'TokenFeFilter']);
+    $routes->get('facilities/profile/(:segment)/follow-status', 'FacilityProfileController::followStatus/$1', ['filter' => 'TokenFeFilter']);
     $routes->get('reg_provinces', 'RegProvinceController::index', ['filter' => 'TokenFeFilter']);
 
     $routes->get('orders', 'OrderController::index', ['filter' => 'TokenFeFilter']);
@@ -30,6 +38,41 @@ $routes->group('frontend/api/v1', ['namespace' => 'App\\Controllers\\FrontEnd'],
     $routes->post('orders/(:any)/upload-payment', 'OrderController::uploadPayment/$1', ['filter' => 'TokenFeFilter']);
 
     $routes->get('tickets/my', 'TicketController::index', ['filter' => 'TokenFeFilter']);
+
+
+
+    // MEMBER PROFILES & SOCIAL
+
+    $routes->post('profile/update', 'ProfileController::update', ['filter' => 'TokenFeFilter']);
+    $routes->post('profile/follow', 'ProfileController::follow', ['filter' => 'TokenFeFilter']);
+
+    $routes->post('profile/experience', 'ProfileController::experience', ['filter' => 'TokenFeFilter']);
+    $routes->post('profile/rating', 'ProfileController::rating', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('profile/following', 'ProfileController::following', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/following/(:segment)', 'ProfileController::following/$1', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('profile/followers', 'ProfileController::followers', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/followers/(:segment)', 'ProfileController::followers/$1', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('profile/experiences', 'ProfileController::experiences', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/experiences/(:segment)', 'ProfileController::experiences/$1', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('profile/ratings', 'ProfileController::ratings', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/ratings/(:segment)', 'ProfileController::ratings/$1', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('profile/activity-summary', 'ProfileController::activitySummary', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/activity-summary/(:segment)', 'ProfileController::activitySummary/$1', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('profile/activities', 'ProfileController::activities', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/activities/(:segment)', 'ProfileController::activities/$1', ['filter' => 'TokenFeFilter']);
+
+    // PALING BAWAH
+    $routes->get('notifications', 'ProfileController::notifications', ['filter' => 'TokenFeFilter']);
+    $routes->put('notifications/read', 'ProfileController::readNotification', ['filter' => 'TokenFeFilter']);
+
+    $routes->get('members-list', 'ProfileController::members', ['filter' => 'TokenFeFilter']);
+    $routes->get('profile/(:segment)', 'ProfileController::show/$1', ['filter' => 'TokenFeFilter']);
 });
 // API V1
 $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($routes) {
@@ -180,9 +223,10 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('order/preview-commission', 'OrderController::previewCommission', ['filter' => 'PermissionFilter']);
 
     $routes->get('facilities', 'FacilitieController::index', ['filter' => 'PermissionFilter']);
-    $routes->post('facility', 'FacilitieController::create', ['filter' => 'PermissionFilter']);
-    $routes->put('facility/(:num)', 'FacilitieController::update/$1', ['filter' => 'PermissionFilter']);
-    $routes->delete('facility/(:num)', 'FacilitieController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->get('facilities/(:num)', 'FacilitieController::detail/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities', 'FacilitieController::saveComplete', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)', 'FacilitieController::saveComplete/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilities/(:num)', 'FacilitieController::delete/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('facility_bookings', 'FacilityBookingController::index', ['filter' => 'PermissionFilter']);
     $routes->post('facilitybooking', 'FacilityBookingController::create', ['filter' => 'PermissionFilter']);
@@ -209,7 +253,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->get('facilities', 'FacilityController::index', ['filter' => 'PermissionFilter']);
     $routes->get('facility/(:num)', 'FacilityController::show/$1', ['filter' => 'PermissionFilter']);
     $routes->post('facility', 'FacilityController::create', ['filter' => 'PermissionFilter']);
-    $routes->put('facility/(:num)', 'FacilityController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facility/(:num)', 'FacilityController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('facility/(:num)', 'FacilityController::delete/$1', ['filter' => 'PermissionFilter']);
 
     // Facility Pricing
@@ -238,6 +282,52 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('facilitypricing', 'FacilityPricingController::create', ['filter' => 'PermissionFilter']);
     $routes->put('facilitypricing/(:num)', 'FacilityPricingController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('facilitypricing/(:num)', 'FacilityPricingController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // FACILITY PROFILING
+    // Facility Gallery
+    $routes->get('facilities/(:num)/gallery', 'FacilityGalleryController::index/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/gallery', 'FacilityGalleryController::create/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('facilities/(:num)/gallery/(:num)', 'FacilityGalleryController::update/$1/$2', ['filter' => 'PermissionFilter']);
+    $routes->put('facilities/(:num)/gallery/(:num)/featured', 'FacilityGalleryController::setFeatured/$1/$2', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/gallery/reorder', 'FacilityGalleryController::reorder/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilities/(:num)/gallery/(:num)', 'FacilityGalleryController::delete/$1/$2', ['filter' => 'PermissionFilter']);
+
+    // Facility Amenities (Master)
+    $routes->get('amenities', 'FacilityAmenityController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('amenities', 'FacilityAmenityController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('amenities/(:num)', 'FacilityAmenityController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('amenities/(:num)', 'FacilityAmenityController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    // Facility Amenities (Per Facility)
+    $routes->get('facilities/(:num)/amenities', 'FacilityAmenityController::getFacilityAmenities/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/amenities/sync', 'FacilityAmenityController::sync/$1', ['filter' => 'PermissionFilter']);
+
+    // Facility Features (Specifications)
+    $routes->get('facilities/(:num)/features', 'FacilityFeatureController::index/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/features', 'FacilityFeatureController::create/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('facilities/(:num)/features/(:num)', 'FacilityFeatureController::update/$1/$2', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/features/reorder', 'FacilityFeatureController::reorder/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilities/(:num)/features/(:num)', 'FacilityFeatureController::delete/$1/$2', ['filter' => 'PermissionFilter']);
+
+    // Facility Operating Hours
+    $routes->get('facilities/(:num)/operating-hours', 'FacilityOperatingHourController::index/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/operating-hours', 'FacilityOperatingHourController::create/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('facilities/(:num)/operating-hours/(:num)', 'FacilityOperatingHourController::update/$1/$2', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/operating-hours/sync', 'FacilityOperatingHourController::sync/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/operating-hours/copy', 'FacilityOperatingHourController::copy/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilities/(:num)/operating-hours/(:num)', 'FacilityOperatingHourController::delete/$1/$2', ['filter' => 'PermissionFilter']);
+
+    // Facility Rules
+    $routes->get('facilities/(:num)/rules', 'FacilityRuleController::index/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/rules', 'FacilityRuleController::create/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('facilities/(:num)/rules/(:num)', 'FacilityRuleController::update/$1/$2', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/rules/reorder', 'FacilityRuleController::reorder/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilities/(:num)/rules/(:num)', 'FacilityRuleController::delete/$1/$2', ['filter' => 'PermissionFilter']);
+
+    // Facility Statistics
+    $routes->get('facilities/(:num)/statistics', 'FacilityStatisticController::index/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/statistics/calculate', 'FacilityStatisticController::calculate/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilities/(:num)/statistics/increment', 'FacilityStatisticController::increment/$1', ['filter' => 'PermissionFilter']);
 
     $routes->get('user_points', 'UserPointController::index', ['filter' => 'PermissionFilter']);
     $routes->post('userpoint', 'UserPointController::create', ['filter' => 'PermissionFilter']);
@@ -287,6 +377,19 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('notifications/(:num)/read', 'NotificationController::markAsRead/$1', ['filter' => 'tokenFilter']);
     $routes->post('notifications/read-all', 'NotificationController::markAllAsRead', ['filter' => 'tokenFilter']);
     $routes->delete('notifications/(:num)', 'NotificationController::delete/$1', ['filter' => 'tokenFilter']);
+
+    // MEMBER PROFILES & SOCIAL
+    $routes->get('profile/(:any)', 'ProfileController::show/$1', ['filter' => 'tokenFilter']);
+    $routes->post('profile/update', 'ProfileController::update', ['filter' => 'tokenFilter']);
+    $routes->post('profile/follow', 'ProfileController::follow', ['filter' => 'tokenFilter']);
+    $routes->get('profile/following', 'ProfileController::following', ['filter' => 'tokenFilter']);
+    $routes->post('profile/experience', 'ProfileController::experience', ['filter' => 'tokenFilter']);
+    $routes->post('profile/rating', 'ProfileController::rating', ['filter' => 'tokenFilter']);
+
+    $routes->get('facilities_organizer', 'FacilitiesOrganizerController::index', ['filter' => 'PermissionFilter']);
+    $routes->post('facilitiesorganizer', 'FacilitiesOrganizerController::create', ['filter' => 'PermissionFilter']);
+    $routes->put('facilitiesorganizer/(:num)', 'FacilitiesOrganizerController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('facilitiesorganizer/(:num)', 'FacilitiesOrganizerController::delete/$1', ['filter' => 'PermissionFilter']);
 
     // OTHER API REQUEST //
 
