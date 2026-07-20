@@ -151,6 +151,14 @@ const routes: Route[] = [
         is_superadmin: false,
         childrens: [
             {
+                path: '/facilities_organizer',
+                side_menu: true,
+                tooltip: "Facility Organizer",
+                icon: 'bx-building',
+                title: 'Facility Organizer',
+                endpoint: 'api/v1/facilities',
+            },
+            {
                 path: '/facility',
                 side_menu: true,
                 tooltip: "Facility Management",

@@ -371,6 +371,12 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('admin/eo/approve', 'EoVerificationController::approve', ['filter' => 'PermissionFilter']);
     $routes->post('admin/eo/reject', 'EoVerificationController::reject', ['filter' => 'PermissionFilter']);
 
+    // FACILITY VERIFICATION MODERATION
+    $routes->get('admin/facility/verifications', 'EoVerificationController::facilityIndex', ['filter' => 'PermissionFilter']);
+    $routes->get('admin/facility/verifications/(:num)', 'EoVerificationController::facilityShow/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('admin/facility/approve', 'EoVerificationController::facilityApprove', ['filter' => 'PermissionFilter']);
+    $routes->post('admin/facility/reject', 'EoVerificationController::facilityReject', ['filter' => 'PermissionFilter']);
+
     // NOTIFICATIONS
     $routes->get('notifications', 'NotificationController::index', ['filter' => 'tokenFilter']);
     $routes->get('notifications/unread-count', 'NotificationController::unreadCount', ['filter' => 'tokenFilter']);
@@ -390,6 +396,7 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->post('facilitiesorganizer', 'FacilitiesOrganizerController::create', ['filter' => 'PermissionFilter']);
     $routes->put('facilitiesorganizer/(:num)', 'FacilitiesOrganizerController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('facilitiesorganizer/(:num)', 'FacilitiesOrganizerController::delete/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('facilitiesorganizer/(:num)/verify', 'FacilitiesOrganizerController::verify/$1', ['filter' => 'PermissionFilter']);
 
     // OTHER API REQUEST //
 
