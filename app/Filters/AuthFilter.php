@@ -56,6 +56,7 @@ class AuthFilter implements FilterInterface
             }else{
                 $User = new Appuser();
                 $user = $User->find($decoded->id);
+                $user->scope = "SUPERADMIN";
 
             }
 
@@ -74,7 +75,9 @@ class AuthFilter implements FilterInterface
 
 
             $SysUserRole = new SysUsersRole();
-            $user->scope = $SysUserRole->select('scope')->where('role_name', $user->role)->first()->scope ?? null;
+            if(empty($user->scope)) {
+                $user->scope = $SysUserRole->select('scope')->where('role_name', $user->role)->first()->scope ?? null;
+            }
 
             $user = array_merge((array)$user, ['eo_ids' => $eo_ids, 'fo_ids' => $fo_ids, 'scope' => $user->scope]);
 

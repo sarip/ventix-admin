@@ -1,8 +1,7 @@
-
 /**
  * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
  * @copyright Sarip Hidayat 2024
- * @date 02/08/24
+ * @date 2026-07-18
  */
 
 import APIClient from '../lib/ApiClient';
@@ -10,7 +9,7 @@ import { ListResponse, PostResponse, PutResponse, DeleteResponse } from '@/types
 
 export interface InFacilityOrganizerForm {
     id: number | null;
-    eo_name: string;
+    facility_name: string;
     company_name: string;
     legal_doc_path?: string | null;
     email: string;
@@ -24,7 +23,8 @@ export interface InFacilityOrganizerForm {
 
 export interface InFacilityOrganizer {
     id: number;
-    eo_name: string;
+    owner_user_id?: number | null;
+    facility_name: string;
     company_name: string;
     legal_doc_path: string | null;
     email: string;
@@ -34,7 +34,7 @@ export interface InFacilityOrganizer {
     logo_path: string | null;
     tax_id: string;
     description: string | null;
-    eo_slug: string;
+    facility_slug: string;
     verification_status?: 'Pending' | 'Approved' | 'Rejected';
     verified_at?: string | null;
     verified_by?: number | null;
@@ -50,12 +50,12 @@ class FacilityOrganizer {
         return await APIClient.get('facilities_organizer', query);
     }
 
-    async create(FacilityOrganizer: InFacilityOrganizerForm | FormData): Promise<PostResponse> {
-        return await APIClient.post('/facilitiesorganizer', FacilityOrganizer);
+    async create(facilityOrganizer: InFacilityOrganizerForm | FormData): Promise<PostResponse> {
+        return await APIClient.post('/facilitiesorganizer', facilityOrganizer);
     }
 
-    async update(id: number, FacilityOrganizer: InFacilityOrganizerForm | FormData): Promise<PutResponse<InFacilityOrganizer>> {
-        return await APIClient.post(`/facilitiesorganizer/${id}`, FacilityOrganizer);
+    async update(id: number, facilityOrganizer: InFacilityOrganizerForm | FormData): Promise<PutResponse<InFacilityOrganizer>> {
+        return await APIClient.post(`/facilitiesorganizer/${id}`, facilityOrganizer);
     }
 
     async delete(id: number): Promise<DeleteResponse> {

@@ -2,7 +2,7 @@
 /**
  * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
  * @copyright Sarip Hidayat 2024
- * @date 2026-07-06
+ * @date 2026-07-18
  */
 
 
@@ -33,16 +33,24 @@ class FacilitiesOrganizerController extends ApiController
      * @apiQuery {String} page Page
      *
      */
-    public function index() {
+    public function index()
+    {
         $Model = new FacilitiesOrganizer();
 
         // Define searchable column on this model
         $searchable_column = [
-            'search' => ['owner_user_id'],
+            'search' => ['facility_name'],
         ];
 
+        $current_user = $this->request->current_user ?? ['scope' => 'SUPERADMIN', 'id' => null];
+        $where_facility = [];
+
+        if($current_user['scope'] !== 'SUPERADMIN') {
+            $where_facility['owner_user_id'] = $current_user['id'] ? $current_user['id'] : [-1];
+        }
+
         // Execute search filter
-        $output = SearchFilter::execute($Model, $searchable_column, 'facilities_organizer', []);
+        $output = SearchFilter::execute($Model, $searchable_column, 'facilities_organizer', $where_facility);
 
         // Return output
         return $this->successOutput($output);
@@ -60,14 +68,8 @@ class FacilitiesOrganizerController extends ApiController
      * @apiGroup FacilitiesOrganizer
      * @apiVersion 1.0.0
      * @apiHeader {String} key Token
-     * @apiBody {String} owner_user_id owner_user_id
      * @apiBody {String} facility_name facility_name
      * @apiBody {String} company_name company_name
-     * @apiBody {String} legal_doc_path legal_doc_path
-     * @apiBody {String} verification_status verification_status
-     * @apiBody {String} verified_at verified_at
-     * @apiBody {String} verified_by verified_by
-     * @apiBody {String} verification_note verification_note
      * @apiBody {String} email email
      * @apiBody {String} phone phone
      * @apiBody {String} website website
@@ -79,31 +81,46 @@ class FacilitiesOrganizerController extends ApiController
 
      *
      */
-    public function create() {
+    public function create()
+    {
         $FacilitiesOrganizer = new FacilitiesOrganizer();
+
+        $logoName = null;
+        $file = $this->request->getFile('logo_path');
+
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $logoName = $file->getRandomName();
+            $file->move(FCPATH . 'uploads/facilities_organizer', $logoName);
+        }
+
+        // Handle legal document upload
+        $legalDocName = null;
+        $legalFile = $this->request->getFile('legal_doc_path');
+        if ($legalFile && $legalFile->isValid() && !$legalFile->hasMoved()) {
+            $legalDocName = $legalFile->getRandomName();
+            $legalFile->move(FCPATH . 'uploads/legality', $legalDocName);
+        }
+
         $create_data = [
-            'owner_user_id' => $this->request->getJsonVar('owner_user_id'),
-            'facility_name' => $this->request->getJsonVar('facility_name'),
-            'company_name' => $this->request->getJsonVar('company_name'),
-            'legal_doc_path' => $this->request->getJsonVar('legal_doc_path'),
-            'verification_status' => $this->request->getJsonVar('verification_status'),
-            'verified_at' => $this->request->getJsonVar('verified_at'),
-            'verified_by' => $this->request->getJsonVar('verified_by'),
-            'verification_note' => $this->request->getJsonVar('verification_note'),
-            'email' => $this->request->getJsonVar('email'),
-            'phone' => $this->request->getJsonVar('phone'),
-            'website' => $this->request->getJsonVar('website'),
-            'address' => $this->request->getJsonVar('address'),
-            'logo_path' => $this->request->getJsonVar('logo_path'),
-            'tax_id' => $this->request->getJsonVar('tax_id'),
-            'description' => $this->request->getJsonVar('description'),
-            'facility_slug' => $this->request->getJsonVar('facility_slug')
+            'owner_user_id' => $this->request->current_user['id'] ?? null,
+            'facility_name' => $this->request->getPost('facility_name'),
+            'company_name' => $this->request->getPost('company_name'),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'website' => $this->request->getPost('website'),
+            'address' => $this->request->getPost('address'),
+            'logo_path' => $logoName,
+            'tax_id' => $this->request->getPost('tax_id'),
+            'description' => $this->request->getPost('description'),
+            'legal_doc_path' => $legalDocName,
+            'facility_slug' => generate_slug($this->request->getPost('facility_name')),
         ];
 
         $id = $FacilitiesOrganizer->insert($create_data);
 
         return $this->successOutput(['id' => $id], 201);
     }
+
 
 
     /**
@@ -118,14 +135,8 @@ class FacilitiesOrganizerController extends ApiController
      * @apiVersion 1.0.0
      * @apiHeader {String} key Token
      * @apiParam {Number} id FacilitiesOrganizer id
-     * @apiBody {String} owner_user_id owner_user_id
      * @apiBody {String} facility_name facility_name
      * @apiBody {String} company_name company_name
-     * @apiBody {String} legal_doc_path legal_doc_path
-     * @apiBody {String} verification_status verification_status
-     * @apiBody {String} verified_at verified_at
-     * @apiBody {String} verified_by verified_by
-     * @apiBody {String} verification_note verification_note
      * @apiBody {String} email email
      * @apiBody {String} phone phone
      * @apiBody {String} website website
@@ -137,33 +148,62 @@ class FacilitiesOrganizerController extends ApiController
 
      *
      */
-    public function update($id) {
+    public function update(?int $id = null)
+    {
         $FacilitiesOrganizer = new FacilitiesOrganizer();
+        $existing = $FacilitiesOrganizer->find($id);
+
+        if (!$existing) {
+            return $this->failNotFound('Facilities Organizer not found');
+        }
+
+        $logoName = $existing->logo_path;
+        $file = $this->request->getFile('logo_path');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+
+            // hapus logo lama
+            if ($logoName && file_exists(FCPATH . 'uploads/facilities_organizer/' . $logoName)) {
+                unlink(FCPATH . 'uploads/facilities_organizer/' . $logoName);
+            }
+
+            $logoName = $file->getRandomName();
+            $file->move(FCPATH . 'uploads/facilities_organizer', $logoName);
+        }
+
+        // Handle legal document update
+        $legalDocName = $existing->legal_doc_path;
+        $legalFile = $this->request->getFile('legal_doc_path');
+        if ($legalFile && $legalFile->isValid() && !$legalFile->hasMoved()) {
+            // Delete old legal document
+            if ($legalDocName && file_exists(FCPATH . 'uploads/legality/' . $legalDocName)) {
+                unlink(FCPATH . 'uploads/legality/' . $legalDocName);
+            }
+
+            $legalDocName = $legalFile->getRandomName();
+            $legalFile->move(FCPATH . 'uploads/legality', $legalDocName);
+        }
+
         $update_data = [
-            'owner_user_id' => $this->request->getJsonVar('owner_user_id'),
-            'facility_name' => $this->request->getJsonVar('facility_name'),
-            'company_name' => $this->request->getJsonVar('company_name'),
-            'legal_doc_path' => $this->request->getJsonVar('legal_doc_path'),
-            'verification_status' => $this->request->getJsonVar('verification_status'),
-            'verified_at' => $this->request->getJsonVar('verified_at'),
-            'verified_by' => $this->request->getJsonVar('verified_by'),
-            'verification_note' => $this->request->getJsonVar('verification_note'),
-            'email' => $this->request->getJsonVar('email'),
-            'phone' => $this->request->getJsonVar('phone'),
-            'website' => $this->request->getJsonVar('website'),
-            'address' => $this->request->getJsonVar('address'),
-            'logo_path' => $this->request->getJsonVar('logo_path'),
-            'tax_id' => $this->request->getJsonVar('tax_id'),
-            'description' => $this->request->getJsonVar('description'),
-            'facility_slug' => $this->request->getJsonVar('facility_slug')
+            'facility_name' => $this->request->getPost('facility_name'),
+            'company_name' => $this->request->getPost('company_name'),
+            'email' => $this->request->getPost('email'),
+            'phone' => $this->request->getPost('phone'),
+            'website' => $this->request->getPost('website'),
+            'address' => $this->request->getPost('address'),
+            'logo_path' => $logoName,
+            'tax_id' => $this->request->getPost('tax_id'),
+            'description' => $this->request->getPost('description'),
+            'legal_doc_path' => $legalDocName,
+            'facility_slug' => generate_slug($this->request->getPost('facility_name')),
         ];
 
         $FacilitiesOrganizer->update($id, $update_data);
 
-        $data = $FacilitiesOrganizer->find($id);
-
-        return $this->successOutput(['facilitiesorganizer' => $data]);
+        return $this->successOutput([
+            'facilitiesorganizer' => $FacilitiesOrganizer->find($id)
+        ]);
     }
+
 
 
     /**
@@ -179,19 +219,40 @@ class FacilitiesOrganizerController extends ApiController
      * @apiHeader {String} key Token
      * @apiParam {Number} id FacilitiesOrganizer id
      */
-    public function delete($id) {
+    public function delete(?int $id = null)
+    {
         $FacilitiesOrganizer = new FacilitiesOrganizer();
+        $data = $FacilitiesOrganizer->find($id);
+
+        if (!$data) {
+            return $this->errorOutput('Facilities Organizer not found');
+        }
+
+        if (!empty($data->logo_path)) {
+            $filePath = FCPATH . 'uploads/facilities_organizer/' . $data->logo_path;
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        if (!empty($data->legal_doc_path)) {
+            $legalFilePath = FCPATH . 'uploads/legality/' . $data->legal_doc_path;
+            if (file_exists($legalFilePath)) {
+                unlink($legalFilePath);
+            }
+        }
+
         $FacilitiesOrganizer->delete($id);
 
         return $this->successOutput([], 200);
     }
 
-      /**
-     * Verify EventsOrganizer
+    /**
+     * Verify FacilitiesOrganizer
      * @param $id
      * @return mixed
      */
-    public function verify($id)
+    public function verify(?int $id = null)
     {
         $FacilitiesOrganizer = new FacilitiesOrganizer();
         $data = $FacilitiesOrganizer->find($id);
@@ -220,7 +281,7 @@ class FacilitiesOrganizerController extends ApiController
         // If approved, we might want to activate the connected user account
         if ($status === 'Approved') {
             $userModel = new \App\Models\User();
-            $user = $userModel->where('eo_id', $id)->first();
+            $user = $userModel->where('facility_id', $id)->first();
             if ($user && $user->status === 'Inactive') {
                 $userModel->update($user->id, ['status' => 'Active']);
             }
@@ -231,4 +292,5 @@ class FacilitiesOrganizerController extends ApiController
             'facilitiesorganizer' => $FacilitiesOrganizer->find($id)
         ]);
     }
+
 }
