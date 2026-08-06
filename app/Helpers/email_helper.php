@@ -137,8 +137,6 @@ if (!function_exists('send_verification_email')) {
         if ($email->send()) {
             return true;
         } else {
-            echo $email->printDebugger(['headers', 'subject', 'body']);
-            die();
             log_message('error', 'Failed to send verification email to: ' . $user->email . ' - ' . $email->printDebugger(['headers']));
             return false;
         }

@@ -499,7 +499,7 @@ class AuthController extends ApiController
         // Validation Rules
         // =============================
         $rules = [
-            'username' => 'required|min_length[4]|max_length[30]|alpha_numeric|is_unique[users.username]',
+            'username' => 'required|min_length[6]|max_length[20]|regex_match[/^[A-Za-z0-9_]+$/]|is_unique[users.username]',
             'name' => 'required|min_length[3]',
             'email' => 'required|valid_email|is_unique[users.email]',
             'password' => 'required|min_length[8]',
@@ -513,27 +513,61 @@ class AuthController extends ApiController
         }
         $verification_token = bin2hex(random_bytes(32));
 
-        $UserModel = new User();
-        $userId = $UserModel->insert([
-            'username' => $this->request->getJsonVar('username'),
-            'name' => $this->request->getJsonVar('name'),
-            'email' => $this->request->getJsonVar('email'),
-            'password' => $this->request->getJsonVar('password'),
-            'phone' => $this->request->getJsonVar('phone'),
-            'role' => $this->request->getJsonVar('role'),
-            'status' => 'Inactive',
-            'verification_token' => $verification_token,
-            'created_at' => date('Y-m-d H:i:s')
-        ], true);
-        if ($userId === false) {
-            return $this->errorOutput(json_encode($UserModel->errors(), true), 400);
+        // =============================
+        // Use Database Transaction
+        // =============================
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
+        try {
+            $UserModel = new User();
+            $userId = $UserModel->insert([
+                'username' => $this->request->getJsonVar('username'),
+                'name' => $this->request->getJsonVar('name'),
+                'email' => $this->request->getJsonVar('email'),
+                'password' => $this->request->getJsonVar('password'),
+                'phone' => $this->request->getJsonVar('phone'),
+                'role' => $this->request->getJsonVar('role'),
+                'status' => 'Inactive',
+                'verification_token' => $verification_token,
+                'created_at' => date('Y-m-d H:i:s')
+            ], true);
+
+            if ($userId === false) {
+                $db->transRollback();
+                return $this->errorOutput(json_encode($UserModel->errors(), true), 400);
+            }
+
+            $user = $UserModel->find($userId);
+
+            // =============================
+            // Send Verification Email
+            // =============================
+            helper('email_helper');
+            $emailSent = send_verification_email($user, $verification_token);
+
+            if (!$emailSent) {
+                // Email sending failed - rollback user creation
+                $db->transRollback();
+                log_message('error', 'Registration failed for email: ' . $user->email . ' - Verification email could not be sent');
+                return $this->errorOutput('Pendaftaran gagal. Terjadi kesalahan saat mengirim email verifikasi. Silakan coba lagi atau hubungi support@veentix.com', 500);
+            }
+
+            // =============================
+            // Commit Transaction
+            // =============================
+            $db->transCommit();
+
+            return $this->successOutput([
+                'user' => $user,
+                'message' => 'Pendaftaran berhasil. Silakan cek email untuk verifikasi akun Anda.'
+            ]);
+
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            log_message('error', 'Registration error: ' . $e->getMessage());
+            return $this->errorOutput('Pendaftaran gagal. Silakan coba lagi atau hubungi support.', 500);
         }
-        $user = $UserModel->find($userId);
-        helper('email_helper');
-        send_verification_email($user, $verification_token);
-
-        return $this->successOutput(['user' => $user]);
     }
 
     public function updateMember()
@@ -706,10 +740,15 @@ class AuthController extends ApiController
         }
 
         // =============================
-        // Send Email
+        // Send Email - with error checking
         // =============================
         helper('email_helper');
-        send_verification_email($user, $verificationToken);
+        $emailSent = send_verification_email($user, $verificationToken);
+
+        if (!$emailSent) {
+            log_message('error', 'Failed to resend verification email to: ' . $user->email);
+            return $this->errorOutput('Gagal mengirim email verifikasi. Silakan coba lagi atau hubungi support@veentix.com', 500);
+        }
 
         // =============================
         // Response

@@ -49,13 +49,15 @@ class Email extends BaseConfig
 
     /**
      * SMTP Timeout (in seconds)
+     * Increased to 10 seconds for better Gmail reliability
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 10;
 
     /**
      * Enable persistent SMTP connections
+     * Enabled for better performance when sending multiple emails
      */
-    public bool $SMTPKeepAlive = false;
+    public bool $SMTPKeepAlive = true;
 
     /**
      * SMTP Encryption.
