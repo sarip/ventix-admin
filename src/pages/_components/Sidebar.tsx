@@ -62,52 +62,48 @@ const Sidebar: FC = () => {
     }, [pathname]);
 
     return (
-        <aside id="layout-menu" className="layout-menu menu-vertical menu bg-menu-theme shadow-none border-end d-flex flex-column justify-content-between">
-            <div>
-                {/* Brand Logo Header */}
-                <div className="app-brand demo py-3 px-4 d-flex align-items-center justify-content-between mb-2">
-                    <Link href="/dashboard" className="app-brand-link d-flex align-items-center gap-2 text-decoration-none">
-                        <div className="brand-logo-icon">
-                            <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>V</span>
-                        </div>
-                        <span className="brand-logo-text">VEENTIX</span>
-                    </Link>
-                    <a href="#" className="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
-                        <i className="bx bx-chevron-left bx-sm align-middle"></i>
-                    </a>
-                </div>
-
-                {/* Sidebar Navigation */}
-                <MenuPage />
+        <aside id="layout-menu" className="layout-menu menu-vertical menu bg-menu-theme shadow-none border-end">
+            {/* Brand Logo Header */}
+            <div className="app-brand demo py-3 px-4 d-flex align-items-center justify-content-between mb-1">
+                <Link href="/dashboard" className="app-brand-link d-flex align-items-center gap-2 text-decoration-none">
+                    <img src="/assets/img/favicon/favicon.ico" alt="VEENTIX Logo" width={45} height={45} style={{ objectFit: 'contain' }} />
+                    <span className="brand-logo-text ms-1" style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '2px', fontFamily: "'Outfit', 'Montserrat', sans-serif", color: '#434955', textTransform: 'uppercase' }}>VEENTIX</span>
+                </Link>
+                <a href="#" className="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+                    <i className="bx bx-chevron-left bx-sm align-middle"></i>
+                </a>
             </div>
 
-            {/* Bottom Upgrade Card & User Profile */}
-            <div className="pb-3 px-2">
-                {/* Upgrade Banner */}
-                <div className="sidebar-upgrade-card mb-3 text-start">
-                    <div className="d-flex align-items-center gap-2 mb-1" style={{ color: '#6366f1', fontWeight: '700', fontSize: '0.85rem' }}>
-                        <i className="bx bx-bolt-circle fs-5"></i>
-                        <span>Upgrade to Veentix Pro</span>
+            {/* Sidebar Navigation */}
+            <MenuPage />
+
+            {/* Compact Bottom Upgrade Card & User Profile directly inside scrollable flow */}
+            <div className="px-3 pt-2 pb-3 border-top mt-2">
+                {/* Compact Upgrade Banner */}
+                <div className="rounded-3 p-2 text-start mb-2" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(79, 70, 229, 0.12) 100%)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                    <div className="d-flex align-items-center gap-1.5 mb-1" style={{ color: '#4f46e5', fontWeight: '700', fontSize: '0.78rem' }}>
+                        <i className="bx bx-bolt-circle fs-6"></i>
+                        <span>Veentix Pro</span>
                     </div>
-                    <p className="text-muted small mb-2" style={{ fontSize: '0.75rem', lineHeight: '1.3' }}>
-                        Unlock more powerful features and grow your events.
+                    <p className="text-muted mb-1.5" style={{ fontSize: '0.7rem', lineHeight: '1.25' }}>
+                        Tingkatkan performa event.
                     </p>
-                    <button className="btn btn-sm btn-primary w-100 py-1 d-flex align-items-center justify-content-center gap-1" style={{ fontSize: '0.78rem', borderRadius: '8px' }}>
+                    <button className="btn btn-sm btn-primary w-100 py-1 fw-semibold d-flex align-items-center justify-content-center gap-1" style={{ fontSize: '0.72rem', borderRadius: '5px' }}>
                         Upgrade Now <i className="bx bx-right-arrow-alt fs-6"></i>
                     </button>
                 </div>
 
-                {/* Profile Footer */}
-                <div className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border bg-white shadow-sm cursor-pointer">
-                    <div className="avatar avatar-sm rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', fontSize: '0.9rem' }}>
+                {/* Compact User Profile */}
+                {/* <div className="d-flex align-items-center gap-2 p-1.5 rounded-3 border bg-white shadow-sm cursor-pointer hover-bg-light transition-all">
+                    <div className="avatar avatar-sm rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: '30px', height: '30px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', fontSize: '0.8rem' }}>
                         {username ? username.charAt(0).toUpperCase() : 'A'}
                     </div>
                     <div className="d-flex flex-column flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
-                        <span className="fw-bold text-truncate" style={{ fontSize: '0.85rem', color: '#0f172a' }}>{username}</span>
-                        <span className="text-muted text-truncate" style={{ fontSize: '0.72rem' }}>Event Organizer</span>
+                        <span className="fw-semibold text-truncate text-dark" style={{ fontSize: '0.78rem' }}>{username}</span>
+                        <small className="text-muted text-truncate" style={{ fontSize: '0.68rem' }}>{fullname || 'Event Organizer'}</small>
                     </div>
-                    <i className="bx bx-chevron-down text-muted fs-5 ms-auto"></i>
-                </div>
+                    <i className="bx bx-dots-vertical-rounded text-muted fs-6 flex-shrink-0"></i>
+                </div> */}
             </div>
         </aside>
     );

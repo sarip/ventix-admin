@@ -110,20 +110,20 @@ export default function NotificationPopup({ userId, token }: NotificationPopupPr
     return (
         <>
             {/* Notification Bell Dropdown - Bootstrap Style */}
-            <li className="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
+            <li className="nav-item dropdown-notifications navbar-dropdown dropdown list-unstyled">
                 <a
-                    className="nav-link dropdown-toggle hide-arrow"
+                    className="nav-link dropdown-toggle hide-arrow cursor-pointer position-relative p-2 rounded-circle text-secondary hover-bg-light"
                     href="#"
                     data-bs-toggle="dropdown"
                     data-bs-auto-close="outside"
                     aria-expanded="false"
                 >
-                    <i className="bx bx-bell bx-sm"></i>
-                    {/* {unreadCount > 0 && ( */}
-                    <span className="badge bg-danger rounded-pill badge-notifications">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                    {/* )} */}
+                    <i className="bx bx-bell fs-4"></i>
+                    {unreadCount > 0 && (
+                        <span className="badge bg-danger rounded-pill badge-notifications">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                    )}
                 </a>
 
                 <ul className="dropdown-menu dropdown-menu-end py-0">

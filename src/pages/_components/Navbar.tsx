@@ -84,52 +84,53 @@ const Navbar: React.FC = () => {
     }, []);
 
     return (
-        <nav className="layout-navbar navbar navbar-expand-xl align-items-center bg-white border-bottom px-4 py-2" id="layout-navbar" style={{ height: '70px' }}>
-            <div className="container-fluid d-flex align-items-center justify-content-between px-0">
-                <div className="d-flex align-items-center gap-3">
-                    <div className="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-                        <a className="nav-item nav-link px-0 me-xl-4" href="#" onClick={(e) => e.preventDefault()}>
-                            <i className="bx bx-menu bx-sm"></i>
+        <nav className="layout-navbar navbar navbar-expand-xl align-items-center bg-white border-bottom px-3 px-md-4 py-0 sticky-top" id="layout-navbar" style={{ height: '64px' }}>
+            <div className="w-100 d-flex align-items-center justify-content-between px-0 h-100">
+                {/* Left section: Mobile Toggle + Search Bar */}
+                <div className="d-flex align-items-center me-auto">
+                    <div className="layout-menu-toggle navbar-nav align-items-xl-center d-xl-none me-3">
+                        <a className="nav-item nav-link px-0 text-secondary" href="#" onClick={(e) => e.preventDefault()}>
+                            <i className="bx bx-menu fs-3"></i>
                         </a>
                     </div>
-                </div>
 
-                {/* Search Bar in Middle */}
-                <div className="d-none d-md-flex align-items-center ms-3">
-                    <div className="search-input-pill">
-                        <i className="bx bx-search fs-5 text-muted"></i>
-                        <input type="text" placeholder="Search events, tickets, customers..." />
-                        <span className="badge bg-light text-muted border py-1 px-2" style={{ fontSize: '0.7rem' }}>⌘K</span>
+                    {/* Search Bar */}
+                    <div className="d-none d-md-flex align-items-center">
+                        <div className="search-input-pill d-flex align-items-center rounded-pill px-3 py-1 bg-light border">
+                            <i className="bx bx-search fs-5 text-muted me-2"></i>
+                            <input type="text" className="bg-transparent border-0 outline-none me-2 fs-6" placeholder="Search events, tickets..." style={{ outline: 'none' }} />
+                            <span className="badge bg-white text-muted border py-1 px-2 rounded-2" style={{ fontSize: '0.65rem' }}>⌘K</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Right Utilities */}
-                <div className="navbar-nav-right d-flex align-items-center gap-3 ms-auto" id="navbar-collapse">
+                {/* Right Utilities pushed completely to the right */}
+                <div className="navbar-nav-right d-flex align-items-center gap-3 gap-md-4 ms-auto justify-content-end" id="navbar-collapse">
                     {/* Dark / Light Mode Switcher */}
                     <div className="nav-item dropdown-style-switcher dropdown">
-                        <a className="nav-link dropdown-toggle hide-arrow cursor-pointer" data-bs-toggle="dropdown">
+                        <a className="nav-link dropdown-toggle hide-arrow cursor-pointer p-2 rounded-circle text-secondary hover-bg-light" data-bs-toggle="dropdown">
                             <i className={`bx fs-4 ${theme === 'dark' ? 'bx-moon' : 'bx-sun'}`}></i>
                         </a>
-                        <ul className="dropdown-menu dropdown-menu-end">
+                        <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                             <li>
-                                <a className="dropdown-item cursor-pointer" onClick={handleThemeChange} data-theme="light">
-                                    <span className="align-middle"><i className="bx bx-sun me-2"></i>Light</span>
+                                <a className="dropdown-item cursor-pointer d-flex align-items-center py-2" onClick={handleThemeChange} data-theme="light">
+                                    <i className="bx bx-sun me-2 fs-5"></i>Light
                                 </a>
                             </li>
                             <li>
-                                <a className="dropdown-item cursor-pointer" onClick={handleThemeChange} data-theme="dark">
-                                    <span className="align-middle"><i className="bx bx-moon me-2"></i>Dark</span>
+                                <a className="dropdown-item cursor-pointer d-flex align-items-center py-2" onClick={handleThemeChange} data-theme="dark">
+                                    <i className="bx bx-moon me-2 fs-5"></i>Dark
                                 </a>
                             </li>
                         </ul>
                     </div>
 
                     {/* Language Selector */}
-                    <div className="d-flex align-items-center gap-2 cursor-pointer">
-                        <i className="bx bx-globe"></i>
+                    <div className="d-flex align-items-center gap-1 text-secondary px-2 py-1 rounded cursor-pointer fs-7 fw-medium border">
+                        <i className="bx bx-globe fs-5"></i>
                         <span>ID</span>
-                        <span className="text-muted">|</span>
-                        <span>EN</span>
+                        <span className="text-muted opacity-50">|</span>
+                        <span className="text-muted">EN</span>
                     </div>
 
                     {/* NOTIFICATION */}
@@ -142,64 +143,58 @@ const Navbar: React.FC = () => {
                     {router.pathname === '/dashboard' && (
                         <Link
                             href="/event/create"
-                            className="btn btn-primary btn-sm d-flex align-items-center gap-1 px-3 py-2"
+                            className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 px-3 py-2 fw-semibold rounded-2 shadow-sm"
                         >
                             <i className="bx bx-plus fs-5"></i>
                             <span>Create Event</span>
-                            <i
-                                className="bx bx-chevron-down ms-1"
-                                style={{ fontSize: '0.8rem' }}
-                            ></i>
                         </Link>
                     )}
 
                     {/* User Profile Menu */}
-                    <li className="nav-item navbar-dropdown dropdown-user dropdown list-unstyled">
-                        <a className="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
+                    <div className="nav-item navbar-dropdown dropdown-user dropdown list-unstyled">
+                        <a className="nav-link dropdown-toggle hide-arrow p-0 d-flex align-items-center gap-2 cursor-pointer" data-bs-toggle="dropdown">
                             <div className="avatar avatar-online">
-                                <div className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" style={{ width: '38px', height: '38px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', fontSize: '0.95rem' }}>
+                                <div className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', fontSize: '0.9rem' }}>
                                     {username ? username.charAt(0).toUpperCase() : 'A'}
                                 </div>
                             </div>
+                            <div className="d-none d-lg-block text-start lh-sm">
+                                <span className="fw-semibold d-block fs-7 text-dark">{username || 'Admin'}</span>
+                                <small className="text-muted fs-8" style={{ fontSize: '0.75rem' }}>{fullname || 'Event Organizer'}</small>
+                            </div>
                         </a>
-                        <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0">
-                            <li>
-                                <a className="dropdown-item" href="#">
-                                    <div className="d-flex">
-                                        <div className="flex-shrink-0 me-3">
-                                            <div className="avatar avatar-online">
-                                                <div className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '38px', height: '38px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
-                                                    {username ? username.charAt(0).toUpperCase() : 'A'}
-                                                </div>
+                        <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 py-2">
+                            <li className="px-3 py-2">
+                                <div className="d-flex align-items-center">
+                                    <div className="flex-shrink-0 me-3">
+                                        <div className="avatar avatar-online">
+                                            <div className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
+                                                {username ? username.charAt(0).toUpperCase() : 'A'}
                                             </div>
                                         </div>
-                                        <div className="flex-grow-1">
-                                            <span className="fw-bold d-block lh-1">{username || 'Admin'}</span>
-                                            <small className="text-muted">{fullname || 'Event Organizer'}</small>
-                                        </div>
                                     </div>
-                                </a>
+                                    <div className="flex-grow-1">
+                                        <span className="fw-bold d-block fs-6 mb-0 text-dark">{username || 'Admin'}</span>
+                                        <small className="text-muted">{fullname || 'Event Organizer'}</small>
+                                    </div>
+                                </div>
                             </li>
+                            <li><hr className="dropdown-divider my-2" /></li>
                             <li>
-                                <div className="dropdown-divider"></div>
-                            </li>
-                            <li>
-                                <Link className="dropdown-item" href="/settings">
-                                    <i className="bx bx-user me-2"></i>
-                                    <span className="align-middle">Organization Profile</span>
+                                <Link className="dropdown-item d-flex align-items-center py-2" href="/settings">
+                                    <i className="bx bx-user me-2 fs-5"></i>
+                                    <span>Organization Profile</span>
                                 </Link>
                             </li>
+                            <li><hr className="dropdown-divider my-2" /></li>
                             <li>
-                                <div className="dropdown-divider"></div>
-                            </li>
-                            <li>
-                                <a className="dropdown-item cursor-pointer text-danger" onClick={logout}>
-                                    <i className="bx bx-power-off me-2"></i>
-                                    <span className="align-middle">Log Out</span>
+                                <a className="dropdown-item cursor-pointer text-danger d-flex align-items-center py-2" onClick={logout}>
+                                    <i className="bx bx-power-off me-2 fs-5"></i>
+                                    <span>Log Out</span>
                                 </a>
                             </li>
                         </ul>
-                    </li>
+                    </div>
                 </div>
             </div>
         </nav>

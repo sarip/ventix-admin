@@ -175,6 +175,11 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->put('userticket/(:num)', 'UserTicketController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('userticket/(:num)', 'UserTicketController::delete/$1', ['filter' => 'PermissionFilter']);
 
+    // CHECKIN & TICKET QR API
+    $routes->get('tickets/(:num)/qr', 'CheckinController::generateQr/$1', ['filter' => 'tokenFilter']);
+    $routes->post('checkin/scan', 'CheckinController::scan', ['filter' => 'tokenFilter']);
+    $routes->get('checkin/dashboard', 'CheckinController::dashboard', ['filter' => 'tokenFilter']);
+
     $routes->get('event_ticket', 'EventTicketController::index', ['filter' => 'PermissionFilter']);
     $routes->get('event_ticket/find', 'EventTicketController::find', ['filter' => 'PermissionFilter']);
     $routes->post('eventticket', 'EventTicketController::create', ['filter' => 'PermissionFilter']);
@@ -397,6 +402,22 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->put('facilitiesorganizer/(:num)', 'FacilitiesOrganizerController::update/$1', ['filter' => 'PermissionFilter']);
     $routes->delete('facilitiesorganizer/(:num)', 'FacilitiesOrganizerController::delete/$1', ['filter' => 'PermissionFilter']);
     $routes->post('facilitiesorganizer/(:num)/verify', 'FacilitiesOrganizerController::verify/$1', ['filter' => 'PermissionFilter']);
+
+    // CERTIFICATE MANAGEMENT SYSTEM
+    $routes->get('certificate-templates', 'CertificateTemplateController::index', ['filter' => 'PermissionFilter']);
+    $routes->get('certificate-templates/(:num)', 'CertificateTemplateController::show/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('certificate-templates', 'CertificateTemplateController::create', ['filter' => 'PermissionFilter']);
+    $routes->post('certificate-templates/(:num)', 'CertificateTemplateController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->put('certificate-templates/(:num)', 'CertificateTemplateController::update/$1', ['filter' => 'PermissionFilter']);
+    $routes->delete('certificate-templates/(:num)', 'CertificateTemplateController::delete/$1', ['filter' => 'PermissionFilter']);
+
+    $routes->get('certificates', 'CertificateController::index', ['filter' => 'tokenFilter']);
+    $routes->get('certificates/event/(:num)/participants', 'CertificateController::participants/$1', ['filter' => 'PermissionFilter']);
+    $routes->post('certificates/generate', 'CertificateController::generate', ['filter' => 'PermissionFilter']);
+    $routes->post('certificates/generate-bulk', 'CertificateController::generateBulk', ['filter' => 'PermissionFilter']);
+    $routes->get('certificates/(:num)/download', 'CertificateController::download');
+    $routes->post('certificates/(:num)/send', 'CertificateController::send', ['filter' => 'tokenFilter']);
+    $routes->get('certificates/verify/(:any)', 'CertificateController::verify/$1');
 
     // OTHER API REQUEST //
 

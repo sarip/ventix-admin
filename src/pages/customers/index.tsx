@@ -187,21 +187,39 @@ const CustomersPage: React.FC = () => {
                 {/* Main Customer Table */}
                 <Col xl={selectedCustomer ? 8 : 12}>
                     <Card className="border-0 shadow-sm rounded-4 p-3 bg-white">
-                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                            <div className="nav nav-pills bg-light rounded-pill p-1" style={{ fontSize: '0.78rem' }}>
-                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'all' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('all')}>All Customers</button>
-                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'top' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('top')}>Top Customers</button>
-                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'new' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('new')}>New Customers</button>
-                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'repeat' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('repeat')}>Repeat Customers</button>
-                            </div>
+                        <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1.05rem' }}>Customer List</h6>
                             <div className="d-flex align-items-center gap-2">
-                                <div className="position-relative" style={{ width: '220px' }}>
-                                    <i className="bx bx-search position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" style={{ fontSize: '0.85rem' }}></i>
-                                    <input type="text" className="form-control form-control-sm ps-4 bg-light border-0" placeholder="Search name, email, or phone..." style={{ fontSize: '0.78rem' }} />
+                                <div className="position-relative" style={{ width: '200px' }}>
+                                    <i className="bx bx-search position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted" style={{ fontSize: '0.9rem' }}></i>
+                                    <input type="text" className="form-control form-control-sm ps-4 bg-light border-0" placeholder="Search name, email, phone..." style={{ fontSize: '0.8rem', borderRadius: '6px' }} />
                                 </div>
-                                <button className="btn btn-sm btn-light border text-muted px-2 py-1" style={{ fontSize: '0.78rem' }}><i className="bx bx-filter me-1"></i> Filter</button>
-                                <button className="btn btn-sm btn-light border text-muted px-2 py-1" style={{ fontSize: '0.78rem' }}><i className="bx bx-export me-1"></i> Export</button>
+                                <button className="btn btn-sm btn-light border text-secondary px-2.5 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', borderRadius: '6px' }}><i className="bx bx-filter fs-6"></i> Filter</button>
+                                <button className="btn btn-sm btn-light border text-secondary px-2.5 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', borderRadius: '6px' }}><i className="bx bx-export fs-6"></i> Export</button>
                             </div>
+                        </div>
+
+                        {/* Clean Underline Tabs */}
+                        <div className="d-flex align-items-center gap-4 mb-3 border-bottom overflow-x-auto" style={{ fontSize: '0.875rem' }}>
+                            {[
+                                { id: 'all', label: 'All Customers' },
+                                { id: 'top', label: 'Top Customers' },
+                                { id: 'new', label: 'New Customers' },
+                                { id: 'repeat', label: 'Repeat Customers' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    className={`btn btn-link text-decoration-none px-0 py-2 border-0 fw-semibold cursor-pointer text-nowrap ${activeTab === tab.id ? 'text-primary border-bottom border-2 border-primary' : 'text-secondary opacity-75 hover-opacity-100'}`}
+                                    style={{
+                                        borderRadius: 0,
+                                        marginBottom: '-1px',
+                                        fontSize: '0.85rem'
+                                    }}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
 
                         <div className="table-responsive">

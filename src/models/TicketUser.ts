@@ -17,6 +17,9 @@ export interface InTicketUser {
     guest_phone: string | null;
     event_ticket_id: number;
     ticket_code: string;
+    qr_token?: string | null;
+    qr_generated_at?: string | null;
+    check_in_device?: string | null;
     status: 'VALID' | 'USED' | 'CANCELLED';
     check_in_at: string | null;
     check_in_by: number | null;
@@ -61,5 +64,4 @@ class TicketUser {
     }
 }
 
-export type { InTicketUser };
 export { TicketUser };
