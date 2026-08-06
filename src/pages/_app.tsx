@@ -98,7 +98,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     );
 
     return (
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '921327824272-fpgijp0qov8rhilfb8cd4gn8vms4mcp4.apps.googleusercontent.com'}>
             {noLayoutPages.includes(router.pathname) ? (
                 renderComponent
             ) : (

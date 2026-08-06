@@ -9,43 +9,23 @@ import Axios from 'axios';
 import { useRouter } from 'next/router';
 import { showToast } from '@/utils/toast';
 import Link from "next/link";
-import { deleteCookie, setCookie } from "cookies-next";
 import NotificationPopup from '@/components/NotificationPopup';
 import { getCookie } from 'cookies-next';
-
 
 const Navbar: React.FC = () => {
     const router = useRouter();
     const [theme, setTheme] = useState<string>('light');
     const [isClient, setIsClient] = useState<boolean>(false);
-
-    // const changeTheme = (newTheme: string) => {
-    //     setTheme(newTheme);
-    //     localStorage.setItem('theme', newTheme);
-    //     localStorage.setItem('templateCustomizer-vertical-menu-template-starter--Style', newTheme);
-    //     document.documentElement.setAttribute('data-theme', newTheme);
-    // };
-    //
-    // const handleThemeChange = (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-    //     event.preventDefault();
-    //     const newTheme = event.currentTarget.getAttribute('data-theme');
-    //     if (newTheme) {
-    //         changeTheme(newTheme);
-    //     }
-    // };
-    //
-    // useEffect(() => {
-    //     setIsClient(true);
-    //     const currentTheme = localStorage.getItem('theme') || 'light';
-    //     setTheme(currentTheme);
-    //     document.documentElement.setAttribute('data-theme', currentTheme);
-    // }, []);
+    const [username, setUsername] = useState<string>('');
+    const [fullname, setFullname] = useState<string>('');
 
     useEffect(() => {
         setIsClient(true);
         const currentTheme = localStorage.getItem('theme') || 'light';
         setTheme(currentTheme);
         document.documentElement.setAttribute('data-theme', currentTheme);
+        setUsername(localStorage.getItem('username') || '');
+        setFullname(localStorage.getItem('fullname') || '');
     }, []);
 
     useEffect(() => {
@@ -67,155 +47,162 @@ const Navbar: React.FC = () => {
         }
     };
 
-
     const logout = () => {
         if (!localStorage.getItem('key')) {
-            router.push('/login')
+            router.push('/login');
         } else {
-
             let key = localStorage.getItem('key');
-            let api_url = process.env.NEXT_PUBLIC_BASE_URL + "logout";
+            let api_url = (process.env.NEXT_PUBLIC_BASE_URL || '') + "logout";
             Axios.get(api_url, {
-
                 headers: {
                     "Content-Type": "application/json",
                     key
                 }
-            }).then((resp) => {
+            }).then(() => {
                 showToast('Logout berhasil, silahkan tunggu ...', 'success');
                 localStorage.removeItem('key');
                 localStorage.removeItem('fullname');
                 localStorage.removeItem('username');
-                // deleteCookie('id');
-                // deleteCookie('username');
-                // deleteCookie('fullname');
-                // deleteCookie('email');
-                // deleteCookie('role');
                 setTimeout(() => {
-                    // window.location.href = '/login';
-                    router.push('/login')
-                }, 2000)
-
-            })
+                    router.push('/login');
+                }, 2000);
+            }).catch(() => {
+                localStorage.removeItem('key');
+                router.push('/login');
+            });
         }
-        console.log({ 'logout': 'true' });
-    }
-
-
+    };
 
     const [userId, setUserId] = useState<number | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
-        // Get user ID dan token dari cookies/localStorage
         const id = getCookie('id');
         const key = localStorage.getItem('key');
-
         if (id) setUserId(Number(id));
         if (key) setToken(key);
     }, []);
 
-
     return (
-        <nav className="layout-navbar navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
-            <div className="container-xxl">
-                <div className="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-                    <a className="nav-item nav-link px-0 me-xl-4" href="">
-                        <i className="bx bx-menu bx-sm"></i>
-                    </a>
-                </div>
-                <div className="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
-                    <div className="navbar-nav align-items-center">
-                        <div className="nav-item dropdown-style-switcher dropdown me-2 me-xl-0">
-                            <a className="nav-link dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                <i className={`bx bx-sm ${theme === 'dark' ? 'bx-moon' : 'bx-sun'}`}></i>
-                            </a>
-                            <ul className="dropdown-menu dropdown-menu-start dropdown-styles">
-                                <li>
-                                    <a className="dropdown-item" onClick={handleThemeChange} data-theme="light">
-                                        <span className="align-middle"><i className="bx bx-sun me-2"></i>Light</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="dropdown-item" onClick={handleThemeChange} data-theme="dark">
-                                        <span className="align-middle"><i className="bx bx-moon me-2"></i>Dark</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="dropdown-item" onClick={handleThemeChange} data-theme="system">
-                                        <span className="align-middle"><i className="bx bx-sm bx-desktop me-2"></i>System</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+        <nav className="layout-navbar navbar navbar-expand-xl align-items-center bg-white border-bottom px-4 py-2" id="layout-navbar" style={{ height: '70px' }}>
+            <div className="container-fluid d-flex align-items-center justify-content-between px-0">
+                <div className="d-flex align-items-center gap-3">
+                    <div className="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+                        <a className="nav-item nav-link px-0 me-xl-4" href="#" onClick={(e) => e.preventDefault()}>
+                            <i className="bx bx-menu bx-sm"></i>
+                        </a>
                     </div>
-                    <ul className="navbar-nav flex-row align-items-center ms-auto">
-                        {/* NOTIFICATION */}
-                        <NotificationPopup
-                            userId={userId}
-                            token={token}
-                        />
-                        <li className="nav-item navbar-dropdown dropdown-user dropdown">
-                            <a className="nav-link dropdown-toggle hide-arrow" href="" data-bs-toggle="dropdown">
-                                <div className="avatar avatar-online">
-                                    <img src="/assets/img/avatars/1.png" alt="profile" className="rounded-circle" />
+                </div>
+
+                {/* Search Bar in Middle */}
+                <div className="d-none d-md-flex align-items-center ms-3">
+                    <div className="search-input-pill">
+                        <i className="bx bx-search fs-5 text-muted"></i>
+                        <input type="text" placeholder="Search events, tickets, customers..." />
+                        <span className="badge bg-light text-muted border py-1 px-2" style={{ fontSize: '0.7rem' }}>⌘K</span>
+                    </div>
+                </div>
+
+                {/* Right Utilities */}
+                <div className="navbar-nav-right d-flex align-items-center gap-3 ms-auto" id="navbar-collapse">
+                    {/* Dark / Light Mode Switcher */}
+                    <div className="nav-item dropdown-style-switcher dropdown">
+                        <a className="nav-link dropdown-toggle hide-arrow cursor-pointer" data-bs-toggle="dropdown">
+                            <i className={`bx fs-4 ${theme === 'dark' ? 'bx-moon' : 'bx-sun'}`}></i>
+                        </a>
+                        <ul className="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a className="dropdown-item cursor-pointer" onClick={handleThemeChange} data-theme="light">
+                                    <span className="align-middle"><i className="bx bx-sun me-2"></i>Light</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a className="dropdown-item cursor-pointer" onClick={handleThemeChange} data-theme="dark">
+                                    <span className="align-middle"><i className="bx bx-moon me-2"></i>Dark</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* Language Selector */}
+                    <div className="d-flex align-items-center gap-2 cursor-pointer">
+                        <i className="bx bx-globe"></i>
+                        <span>ID</span>
+                        <span className="text-muted">|</span>
+                        <span>EN</span>
+                    </div>
+
+                    {/* NOTIFICATION */}
+                    <NotificationPopup
+                        userId={userId}
+                        token={token}
+                    />
+
+                    {/* Create Event Quick Button */}
+                    {router.pathname === '/dashboard' && (
+                        <Link
+                            href="/event/create"
+                            className="btn btn-primary btn-sm d-flex align-items-center gap-1 px-3 py-2"
+                        >
+                            <i className="bx bx-plus fs-5"></i>
+                            <span>Create Event</span>
+                            <i
+                                className="bx bx-chevron-down ms-1"
+                                style={{ fontSize: '0.8rem' }}
+                            ></i>
+                        </Link>
+                    )}
+
+                    {/* User Profile Menu */}
+                    <li className="nav-item navbar-dropdown dropdown-user dropdown list-unstyled">
+                        <a className="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
+                            <div className="avatar avatar-online">
+                                <div className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" style={{ width: '38px', height: '38px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', fontSize: '0.95rem' }}>
+                                    {username ? username.charAt(0).toUpperCase() : 'A'}
                                 </div>
-                            </a>
-                            <ul className="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a className="dropdown-item" href="#">
-                                        <div className="d-flex">
-                                            <div className="flex-shrink-0 me-3">
-                                                <div className="avatar avatar-online">
-                                                    <img src="/assets/img/avatars/1.png" alt="profile" className="rounded-circle" />
+                            </div>
+                        </a>
+                        <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                            <li>
+                                <a className="dropdown-item" href="#">
+                                    <div className="d-flex">
+                                        <div className="flex-shrink-0 me-3">
+                                            <div className="avatar avatar-online">
+                                                <div className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '38px', height: '38px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
+                                                    {username ? username.charAt(0).toUpperCase() : 'A'}
                                                 </div>
                                             </div>
-                                            <div className="flex-grow-1">
-                                                <span className="fw-medium d-block lh-1">{localStorage.getItem('username')}</span>
-                                                <small>{localStorage.getItem('fullname')}</small>
-                                            </div>
                                         </div>
-                                    </a>
-                                </li>
-                                <li>
-                                    <div className="dropdown-divider"></div>
-                                </li>
-                                <li>
-                                    <Link className="dropdown-item" href="/profile">
-                                        <i className="bx bx-user me-2"></i>
-                                        <span className="align-middle">My Profile</span>
-                                    </Link>
-                                </li>
-                                {/*<li>*/}
-                                {/*    <a className="dropdown-item" href="#">*/}
-                                {/*        <i className="bx bx-cog me-2"></i>*/}
-                                {/*        <span className="align-middle">Settings</span>*/}
-                                {/*    </a>*/}
-                                {/*</li>*/}
-                                {/*<li>*/}
-                                {/*    <a className="dropdown-item" href="#">*/}
-                                {/*        <span className="d-flex align-items-center align-middle">*/}
-                                {/*          <i className="flex-shrink-0 bx bx-credit-card me-2"></i>*/}
-                                {/*          <span className="flex-grow-1 align-middle">Billing</span>*/}
-                                {/*          <span className="flex-shrink-0 badge badge-center rounded-pill bg-danger w-px-20 h-px-20">4</span>*/}
-                                {/*        </span>*/}
-                                {/*    </a>*/}
-                                {/*</li>*/}
-                                <li>
-                                    <div className="dropdown-divider"></div>
-                                </li>
-                                <li>
-                                    <a className="dropdown-item" onClick={logout}>
-                                        <i className="bx bx-power-off me-2"></i>
-                                        <span className="align-middle">Log Out</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
+                                        <div className="flex-grow-1">
+                                            <span className="fw-bold d-block lh-1">{username || 'Admin'}</span>
+                                            <small className="text-muted">{fullname || 'Event Organizer'}</small>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <div className="dropdown-divider"></div>
+                            </li>
+                            <li>
+                                <Link className="dropdown-item" href="/settings">
+                                    <i className="bx bx-user me-2"></i>
+                                    <span className="align-middle">Organization Profile</span>
+                                </Link>
+                            </li>
+                            <li>
+                                <div className="dropdown-divider"></div>
+                            </li>
+                            <li>
+                                <a className="dropdown-item cursor-pointer text-danger" onClick={logout}>
+                                    <i className="bx bx-power-off me-2"></i>
+                                    <span className="align-middle">Log Out</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </div>
             </div>
-        </nav >
+        </nav>
     );
 };
 

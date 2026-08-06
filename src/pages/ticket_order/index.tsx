@@ -1,429 +1,342 @@
 /**
- * @author Sarip Hidayat <hidayatsarip2210@gmail.com>
- * @copyright Sarip Hidayat 2024
- * @date 2026-01-14
+ * EO Orders Management Page - PDF Page 4 High Fidelity Implementation
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Badge, Button } from 'react-bootstrap';
-import Swal from 'sweetalert2';
-import useBlockUI from '@/pages/_components/useBlockUI';
-import Pagination from '@/pages/_components/Pagination';
-import { TicketOrder, InTicketOrder, InOrderItem } from '@/models/TicketOrder';
-import { showToast } from '@/utils/toast';
-import TicketOrderForm from './_form';
-import Filter, { QueryParamsProps } from "./_filter";
-import BookingSource from '../_components/BookingSource';
-
-interface PaginationProps {
-    current_page: number;
-    total: number;
-    filtered_total: number;
-    page_count: number;
-    per_page: number;
-}
-
-interface ValidationErrorProps {
-    field: string;
-    message: string;
-}
+import React, { useState } from 'react';
+import { Card, Row, Col, Table, Form, Button } from 'react-bootstrap';
 
 const TicketOrderPage: React.FC = () => {
-    const { blockUI, unblockUI } = useBlockUI();
-    const [orders, setOrders] = useState<InTicketOrder[]>([]);
-    const [pagination, setPagination] = useState<PaginationProps | null>(null);
-    const [currentPage, setCurrentPage] = useState<number>(1);
-    const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-    const [pageCount, setPageCount] = useState<number>(0);
-    const [lastQuery, setLastQuery] = useState<any>({});
-    const [sortBy, setSortBy] = useState<string>('created_at');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [searchQuery, setSearchQuery] = useState<string>('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
-    const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-    const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState<Partial<InTicketOrder>>({
-        user_id: 0,
-        guest_name: null,
-        guest_email: null,
-        guest_phone: null,
-        order_source: 'MEMBER',
-        subtotal_amount: '',
-        admin_fee_amount: '',
-        order_code: '',
-        total_amount: '0',
-        status: '',
-        payment_method: '',
-        order_items: []
+    const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'pending' | 'failed' | 'cancelled' | 'refunded'>('all');
+    const [selectedOrder, setSelectedOrder] = useState<any>({
+        order_id: "#VTX-001248",
+        status: "Paid",
+        order_date: "18 May 2026, 14:32",
+        payment_time: "18 May 2026, 14:33",
+        customer_name: "Dinda Kharisma",
+        customer_email: "dinda.k@email.com",
+        customer_phone: "+62 812-3456-7890",
+        event_name: "Summer Music Festival 2026",
+        event_date: "20 Dec 2026",
+        event_venue: "ICE BSD City, Tangerang",
+        event_image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150&auto=format&fit=crop&q=80",
+        tickets: "2 x VIP Pass",
+        items_subtotal: "Rp 700.000",
+        admin_fee: "Rp 10.000",
+        total_paid: "Rp 710.000",
+        payment_method: "Midtrans",
+        transaction_id: "SNAP-20260518-143312"
     });
-    const [validationError, setValidationError] = useState<ValidationErrorProps[]>([]);
-    const TicketOrderModel = new TicketOrder();
 
-    const handleSort = (column: string) => {
-        if (sortBy === column) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(column);
-            setSortOrder('asc');
+    const ordersList = [
+        {
+            id: "#VTX-001248",
+            customer: "Dinda Kharisma",
+            email: "dinda.k@email.com",
+            event: "Summer Music Festival 2026",
+            date: "20 Dec 2026 • ICE BSD City",
+            tickets: "2 x VIP Pass",
+            amount: "Rp 700.000",
+            method: "Midtrans",
+            status: "Paid",
+            order_date: "18 May 2026 14:32"
+        },
+        {
+            id: "#VTX-001247",
+            customer: "Rizky Pratama",
+            email: "rizky.p@email.com",
+            event: "Summer Music Festival 2026",
+            date: "20 Dec 2026 • ICE BSD City",
+            tickets: "1 x Regular Pass",
+            amount: "Rp 175.000",
+            method: "QRIS",
+            status: "Paid",
+            order_date: "18 May 2026 14:21"
+        },
+        {
+            id: "#VTX-001246",
+            customer: "Sarah Wijaya",
+            email: "sarah.w@email.com",
+            event: "Tech Summit Indonesia 2026",
+            date: "07 Jun 2026 • ICE BSD City",
+            tickets: "3 x Early Bird",
+            amount: "Rp 375.000",
+            method: "VA BCA",
+            status: "Pending",
+            order_date: "18 May 2026 14:15"
+        },
+        {
+            id: "#VTX-001245",
+            customer: "Andi Setiawan",
+            email: "andi.s@email.com",
+            event: "Art & Culture Expo",
+            date: "21 Jun 2026 • Taman Ismail Marzuki",
+            tickets: "2 x Regular Pass",
+            amount: "Rp 350.000",
+            method: "Credit Card",
+            status: "Paid",
+            order_date: "18 May 2026 13:48"
+        },
+        {
+            id: "#VTX-001244",
+            customer: "Maya Febriani",
+            email: "maya.f@email.com",
+            event: "Summer Music Festival 2026",
+            date: "20 Dec 2026 • ICE BSD City",
+            tickets: "1 x VIP Pass",
+            amount: "Rp 350.000",
+            method: "E-Wallet",
+            status: "Failed",
+            order_date: "18 May 2026 13:30"
+        },
+        {
+            id: "#VTX-001243",
+            customer: "Fajar Ramadhan",
+            email: "fajar.r@email.com",
+            event: "Tech Summit Indonesia 2026",
+            date: "07 Jun 2026 • ICE BSD City",
+            tickets: "1 x Regular Pass",
+            amount: "Rp 175.000",
+            method: "VA Mandiri",
+            status: "Refunded",
+            order_date: "18 May 2026 12:58"
         }
-    };
-
-    const getSortIcon = (column: string) => {
-        if (sortBy !== column) return <i className="bx bx-sort ms-1"></i>;
-        return sortOrder === 'asc'
-            ? <i className="bx bx-sort-up ms-1"></i>
-            : <i className="bx bx-sort-down ms-1"></i>;
-    };
-
-    const loadOrders = async (query: QueryParamsProps = {}) => {
-        if (isInitialLoad) blockUI();
-        try {
-            query.page = currentPage;
-            query.sort_by = sortBy + ':' + sortOrder;
-            const response = await TicketOrderModel.list(query);
-            setLastQuery(query);
-            setOrders(response.orders || []);
-            setPagination(response.pagination);
-            setPageCount(response.pagination.page_count);
-        } catch (error) {
-            showToast('Failed to load orders', 'error');
-        } finally {
-            if (isInitialLoad) {
-                unblockUI();
-                setIsInitialLoad(false);
-            }
-        }
-    };
-
-    const create = () => {
-        setFormData({
-            user_id: 0,
-            guest_name: null,
-            guest_email: null,
-            guest_phone: null,
-            order_source: 'MEMBER',
-            subtotal_amount: '',
-            admin_fee_amount: '',
-            order_code: '',
-            total_amount: '0',
-            status: 'pending',
-            payment_method: '',
-            order_items: []
-        });
-        setValidationError([]);
-        setShowForm(true);
-    };
-
-    const update = (order: InTicketOrder) => {
-        const order_items = order.order_item?.map(row => {
-            const event_id = row?.event_ticket?.event_id;
-
-            delete row.event_ticket; // ❗ cara benar hapus properti
-
-            row.event_id = event_id;
-            return row;
-        });
-
-
-
-        setFormData({
-            ...order,
-            status: order.status,
-            order_items: order_items || [],
-        });
-        setValidationError([]);
-        setShowForm(true);
-    };
-
-    const save = useCallback(async (data: Partial<InTicketOrder>) => {
-        try {
-            if (data.id) {
-                await TicketOrderModel.update(data.id, data);
-            } else {
-                await TicketOrderModel.create(data);
-            }
-            showToast(`Order successfully ${data.id ? 'updated' : 'created'}`, 'success');
-            setShowForm(false);
-            loadOrders(lastQuery);
-        } catch (error: any) {
-            let lines = error.message.trim().split('\n');
-            let result: ValidationErrorProps[] = lines.map((line: string) => {
-                let [field, ...message] = line.split(' ');
-                return { field, message: message.join(' ') };
-            });
-            setValidationError(result);
-        }
-    }, [TicketOrderModel, lastQuery, loadOrders]);
-
-    const remove = async (id: number) => {
-        Swal.fire({
-            title: "Are you sure?",
-            text: "Once deleted, you will not be able to recover this order",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Yes, delete it!",
-            cancelButtonText: "Cancel",
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                const response = await TicketOrderModel.delete(id);
-                if (response.success) {
-                    showToast("Order successfully deleted", "success");
-                    loadOrders(lastQuery);
-                }
-            }
-        });
-    };
-
-    const toggleRow = (id: number) => {
-        const newExpanded = new Set(expandedRows);
-        if (newExpanded.has(id)) {
-            newExpanded.delete(id);
-        } else {
-            newExpanded.add(id);
-        }
-        setExpandedRows(newExpanded);
-    };
-
-    const formatCurrency = (amount: string | number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(Number(amount));
-    };
-
-    const formatDate = (date: string) => {
-        return new Date(date).toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const getStatusBadge = (status: string) => {
-        const statusMap: { [key: string]: string } = {
-            pending: 'warning',
-            paid: 'success',
-            cancelled: 'danger',
-            refunded: 'secondary'
-        };
-        return <Badge bg={statusMap[status.toLowerCase()] || 'secondary'}>{status}</Badge>;
-    };
-
-    useEffect(() => {
-        if (!isInitialLoad) loadOrders(lastQuery);
-    }, [currentPage]);
-
-    useEffect(() => {
-        if (!isInitialLoad) loadOrders(lastQuery);
-    }, [sortBy, sortOrder]);
+    ];
 
     return (
-        <>
-            <div className=" container-p-y">
-                <h4 className="py-2 breadcrumb-wrapper mb-0">Orders</h4>
-                Manage your Order
+        <div className="py-3 px-1">
+            {/* HEADER */}
+            <div className="mb-3">
+                <h4 className="fw-extrabold text-dark mb-1" style={{ fontSize: '1.45rem' }}>Orders</h4>
+                <p className="text-muted small mb-0">Kelola semua pesanan tiket dan pantau status pembayaran pelanggan.</p>
             </div>
-            <Filter onSubmit={loadOrders} />
-            <div className="card mt-2">
-                <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
-                    <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
-                        <Button variant="primary" onClick={create}>
-                            <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
-                            <span className="d-none d-sm-inline-block">Add Data</span>
-                        </Button>
-                    </div>
-                </h5>
 
-                {/* TABLE */}
-                <div className="table-responsive">
-                    <table className="table table-hover">
-                        <thead className="table-light">
-                            <tr>
-                                <th style={{ width: '50px' }}></th>
-                                <th style={{ width: '100px' }}>Actions</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('order_code')}>Order Code {getSortIcon('order_code')}</th>
-                                <th>User</th>
-                                <th>Source</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('total_amount')}>Total Amount {getSortIcon('total_amount')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('payment_method')}>Payment Method {getSortIcon('payment_method')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>Status {getSortIcon('status')}</th>
-                                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>Date {getSortIcon('created_at')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="text-center py-4 text-muted">
-                                        <i className="bx bx-info-circle bx-lg mb-2 d-block"></i>
-                                        No orders found
-                                    </td>
-                                </tr>
-                            ) : (
-                                orders.map((order, index) => (
-                                    <React.Fragment key={order.id}>
-                                        <tr>
-                                            <td>
-                                                <button
-                                                    className="btn btn-sm btn-link p-0"
-                                                    onClick={() => toggleRow(order.id)}
-                                                >
-                                                    <i className={`bx ${expandedRows.has(order.id) ? 'bx-chevron-down' : 'bx-chevron-right'}`}></i>
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div className="d-flex gap-1">
-                                                    <button className="btn btn-sm btn-icon btn-warning" onClick={() => update(order)} title="Edit">
-                                                        <i className="bx bx-edit"></i>
-                                                    </button>
-                                                    <button className="btn btn-sm btn-icon btn-danger" onClick={() => remove(order.id)} title="Delete">
-                                                        <i className="bx bx-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="font-monospace fw-bold">{order.order_code}</span>
-                                            </td>
-                                            <td>
-                                                <div className="fw-semibold">{order.user?.name || order.guest_name || 'N/A'}</div>
-                                                <small className="text-muted">{order.user?.email || order.guest_email || 'N/A'}</small><br />
-                                                <small className="text-muted">{order.user?.phone || order.guest_phone || 'N/A'}</small>
-                                            </td>
-                                            <td>
-                                                <BookingSource status={order.order_source as string} />
-                                            </td>
-                                            <td className="fw-bold text-primary">
-                                                {formatCurrency(order.total_amount)}
-                                            </td>
-                                            <td>{order.payment_method}</td>
+            {/* 5 METRICS CARDS */}
+            <Row className="g-3 mb-4">
+                <Col xl={2.4} lg={4} md={6}>
+                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                        <Card.Body className="p-2">
+                            <span className="text-muted small fw-semibold uppercase" style={{ fontSize: '0.72rem' }}>Total Orders</span>
+                            <h4 className="fw-extrabold text-dark mt-1 mb-1" style={{ fontSize: '1.3rem' }}>1.248</h4>
+                            <span className="badge bg-success-subtle text-success p-1" style={{ fontSize: '0.68rem' }}>↑ 18.2% vs last 30 days</span>
+                        </Card.Body>
+                    </Card>
+                </Col>
 
-                                            <td dangerouslySetInnerHTML={{
-                                                __html: order.status_badge as string,
-                                            }} />
-                                            <td>
-                                                <small>{formatDate(order.created_at)}</small>
-                                            </td>
-                                        </tr>
-                                        {expandedRows.has(order.id) && order.order_item && (
-                                            <tr>
-                                                <td colSpan={9} className="bg-light">
-                                                    <div className="p-3">
-                                                        <div className="row">
-                                                            <div className="col-md-12">
-                                                                <h6 className="mb-3">
-                                                                    <i className="bx bx-list-ul me-1"></i>
-                                                                    Order Items
-                                                                </h6>
-                                                                <table className="table table-sm table-bordered bg-white shadow-sm">
-                                                                    <thead className="table-light">
-                                                                        <tr>
-                                                                            <th>Event</th>
-                                                                            <th>Ticket</th>
-                                                                            <th>Date</th>
-                                                                            <th>Qty</th>
-                                                                            <th>Price</th>
-                                                                            <th>Subtotal</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {order.order_item.map((item: InOrderItem) => (
-                                                                            <tr key={item.id}>
-                                                                                <td>{item.event_ticket?.event.title}</td>
-                                                                                <td>{item.event_ticket?.name}</td>
-                                                                                <td>{formatDate(item.event_date)}</td>
-                                                                                <td><Badge bg="info">{item.quantity}</Badge></td>
-                                                                                <td>{formatCurrency(item.unit_price)}</td>
-                                                                                <td className="fw-bold">{formatCurrency(item.subtotal)}</td>
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {expandedRows.has(order.id) && (
-                                            <tr>
-                                                <td colSpan={9} className="bg-light border-top-0 pt-0">
-                                                    <div className="px-3 pb-3">
-                                                        <h6 className="mb-2">
-                                                            <i className="bx bx-image me-1"></i>
-                                                            Payment Proof
-                                                        </h6>
-                                                        {order.payment_proof ? (
-                                                            <div>
-                                                                <a href={`/uploads/payment_proof/${order.payment_proof}`} target="_blank" rel="noreferrer">
-                                                                    <img
-                                                                        src={`/uploads/payment_proof/${order.payment_proof}`}
-                                                                        alt="Payment Proof"
-                                                                        style={{
-                                                                            maxHeight: '120px',
-                                                                            borderRadius: '6px',
-                                                                            border: '1px solid #dee2e6',
-                                                                            objectFit: 'cover',
-                                                                            cursor: 'pointer'
-                                                                        }}
-                                                                    />
-                                                                </a>
-                                                                <div className="mt-1">
-                                                                    <small className="text-muted">
-                                                                        <i className="bx bx-link-external me-1"></i>
-                                                                        Click to view full size
-                                                                    </small>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="badge bg-secondary">
-                                                                <i className="bx bx-image-alt me-1"></i>
-                                                                No proof uploaded
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </React.Fragment>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <Col xl={2.4} lg={4} md={6}>
+                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                        <Card.Body className="p-2">
+                            <span className="text-muted small fw-semibold uppercase" style={{ fontSize: '0.72rem' }}>Total Revenue</span>
+                            <h4 className="fw-extrabold text-dark mt-1 mb-1" style={{ fontSize: '1.3rem' }}>Rp 361.650.000</h4>
+                            <span className="badge bg-success-subtle text-success p-1" style={{ fontSize: '0.68rem' }}>↑ 16.7% vs last 30 days</span>
+                        </Card.Body>
+                    </Card>
+                </Col>
 
-                {/* PAGINATION */}
-                {pagination && (
-                    <div className="row mx-2 mt-4">
-                        <div className="col-sm-12 col-md-6">
-                            <div className="dataTables_info" role="status" aria-live="polite">
-                                Found {pagination.filtered_total} of {pagination.total} data,
-                                displaying {orders.length} data
+                <Col xl={2.4} lg={4} md={6}>
+                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                        <Card.Body className="p-2">
+                            <span className="text-muted small fw-semibold uppercase" style={{ fontSize: '0.72rem' }}>Paid Orders</span>
+                            <h4 className="fw-extrabold text-dark mt-1 mb-1" style={{ fontSize: '1.3rem' }}>1.102</h4>
+                            <span className="text-muted" style={{ fontSize: '0.68rem' }}><span className="text-success fw-bold">88.3%</span> dari total orders</span>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col xl={2.4} lg={4} md={6}>
+                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                        <Card.Body className="p-2">
+                            <span className="text-muted small fw-semibold uppercase" style={{ fontSize: '0.72rem' }}>Refunded Orders</span>
+                            <h4 className="fw-extrabold text-dark mt-1 mb-1" style={{ fontSize: '1.3rem' }}>26</h4>
+                            <span className="text-muted" style={{ fontSize: '0.68rem' }}><span className="text-danger fw-bold">2.1%</span> dari total orders</span>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col xl={2.4} lg={4} md={6}>
+                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                        <Card.Body className="p-2">
+                            <span className="text-muted small fw-semibold uppercase" style={{ fontSize: '0.72rem' }}>Pending Orders</span>
+                            <h4 className="fw-extrabold text-dark mt-1 mb-1" style={{ fontSize: '1.3rem' }}>120</h4>
+                            <span className="text-muted" style={{ fontSize: '0.68rem' }}><span className="text-warning fw-bold">9.6%</span> dari total orders</span>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            <Row className="g-4">
+                {/* Main Table Area */}
+                <Col xl={selectedOrder ? 8 : 12}>
+                    <Card className="border-0 shadow-sm rounded-4 p-3 bg-white">
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                            <div className="nav nav-pills bg-light rounded-pill p-1" style={{ fontSize: '0.78rem' }}>
+                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'all' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('all')}>All Orders</button>
+                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'paid' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('paid')}>Paid</button>
+                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'pending' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('pending')}>Pending</button>
+                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'failed' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('failed')}>Failed</button>
+                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'cancelled' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('cancelled')}>Cancelled</button>
+                                <button className={`nav-link border-0 rounded-pill py-1 px-3 ${activeTab === 'refunded' ? 'bg-primary text-white' : 'text-muted'}`} onClick={() => setActiveTab('refunded')}>Refunded</button>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                                <div className="position-relative" style={{ width: '220px' }}>
+                                    <i className="bx bx-search position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" style={{ fontSize: '0.85rem' }}></i>
+                                    <input type="text" className="form-control form-control-sm ps-4 bg-light border-0" placeholder="Search order ID, customer..." style={{ fontSize: '0.78rem' }} />
+                                </div>
+                                <button className="btn btn-sm btn-light border text-muted px-2 py-1" style={{ fontSize: '0.78rem' }}><i className="bx bx-filter me-1"></i> Filter</button>
+                                <button className="btn btn-sm btn-light border text-muted px-2 py-1" style={{ fontSize: '0.78rem' }}><i className="bx bx-export me-1"></i> Export</button>
                             </div>
                         </div>
-                        {pagination.page_count && (
-                            <div className="col-sm-12 col-md-6 d-flex justify-content-end">
-                                <Pagination currentPage={currentPage} pageCount={pagination.page_count} onPageChange={setCurrentPage} />
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
 
-            {/* FORM MODAL */}
-            {showForm && (
-                <TicketOrderForm
-                    title={formData.id ? 'Edit Order' : 'Create Order'}
-                    data={formData}
-                    onHide={() => setShowForm(false)}
-                    onSave={save}
-                    validationError={validationError}
-                />
-            )}
-        </>
+                        <div className="table-responsive">
+                            <Table hover className="align-middle mb-0" style={{ fontSize: '0.82rem' }}>
+                                <thead className="bg-light text-muted uppercase">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Event</th>
+                                        <th>Tickets</th>
+                                        <th>Amount</th>
+                                        <th>Payment</th>
+                                        <th>Status</th>
+                                        <th>Order Date</th>
+                                        <th className="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {ordersList
+                                        .filter(ord => activeTab === 'all' || ord.status.toLowerCase() === activeTab)
+                                        .map((ord) => (
+                                            <tr key={ord.id} className="cursor-pointer" onClick={() => setSelectedOrder({
+                                                order_id: ord.id,
+                                                status: ord.status,
+                                                order_date: ord.order_date,
+                                                payment_time: ord.order_date,
+                                                customer_name: ord.customer,
+                                                customer_email: ord.email,
+                                                customer_phone: "+62 812-3456-7890",
+                                                event_name: ord.event,
+                                                event_date: "20 Dec 2026",
+                                                event_venue: "ICE BSD City",
+                                                event_image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150&auto=format&fit=crop&q=80",
+                                                tickets: ord.tickets,
+                                                items_subtotal: ord.amount,
+                                                admin_fee: "Rp 10.000",
+                                                total_paid: ord.amount,
+                                                payment_method: ord.method,
+                                                transaction_id: "SNAP-20260518"
+                                            })}>
+                                                <td className="fw-bold text-primary">{ord.id}</td>
+                                                <td>
+                                                    <div className="fw-bold text-dark">{ord.customer}</div>
+                                                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>{ord.email}</div>
+                                                </td>
+                                                <td>
+                                                    <div className="fw-semibold text-dark">{ord.event}</div>
+                                                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>{ord.date}</div>
+                                                </td>
+                                                <td className="fw-semibold">{ord.tickets}</td>
+                                                <td className="fw-bold text-dark">{ord.amount}</td>
+                                                <td className="text-muted">{ord.method}</td>
+                                                <td>
+                                                    <span className={`badge ${ord.status === 'Paid' ? 'badge-published' : ord.status === 'Pending' ? 'badge-draft' : ord.status === 'Refunded' ? 'badge-purple' : 'badge-danger'}`}>
+                                                        {ord.status}
+                                                    </span>
+                                                </td>
+                                                <td className="text-muted" style={{ fontSize: '0.75rem' }}>{ord.order_date}</td>
+                                                <td className="text-end">
+                                                    <button className="btn btn-sm btn-icon text-muted hover-text-primary p-1"><i className="bx bx-show fs-5"></i></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </Table>
+                        </div>
+                    </Card>
+                </Col>
+
+                {/* Right Side: Order Details Drawer */}
+                {selectedOrder && (
+                    <Col xl={4}>
+                        <Card className="border-0 shadow-sm rounded-4 p-3 bg-white">
+                            <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                                <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1rem' }}>Order Details</h6>
+                                <button className="btn btn-sm btn-icon text-muted p-0" onClick={() => setSelectedOrder(null)}><i className="bx bx-x fs-4"></i></button>
+                            </div>
+
+                            <div className="d-flex align-items-center justify-content-between bg-light p-2 rounded-3 mb-3">
+                                <div>
+                                    <div className="text-muted small" style={{ fontSize: '0.72rem' }}>Order ID</div>
+                                    <div className="fw-extrabold text-primary" style={{ fontSize: '1.05rem' }}>{selectedOrder.order_id}</div>
+                                </div>
+                                <span className={`badge ${selectedOrder.status === 'Paid' ? 'badge-published' : 'badge-draft'}`} style={{ fontSize: '0.8rem' }}>
+                                    {selectedOrder.status}
+                                </span>
+                            </div>
+
+                            <div className="mb-3">
+                                <div className="text-muted small fw-semibold uppercase mb-1" style={{ fontSize: '0.7rem' }}>Customer</div>
+                                <div className="d-flex align-items-center gap-2">
+                                    <div className="avatar avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold">
+                                        {selectedOrder.customer_name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{selectedOrder.customer_name}</div>
+                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>{selectedOrder.customer_email}</div>
+                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>{selectedOrder.customer_phone}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-3 border-top pt-2">
+                                <div className="text-muted small fw-semibold uppercase mb-1" style={{ fontSize: '0.7rem' }}>Event</div>
+                                <div className="d-flex align-items-center gap-2 bg-light p-2 rounded-3">
+                                    <img src={selectedOrder.event_image} alt={selectedOrder.event_name} className="rounded-2 object-fit-cover" style={{ width: '42px', height: '42px' }} />
+                                    <div>
+                                        <div className="fw-bold text-dark" style={{ fontSize: '0.8rem' }}>{selectedOrder.event_name}</div>
+                                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>{selectedOrder.event_date} • {selectedOrder.event_venue}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-3 border-top pt-2">
+                                <div className="text-muted small fw-semibold uppercase mb-1" style={{ fontSize: '0.7rem' }}>Order Items</div>
+                                <div className="d-flex justify-content-between align-items-center mb-1" style={{ fontSize: '0.8rem' }}>
+                                    <span>{selectedOrder.tickets}</span>
+                                    <span className="fw-bold text-dark">{selectedOrder.items_subtotal}</span>
+                                </div>
+                                <div className="d-flex justify-content-between align-items-center mb-1 text-muted" style={{ fontSize: '0.75rem' }}>
+                                    <span>Admin Fee</span>
+                                    <span>{selectedOrder.admin_fee}</span>
+                                </div>
+                                <div className="d-flex justify-content-between align-items-center pt-2 border-top fw-bold text-dark" style={{ fontSize: '0.95rem' }}>
+                                    <span>Total Paid</span>
+                                    <span className="text-primary">{selectedOrder.total_paid}</span>
+                                </div>
+                            </div>
+
+                            <div className="mb-3 border-top pt-2">
+                                <div className="text-muted small fw-semibold uppercase mb-1" style={{ fontSize: '0.7rem' }}>Payment Information</div>
+                                <div className="bg-light p-2 rounded-3 text-muted" style={{ fontSize: '0.75rem' }}>
+                                    <div className="d-flex justify-content-between mb-1">
+                                        <span>Method</span>
+                                        <span className="fw-bold text-dark">{selectedOrder.payment_method}</span>
+                                    </div>
+                                    <div className="d-flex justify-content-between mb-1">
+                                        <span>Transaction ID</span>
+                                        <span className="font-monospace text-dark">{selectedOrder.transaction_id}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="d-flex flex-column gap-2 border-top pt-3">
+                                <button className="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-1"><i className="bx bx-download fs-5"></i> Download Invoice</button>
+                                <button className="btn btn-sm btn-light border w-100 d-flex align-items-center justify-content-center gap-1 text-muted"><i className="bx bx-paper-plane fs-5"></i> Resend E-Ticket</button>
+                                <button className="btn btn-sm btn-light border text-danger w-100 d-flex align-items-center justify-content-center gap-1"><i className="bx bx-undo fs-5"></i> Refund Order</button>
+                            </div>
+                        </Card>
+                    </Col>
+                )}
+            </Row>
+        </div>
     );
 };
 

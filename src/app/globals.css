@@ -1,27 +1,357 @@
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.8); /* Background semi transparan */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999; /* Pastikan tampil di atas semua */
+/* Modern UI / UX Design Tokens & Custom Styles for Ventix Admin (EO Theme) */
+:root {
+  --vx-primary: #6366f1;
+  --vx-primary-hover: #4f46e5;
+  --vx-primary-light: rgba(99, 102, 241, 0.1);
+  --vx-primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --vx-success: #10b981;
+  --vx-success-light: rgba(16, 185, 129, 0.12);
+  --vx-warning: #f59e0b;
+  --vx-warning-light: rgba(245, 158, 11, 0.12);
+  --vx-danger: #ef4444;
+  --vx-danger-light: rgba(239, 68, 68, 0.12);
+  --vx-info: #3b82f6;
+  --vx-info-light: rgba(59, 130, 246, 0.12);
+  --vx-purple-light: rgba(168, 85, 247, 0.12);
+  --vx-bg: #f8fafc;
+  --vx-card-bg: #ffffff;
+  --vx-border: #e2e8f0;
+  --vx-text-main: #0f172a;
+  --vx-text-muted: #64748b;
+  --vx-radius-sm: 8px;
+  --vx-radius: 12px;
+  --vx-radius-lg: 16px;
+  --vx-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --vx-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --vx-shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  --vx-transition: all 0.2s ease-in-out;
 }
 
-@font-face {
-  font-family: "boxicons";
-  font-weight: normal;
-  font-style: normal;
-  src: url("/public/assets/vendor/fonts/boxicons/boxicons.eot");
-  src: url("/public/assets/vendor/fonts/boxicons/boxicons.eot") format("embedded-opentype"),
-  url("/public/assets/vendor/fonts/boxicons/boxicons.woff2") format("woff2"),
-  url("/public/assets/vendor/fonts/boxicons/boxicons.woff") format("woff"),
-  url("/public/assets/vendor/fonts/boxicons/boxicons.ttf") format("truetype"),
-  url("/public/assets/vendor/fonts/boxicons/boxicons.svg") format("svg");
+[data-theme="dark"] {
+  --vx-bg: #0f172a;
+  --vx-card-bg: #1e293b;
+  --vx-border: #334155;
+  --vx-text-main: #f8fafc;
+  --vx-text-muted: #94a3b8;
+  --vx-primary-light: rgba(99, 102, 241, 0.2);
+  --vx-shadow-sm: 0 2px 8px 0 rgba(0, 0, 0, 0.25);
+  --vx-shadow-md: 0 4px 20px 0 rgba(0, 0, 0, 0.35);
+  --vx-shadow-lg: 0 8px 30px 0 rgba(0, 0, 0, 0.45);
 }
+
+/* Base Body & Layout Smoothness */
+body {
+  font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  background-color: var(--vx-bg) !important;
+  color: var(--vx-text-main) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* Sidebar & Navigation Styling */
+.layout-menu {
+  background-color: var(--vx-card-bg) !important;
+  border-right: 1px solid var(--vx-border) !important;
+  box-shadow: none !important;
+}
+
+.menu-vertical .menu-item .menu-link {
+  border-radius: 10px !important;
+  color: var(--vx-text-muted) !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  padding: 0.65rem 1rem !important;
+  margin: 0.15rem 0.75rem !important;
+  transition: var(--vx-transition) !important;
+}
+
+.menu-vertical .menu-item .menu-link:hover {
+  background-color: rgba(99, 102, 241, 0.06) !important;
+  color: var(--vx-primary) !important;
+}
+
+.menu-vertical .menu-item.active > .menu-link {
+  background: var(--vx-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35) !important;
+  font-weight: 600 !important;
+}
+
+.menu-vertical .menu-item.active > .menu-link i {
+  color: #ffffff !important;
+}
+
+.menu-vertical .menu-item .menu-icon {
+  font-size: 1.2rem !important;
+  margin-right: 0.75rem !important;
+}
+
+/* App Brand Logo Header */
+.app-brand-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px;
+  text-decoration: none !important;
+}
+
+.brand-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.brand-logo-text {
+  font-weight: 800 !important;
+  font-size: 1.35rem !important;
+  letter-spacing: -0.5px;
+  color: #4338ca !important;
+}
+
+[data-theme="dark"] .brand-logo-text {
+  color: #818cf8 !important;
+}
+
+/* Upgrade Pro Sidebar Card */
+.sidebar-upgrade-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--vx-radius-lg);
+  padding: 1.25rem 1rem;
+  margin: 1rem 0.75rem;
+}
+
+/* Navbar Top Styling */
+.layout-navbar {
+  background-color: var(--vx-card-bg) !important;
+  border-bottom: 1px solid var(--vx-border) !important;
+  box-shadow: none !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+.search-input-pill {
+  background-color: rgba(241, 245, 249, 0.8);
+  border: 1px solid var(--vx-border);
+  border-radius: 30px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--vx-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 320px;
+  transition: var(--vx-transition);
+}
+
+.search-input-pill input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+[data-theme="dark"] .search-input-pill {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+/* Cards & Metric Panels */
+.card {
+  background-color: var(--vx-card-bg) !important;
+  border-radius: var(--vx-radius-lg) !important;
+  border: 1px solid var(--vx-border) !important;
+  box-shadow: var(--vx-shadow-sm) !important;
+  transition: var(--vx-transition) !important;
+}
+
+.card:hover {
+  box-shadow: var(--vx-shadow-md) !important;
+}
+
+.metric-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+/* Buttons & Inputs */
+.btn {
+  border-radius: var(--vx-radius-sm) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem;
+  padding: 0.55rem 1.1rem;
+  transition: var(--vx-transition) !important;
+}
+
+.btn-primary {
+  background: var(--vx-primary) !important;
+  border-color: var(--vx-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3) !important;
+}
+
+.btn-primary:hover {
+  background: var(--vx-primary-hover) !important;
+  border-color: var(--vx-primary-hover) !important;
+  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4) !important;
+}
+
+.form-control, .form-select {
+  border-radius: var(--vx-radius-sm) !important;
+  border: 1px solid var(--vx-border) !important;
+  background-color: var(--vx-card-bg) !important;
+  color: var(--vx-text-main) !important;
+  padding: 0.55rem 0.85rem !important;
+  font-size: 0.875rem !important;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--vx-primary) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
+}
+
+/* Modern Soft Badges */
+.badge {
+  padding: 0.4em 0.75em !important;
+  font-weight: 600 !important;
+  border-radius: 30px !important;
+  font-size: 0.75rem !important;
+}
+
+.badge-published, .badge-success, .badge.bg-success {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+}
+
+.badge-draft, .badge-warning, .badge.bg-warning {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #d97706 !important;
+}
+
+.badge-danger, .badge.bg-danger {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+}
+
+.badge-info, .badge.bg-info {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  color: #2563eb !important;
+}
+
+.badge-purple, .badge-vip {
+  background-color: rgba(168, 85, 247, 0.12) !important;
+  color: #7c3aed !important;
+}
+
+/* Stepper Component */
+.stepper-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--vx-text-muted);
+}
+
+.stepper-item.active {
+  color: var(--vx-primary);
+  font-weight: 700;
+}
+
+.stepper-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--vx-border);
+  color: var(--vx-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stepper-item.active .stepper-number {
+  background: var(--vx-primary);
+  color: white;
+  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.35);
+}
+
+/* Viewfinder QR Camera Scanner Frame */
+.scanner-frame {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  background: #090d16;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.scanner-frame::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  right: 15%;
+  bottom: 15%;
+  border: 2px dashed rgba(99, 102, 241, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}
+
+
+/* Authentication Page Glow Card Styling */
+.auth-glow-card {
+  border-radius: var(--vx-radius-lg) !important;
+  box-shadow: var(--vx-shadow-lg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="dark"] .auth-glow-card {
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Legacy Overrides */
 .menu-sub {
   display: none;
 }
@@ -29,56 +359,43 @@
 .menu-sub.show {
   display: block;
 }
-.pagination > previous {
-  margin-right: 0.3125rem; /* Adjust as needed */
-}
+
 .pagination .page-item.next .page-link {
   margin-left: 0.3125rem;
 }
+
 ul.pagination .page-link {
   padding: 0.535rem;
   min-width: calc(2.0075rem + calc(0px * 2));
   font-size: 0.9375rem;
   line-height: 1;
+  border-radius: var(--vx-radius-sm) !important;
 }
-.pagination .page-item.last .page-link, .pagination .page-item.next .page-link {
-  border-radius: var(--bs-border-radius);
+
+.select2-container {
+  z-index: 1090;
 }
-.select2-container{
-  z-index:1090;
-}
+
 .select2-dropdown {
   position: absolute !important;
   z-index: 9999 !important;
 }
 
-.select2-container--default .select2-selection--single .is-invalid {
-  border-color: #dc3545; /* Warna border merah */
-}
-
-.select2-container--default .select2-selection--single .is-invalid .select2-selection__arrow {
-  border-left-color: #dc3545; /* Warna panah dropdown merah */
-}
-/* Styling untuk sidebar dan kalender */
 .rooms-list {
   max-height: 700px;
   overflow-y: auto;
 }
 
 .room-status {
-  background-color: #f1f1f1;
-  border-left: 5px solid;
-  transition: all 0.3s ease-in-out;
+  background-color: rgba(67, 89, 113, 0.04);
+  border-left: 4px solid var(--vx-primary);
+  border-radius: var(--vx-radius-sm);
+  transition: var(--vx-transition);
 }
 
 .room-status:hover {
-  background-color: #e9ecef;
+  background-color: rgba(105, 108, 255, 0.08);
   cursor: pointer;
-}
-
-.room-status .badge {
-  font-size: 0.85rem;
-  font-weight: 600;
 }
 
 .calendar-container {
@@ -86,199 +403,12 @@ ul.pagination .page-link {
   padding-right: 20px;
 }
 
-.fullcalendar {
-  margin-top: 10px;
-}
-/* Perbesar tinggi slot */
-.fc-timegrid-slot {
-  height: 100px !important; /* Pastikan height di override */
-}
-
-/* Pastikan dropdown date range tidak tertutup */
-.date-picker-input {
-  position: relative;
-  z-index: 1051; /* Z-index tinggi untuk mengatasi elemen di atasnya */
-}
-
-.react-datepicker-popper {
-  z-index: 1091 !important; /* Pastikan dropdown DatePicker di atas elemen FullCalendar */
-}
-
-/* Gaya tambahan untuk kalender agar lebih rapi */
-.fc {
-  font-size: 14px;
-}
-.fc-scrollgrid {
-  border: 1px solid #ddd;
-}
-.fc-timegrid {
-  border-left: 1px solid #ddd;
-  border-right: 1px solid #ddd;
-}
-
-/* Kurangi margin dan padding untuk menyesuaikan layout */
-.container {
-  padding: 0 !important;
-}
-
-
-/* Hilangkan background abu-abu di slot waktu kosong */
-.fc-theme-standard td, .fc-theme-standard th {
-  background-color: transparent !important; /* Buat slot transparan */
-}
-
-/* Optional: Gaya tambahan untuk memperbaiki tampilan */
-.fc-timegrid-slot {
-  border: 1px solid #ddd; /* Tambahkan garis tepi yang halus */
-}
-.swal2-container {
-  z-index: 1090 !important; /* Lebih tinggi dari modal Bootstrap (1050) */
-}
-
-/*.select2-close-mask{*/
-/*  z-index: 2099;*/
-/*}*/
-/*.select2-dropdown{*/
-/*  z-index: 3051;*/
-/*}*/
-/*@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');*/
-/*@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css');*/
-/*@import url('/public/assets/vendor/fonts/boxicons.css');*/
-/*@import url('/public/assets/vendor/css/rtl/core.css');*/
-/*@import url('/public/assets/vendor/css/rtl/theme-default.css');*/
-/*@import url('/public/assets/css/demo.css');*/
-/*@import url('/public/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css');*/
-
-.chart-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 10px;
-}
-.room-label {
-  font-weight: bold;
-  width: 80px;
-  text-align: center;
-}
-.status-label {
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-weight: bold;
-}
-.bg-red {
-  background-color: #dc3545; /* Warna merah Bootstrap */
-  color: #fff;
-}
-.cell {
-  cursor: pointer;
-}
-.booking-rectangle {
-  background: #FFCCCD;
-  width: 100%;
-  height: 100%;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  font-size: 14px;
-  font-weight: bold;
-}
-.table-container {
-  max-height: 700px; /* Sesuaikan tinggi sesuai kebutuhan */
-  overflow-y: auto;
-  position: relative;
-}
-
-.table-container thead {
-  position: sticky;
-  top: 0;
-  background-color: white; /* Sesuaikan warna background agar header tetap terlihat */
-  z-index: 1000;
-}
-
-/* Ensure the dropdown is displayed properly */
-.dropdown-menu {
-  position: absolute;
-  z-index: 1050; /* Ensure it's above other elements */
-  display: none; /* Hidden by default */
-}
-
-.dropdown-menu.show {
-  display: block; /* Visible when active */
-}
-.hover-underline:hover {
-  text-decoration: underline !important;
-}
-
-.disabled-event {
-  background-color: #e0e0e0 !important; /* Warna abu-abu */
-  color: #ffffff !important;
-  pointer-events: none; /* Disable klik */
-  cursor: not-allowed;
-  border: none;
-}
-
-
-.table-sticky-first-column th:first-child,
-.table-sticky-first-column td:first-child {
-  position: sticky;
-  left: 0;
-  background: white; /* Pastikan tetap terlihat */
-  z-index: 50; /* Pastikan berada di atas elemen lain */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Tambahkan efek bayangan */
-}
-
-.table-sticky-first-column thead th:first-child {
-  z-index: 100; /* Header lebih tinggi agar tidak tertutup */
-}
-
-
-/* Atur tinggi setiap slot waktu */
 .fc-timegrid-slot {
   height: 60px !important;
 }
 
-.fc-timegrid-col {
-  width: 20% !important;
-}
-
-/* Ubah lebar kolom header */
-.fc-col-header-cell {
-  width: 20% !important;
-}
-
-/* Override default daterangepicker selects agar seragam Bootstrap 5 */
-.daterangepicker select.monthselect,
-.daterangepicker select.yearselect {
-  display: inline-block;
-  width: auto;
-  min-width: 10px; /* biar gak kependekan */
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: #212529;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: 0.375rem; /* sama seperti .form-select */
-  appearance: none; /* seragam di semua browser */
-  cursor: pointer;
-}
-
-/* Hover & focus state */
-.daterangepicker select.monthselect:focus,
-.daterangepicker select.yearselect:focus {
-  border-color: #86b7fe;
-  outline: 0;
-  box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
-}
-
-
-.bg-critical {
-  background-color: #b71c1c !important; /* merah tua pekat */
-  color: #fff !important;
+.swal2-container {
+  z-index: 1090 !important;
 }
 
 .filepond--credits {
@@ -286,42 +416,18 @@ ul.pagination .page-link {
 }
 
 .filepond--drop-label {
-  background: #f8f9fa;
-  border: 2px dashed #d0d7de;
-  border-radius: 12px;
+  background: rgba(67, 89, 113, 0.02);
+  border: 2px dashed rgba(105, 108, 255, 0.3);
+  border-radius: var(--vx-radius);
   color: #6c757d;
   font-size: 0.95rem;
-  padding: 1rem;
+  padding: 1.5rem;
+  transition: var(--vx-transition);
 }
 
-.filepond--drop-label label {
-  color: #0d6efd;
-  font-weight: 500;
-  cursor: pointer;
+.filepond--drop-label:hover {
+  border-color: var(--vx-primary);
+  background: rgba(105, 108, 255, 0.04);
 }
 
-
-.filepond--item {
-  width: calc(25% - 0.5em); /* 4 gambar per baris */
-}
-
-.filepond--item-panel {
-  background-color: #f8f9fa; /* lebih soft */
-  border-radius: 12px;
-}
-
-.filepond--file {
-  border-radius: 12px;
-}
-
-.filepond--drop-label {
-  color: #6c757d;
-  font-size: 0.95rem;
-  font-weight: 500;
-}
-
-.filepond--drop-label label {
-  color: #0d6efd;
-  cursor: pointer;
-}
 
