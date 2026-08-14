@@ -111,9 +111,17 @@ const routes: Route[] = [
     {
         path: '/eo_verification',
         side_menu: true,
-        tooltip: "Verifikasi EO",
+        tooltip: "Verifikasi EO & Fasilitas",
         icon: 'bx-list-ol',
-        title: 'Verifikasi EO',
+        title: 'Verifikasi EO & Fasilitas',
+        is_superadmin: true,
+    },
+    {
+        path: '/payout_approval',
+        side_menu: true,
+        tooltip: "Antrean Tarik Tunai",
+        icon: 'bx-money-withdraw',
+        title: 'Antrean Tarik Tunai',
         is_superadmin: true,
     },
     {

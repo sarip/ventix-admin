@@ -266,8 +266,8 @@ const VerificationPage: React.FC = () => {
     return (
         <>
             <div className="container-p-y">
-                <h4 className="py-2 breadcrumb-wrapper mb-0">Verification Management</h4>
-                <span className="text-muted">Review and moderate verification requests</span>
+                <h4 className="py-2 breadcrumb-wrapper mb-0">Verifikasi EO & Fasilitas</h4>
+                <span className="text-muted">Tinjau dan kelola permintaan verifikasi Event Organizer & Fasilitas</span>
             </div>
 
             {/* Filter bar */}

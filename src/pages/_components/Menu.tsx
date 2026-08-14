@@ -49,7 +49,8 @@ const Menu: React.FC = () => {
                 localStorage.setItem('username', response.username);
                 setPermissions(response.role_actions);
                 // setMenu(filterMenuByPermissions(routes, response.role_actions));
-                setMenu(filterRoutesByResource(routes, response.source));
+                const isSuperAdmin = response.source === 'appusers' || response.user?.role === 'superadmin' || response.role === 'superadmin';
+                setMenu(filterRoutesByResource(routes, isSuperAdmin));
             } catch (error) {
                 console.error('Failed to fetch permissions:', error);
             }
@@ -58,13 +59,13 @@ const Menu: React.FC = () => {
         fetchPermissions();
     }, []);
 
-    function filterRoutesByResource(routes, resource) {
-        // Jika resource = users, tampilkan semua
-        if (resource === 'appusers') {
+    function filterRoutesByResource(routes, isSuperAdmin: boolean) {
+        // Jika superadmin, tampilkan semua route
+        if (isSuperAdmin) {
             return routes;
         }
 
-        // Selain users → hapus is_superadmin = true
+        // Akun selain superadmin (EO / Tenant / Client) → hapus route dengan is_superadmin = true
         return routes
             .filter(route => route.is_superadmin !== true)
             .map(route => {
