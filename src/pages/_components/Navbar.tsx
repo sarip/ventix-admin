@@ -24,18 +24,40 @@ const Navbar: React.FC = () => {
         const currentTheme = localStorage.getItem('theme') || 'light';
         setTheme(currentTheme);
         document.documentElement.setAttribute('data-theme', currentTheme);
+        if (currentTheme === 'dark') {
+            document.documentElement.classList.add('dark-style');
+            document.documentElement.classList.remove('light-style');
+        } else {
+            document.documentElement.classList.add('light-style');
+            document.documentElement.classList.remove('dark-style');
+        }
         setUsername(localStorage.getItem('username') || '');
         setFullname(localStorage.getItem('fullname') || '');
     }, []);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark-style');
+            document.documentElement.classList.remove('light-style');
+        } else {
+            document.documentElement.classList.add('light-style');
+            document.documentElement.classList.remove('dark-style');
+        }
     }, [theme]);
 
     const changeTheme = (newTheme: string) => {
         setTheme(newTheme);
         localStorage.setItem('theme', newTheme);
         localStorage.setItem('templateCustomizer-vertical-menu-template-starter--Style', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+        if (newTheme === 'dark') {
+            document.documentElement.classList.add('dark-style');
+            document.documentElement.classList.remove('light-style');
+        } else {
+            document.documentElement.classList.add('light-style');
+            document.documentElement.classList.remove('dark-style');
+        }
         window.location.reload();
     };
 
@@ -84,7 +106,7 @@ const Navbar: React.FC = () => {
     }, []);
 
     return (
-        <nav className="layout-navbar navbar navbar-expand-xl align-items-center bg-white border-bottom px-3 px-md-4 py-0 sticky-top" id="layout-navbar" style={{ height: '64px' }}>
+        <nav className="layout-navbar navbar navbar-expand-xl align-items-center border-bottom px-3 px-md-4 py-0 sticky-top" id="layout-navbar" style={{ height: '64px' }}>
             <div className="w-100 d-flex align-items-center justify-content-between px-0 h-100">
                 {/* Left section: Mobile Toggle + Search Bar */}
                 <div className="d-flex align-items-center me-auto">
@@ -96,10 +118,10 @@ const Navbar: React.FC = () => {
 
                     {/* Search Bar */}
                     <div className="d-none d-md-flex align-items-center">
-                        <div className="search-input-pill d-flex align-items-center rounded-pill px-3 py-1 bg-light border">
+                        <div className="search-input-pill d-flex align-items-center rounded-pill px-3 py-1 border">
                             <i className="bx bx-search fs-5 text-muted me-2"></i>
-                            <input type="text" className="bg-transparent border-0 outline-none me-2 fs-6" placeholder="Search events, tickets..." style={{ outline: 'none' }} />
-                            <span className="badge bg-white text-muted border py-1 px-2 rounded-2" style={{ fontSize: '0.65rem' }}>⌘K</span>
+                            <input type="text" className="bg-transparent border-0 outline-none me-2 fs-6" placeholder="Cari event, tiket..." style={{ outline: 'none' }} />
+                            <span className="badge text-muted border py-1 px-2 rounded-2" style={{ fontSize: '0.65rem' }}>⌘K</span>
                         </div>
                     </div>
                 </div>
@@ -114,12 +136,12 @@ const Navbar: React.FC = () => {
                         <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                             <li>
                                 <a className="dropdown-item cursor-pointer d-flex align-items-center py-2" onClick={handleThemeChange} data-theme="light">
-                                    <i className="bx bx-sun me-2 fs-5"></i>Light
+                                    <i className="bx bx-sun me-2 fs-5"></i>Terang
                                 </a>
                             </li>
                             <li>
                                 <a className="dropdown-item cursor-pointer d-flex align-items-center py-2" onClick={handleThemeChange} data-theme="dark">
-                                    <i className="bx bx-moon me-2 fs-5"></i>Dark
+                                    <i className="bx bx-moon me-2 fs-5"></i>Gelap
                                 </a>
                             </li>
                         </ul>
@@ -146,7 +168,7 @@ const Navbar: React.FC = () => {
                             className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 px-3 py-2 fw-semibold rounded-2 shadow-sm"
                         >
                             <i className="bx bx-plus fs-5"></i>
-                            <span>Create Event</span>
+                            <span>Buat Event</span>
                         </Link>
                     )}
 
@@ -159,7 +181,7 @@ const Navbar: React.FC = () => {
                                 </div>
                             </div>
                             <div className="d-none d-lg-block text-start lh-sm">
-                                <span className="fw-semibold d-block fs-7 text-dark">{username || 'Admin'}</span>
+                                <span className="fw-semibold d-block fs-7">{username || 'Admin'}</span>
                                 <small className="text-muted fs-8" style={{ fontSize: '0.75rem' }}>{fullname || 'Event Organizer'}</small>
                             </div>
                         </a>
@@ -174,7 +196,7 @@ const Navbar: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="flex-grow-1">
-                                        <span className="fw-bold d-block fs-6 mb-0 text-dark">{username || 'Admin'}</span>
+                                        <span className="fw-bold d-block fs-6 mb-0">{username || 'Admin'}</span>
                                         <small className="text-muted">{fullname || 'Event Organizer'}</small>
                                     </div>
                                 </div>
@@ -183,14 +205,14 @@ const Navbar: React.FC = () => {
                             <li>
                                 <Link className="dropdown-item d-flex align-items-center py-2" href="/settings">
                                     <i className="bx bx-user me-2 fs-5"></i>
-                                    <span>Organization Profile</span>
+                                    <span>Profil Organisasi</span>
                                 </Link>
                             </li>
                             <li><hr className="dropdown-divider my-2" /></li>
                             <li>
                                 <a className="dropdown-item cursor-pointer text-danger d-flex align-items-center py-2" onClick={logout}>
                                     <i className="bx bx-power-off me-2 fs-5"></i>
-                                    <span>Log Out</span>
+                                    <span>Keluar</span>
                                 </a>
                             </li>
                         </ul>

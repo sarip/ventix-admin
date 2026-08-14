@@ -4,6 +4,32 @@ export default function Document() {
     return (
         <Html lang="en" className="light-style layout-navbar-fixed layout-menu-fixed layout-compact" dir="ltr" data-theme="theme-default" data-assets-path="/assets/" data-template="vertical-menu-template-starter">
             <Head>
+                {/* Inline script: baca theme dari localStorage sebelum render untuk menghindari flash */}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+(function() {
+  try {
+    var savedTheme = localStorage.getItem('theme');
+    // Jika belum pernah set (pertama kali buka), default ke light
+    if (!savedTheme) {
+      savedTheme = 'light';
+      localStorage.setItem('theme', 'light');
+    }
+    var html = document.documentElement;
+    html.setAttribute('data-theme', savedTheme);
+    if (savedTheme === 'dark') {
+      html.classList.remove('light-style');
+      html.classList.add('dark-style');
+    } else {
+      html.classList.remove('dark-style');
+      html.classList.add('light-style');
+    }
+  } catch(e) {}
+})();
+                        `
+                    }}
+                />
                 <title>{process.env.NEXT_PUBLIC_APP_NAME}</title>
                 <link rel="icon" type="image/x-icon" href="/assets/img/favicon/favicon.ico"/>
 

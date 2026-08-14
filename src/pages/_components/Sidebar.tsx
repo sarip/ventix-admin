@@ -67,7 +67,7 @@ const Sidebar: FC = () => {
             <div className="app-brand demo py-3 px-4 d-flex align-items-center justify-content-between mb-1">
                 <Link href="/dashboard" className="app-brand-link d-flex align-items-center gap-2 text-decoration-none">
                     <img src="/assets/img/favicon/favicon.ico" alt="VEENTIX Logo" width={45} height={45} style={{ objectFit: 'contain' }} />
-                    <span className="brand-logo-text ms-1" style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '2px', fontFamily: "'Outfit', 'Montserrat', sans-serif", color: '#434955', textTransform: 'uppercase' }}>VEENTIX</span>
+                    <span className="brand-logo-text ms-1" style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '2px', fontFamily: "'Outfit', 'Montserrat', sans-serif", textTransform: 'uppercase' }}>VEENTIX</span>
                 </Link>
                 <a href="#" className="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
                     <i className="bx bx-chevron-left bx-sm align-middle"></i>
@@ -89,7 +89,7 @@ const Sidebar: FC = () => {
                         Tingkatkan performa event.
                     </p>
                     <button className="btn btn-sm btn-primary w-100 py-1 fw-semibold d-flex align-items-center justify-content-center gap-1" style={{ fontSize: '0.72rem', borderRadius: '5px' }}>
-                        Upgrade Now <i className="bx bx-right-arrow-alt fs-6"></i>
+                        Tingkatkan Sekarang <i className="bx bx-right-arrow-alt fs-6"></i>
                     </button>
                 </div>
 

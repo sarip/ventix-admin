@@ -227,7 +227,7 @@ const EventPage: React.FC = () => {
                     <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
                         <Button variant="primary" onClick={create}>
                             <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
-                            <span className="d-none d-sm-inline-block">Add Data</span>
+                            <span className="d-none d-sm-inline-block">Create Event</span>
                         </Button>
                     </div>
                 </h5>
@@ -325,7 +325,7 @@ const EventPage: React.FC = () => {
                 </div>
             </div>
             <Form
-                title={formData.id ? 'Update Data' : 'Add Data'}
+                title={formData.id ? 'Edit Event' : 'Create Event'}
                 data={formData}
                 onSave={save}
                 validationError={validationError}

@@ -118,9 +118,9 @@ const DashboardPage: React.FC = () => {
             <div className="d-flex align-items-center justify-content-between mb-4">
                 <div>
                     <h4 className="fw-extrabold text-dark mb-1" style={{ fontSize: '1.45rem', letterSpacing: '-0.3px' }}>
-                        Good morning, Admin! 👋
+                        Selamat Datang, Admin! 👋
                     </h4>
-                    <p className="text-muted small mb-0">Here's what happening with your events today.</p>
+                    <p className="text-muted small mb-0">Berikut ringkasan aktivitas event Anda hari ini.</p>
                 </div>
             </div>
 
@@ -131,12 +131,12 @@ const DashboardPage: React.FC = () => {
                     <Card className="border-0 shadow-sm rounded-4 h-100 p-2 bg-white">
                         <Card.Body className="d-flex align-items-center justify-content-between p-2">
                             <div>
-                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Total Revenue</span>
+                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Total Pendapatan</span>
                                 <h4 className="fw-extrabold text-dark mt-1 mb-2" style={{ fontSize: '1.4rem' }}>
                                     {data?.total_revenue ? formatCurrency(data.total_revenue) : "Rp 125.750.000"}
                                 </h4>
                                 <span className="badge rounded-pill bg-success-subtle text-success border-0 px-2 py-1" style={{ fontSize: '0.72rem' }}>
-                                    <i className="bx bx-up-arrow-alt me-1"></i>12.5% <span className="text-muted fw-normal ms-1">vs last 30 days</span>
+                                    <i className="bx bx-up-arrow-alt me-1"></i>12.5% <span className="text-muted fw-normal ms-1">vs 30 hari terakhir</span>
                                 </span>
                             </div>
                             <div className="metric-icon-box bg-primary-subtle text-primary rounded-4">
@@ -148,15 +148,15 @@ const DashboardPage: React.FC = () => {
 
                 {/* Tickets Sold */}
                 <Col xl={3} lg={6} md={6}>
-                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                    <Card className="border-0 shadow-sm rounded-4 h-100 p-2 bg-white">
                         <Card.Body className="d-flex align-items-center justify-content-between p-2">
                             <div>
-                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Tickets Sold</span>
+                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Tiket Terjual</span>
                                 <h4 className="fw-extrabold text-dark mt-1 mb-2" style={{ fontSize: '1.4rem' }}>
                                     {data?.tickets_sold || "1.250"}
                                 </h4>
                                 <span className="badge rounded-pill bg-success-subtle text-success border-0 px-2 py-1" style={{ fontSize: '0.72rem' }}>
-                                    <i className="bx bx-up-arrow-alt me-1"></i>8.2% <span className="text-muted fw-normal ms-1">vs last 30 days</span>
+                                    <i className="bx bx-up-arrow-alt me-1"></i>8.2% <span className="text-muted fw-normal ms-1">vs 30 hari terakhir</span>
                                 </span>
                             </div>
                             <div className="metric-icon-box rounded-4" style={{ backgroundColor: 'rgba(236, 72, 153, 0.12)', color: '#ec4899' }}>
@@ -168,14 +168,14 @@ const DashboardPage: React.FC = () => {
 
                 {/* Total Events */}
                 <Col xl={3} lg={6} md={6}>
-                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                    <Card className="border-0 shadow-sm rounded-4 h-100 p-2 bg-white">
                         <Card.Body className="d-flex align-items-center justify-content-between p-2">
                             <div>
-                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Total Events</span>
+                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Total Event</span>
                                 <h4 className="fw-extrabold text-dark mt-1 mb-2" style={{ fontSize: '1.4rem' }}>
                                     {data?.total_events || "12"}
                                 </h4>
-                                <span className="text-muted small" style={{ fontSize: '0.75rem' }}>Active events</span>
+                                <span className="text-muted small" style={{ fontSize: '0.75rem' }}>Event aktif</span>
                             </div>
                             <div className="metric-icon-box rounded-4" style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' }}>
                                 <i className="bx bx-calendar fs-3"></i>
@@ -186,15 +186,15 @@ const DashboardPage: React.FC = () => {
 
                 {/* Visitors (This Month) */}
                 <Col xl={3} lg={6} md={6}>
-                    <Card className="border-0 shadow-sm rounded-4 p-2 bg-white">
+                    <Card className="border-0 shadow-sm rounded-4 h-100 p-2 bg-white">
                         <Card.Body className="d-flex align-items-center justify-content-between p-2">
                             <div>
-                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Visitors (This Month)</span>
+                                <span className="text-muted small fw-semibold text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Pengunjung (Bulan Ini)</span>
                                 <h4 className="fw-extrabold text-dark mt-1 mb-2" style={{ fontSize: '1.4rem' }}>
                                     {data?.visitors_this_month || "3.420"}
                                 </h4>
                                 <span className="badge rounded-pill bg-success-subtle text-success border-0 px-2 py-1" style={{ fontSize: '0.72rem' }}>
-                                    <i className="bx bx-up-arrow-alt me-1"></i>15.3% <span className="text-muted fw-normal ms-1">vs last 30 days</span>
+                                    <i className="bx bx-up-arrow-alt me-1"></i>15.3% <span className="text-muted fw-normal ms-1">vs 30 hari terakhir</span>
                                 </span>
                             </div>
                             <div className="metric-icon-box rounded-4" style={{ backgroundColor: 'rgba(20, 184, 166, 0.12)', color: '#14b8a6' }}>
@@ -211,10 +211,10 @@ const DashboardPage: React.FC = () => {
                 <Col xl={5} lg={12}>
                     <Card className="border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
                         <Card.Header className="bg-white border-0 d-flex align-items-center justify-content-between p-0 mb-3">
-                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1rem' }}>Sales Overview</h6>
+                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1rem' }}>Ringkasan Penjualan</h6>
                             <select className="form-select form-select-sm border-0 bg-light text-muted w-auto" style={{ fontSize: '0.8rem', borderRadius: '8px' }}>
-                                <option>Last 30 Days</option>
-                                <option>This Week</option>
+                                <option>30 Hari Terakhir</option>
+                                <option>Minggu Ini</option>
                             </select>
                         </Card.Header>
                         <Card.Body className="p-0 position-relative d-flex flex-column justify-content-between">
@@ -252,7 +252,7 @@ const DashboardPage: React.FC = () => {
                 <Col xl={3} lg={6}>
                     <Card className="border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
                         <Card.Header className="bg-white border-0 p-0 mb-2">
-                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1rem' }}>Revenue by Channel</h6>
+                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1rem' }}>Pendapatan per Kanal</h6>
                         </Card.Header>
                         <Card.Body className="p-0 d-flex flex-column align-items-center justify-content-center">
                             <div className="position-relative d-flex align-items-center justify-content-center my-2" style={{ width: '150px', height: '150px' }}>
@@ -264,7 +264,7 @@ const DashboardPage: React.FC = () => {
                                 </svg>
                                 <div className="position-absolute text-center">
                                     <div className="fw-extrabold text-dark" style={{ fontSize: '0.95rem' }}>Rp 125.75M</div>
-                                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>Total Revenue</div>
+                                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>Total Pendapatan</div>
                                 </div>
                             </div>
                             <div className="w-100 mt-2">
@@ -273,15 +273,15 @@ const DashboardPage: React.FC = () => {
                                     <span className="fw-bold">45%</span>
                                 </div>
                                 <div className="d-flex justify-content-between align-items-center py-1 border-bottom" style={{ fontSize: '0.78rem' }}>
-                                    <span className="d-flex align-items-center gap-2"><span className="rounded-circle" style={{ width: '8px', height: '8px', backgroundColor: '#3b82f6' }}></span>Mobile App</span>
+                                    <span className="d-flex align-items-center gap-2"><span className="rounded-circle" style={{ width: '8px', height: '8px', backgroundColor: '#3b82f6' }}></span>Aplikasi Mobile</span>
                                     <span className="fw-bold">30%</span>
                                 </div>
                                 <div className="d-flex justify-content-between align-items-center py-1 border-bottom" style={{ fontSize: '0.78rem' }}>
-                                    <span className="d-flex align-items-center gap-2"><span className="rounded-circle" style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b' }}></span>Partner</span>
+                                    <span className="d-flex align-items-center gap-2"><span className="rounded-circle" style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b' }}></span>Mitra / Partner</span>
                                     <span className="fw-bold">15%</span>
                                 </div>
                                 <div className="d-flex justify-content-between align-items-center py-1" style={{ fontSize: '0.78rem' }}>
-                                    <span className="d-flex align-items-center gap-2"><span className="rounded-circle" style={{ width: '8px', height: '8px', backgroundColor: '#14b8a6' }}></span>Others</span>
+                                    <span className="d-flex align-items-center gap-2"><span className="rounded-circle" style={{ width: '8px', height: '8px', backgroundColor: '#14b8a6' }}></span>Lainnya</span>
                                     <span className="fw-bold">10%</span>
                                 </div>
                             </div>
@@ -293,11 +293,11 @@ const DashboardPage: React.FC = () => {
                 <Col xl={4} lg={6}>
                     <div className="d-flex flex-column gap-3 h-100">
                         <Card className="border-0 shadow-sm rounded-4 p-3 bg-white">
-                            <h6 className="fw-bold text-dark mb-2" style={{ fontSize: '0.95rem' }}>Today's Summary</h6>
+                            <h6 className="fw-bold text-dark mb-2" style={{ fontSize: '0.95rem' }}>Ringkasan Hari Ini</h6>
                             <Row className="g-2">
                                 <Col xs={6}>
                                     <div className="bg-light rounded-3 p-2">
-                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tickets Sold Today</div>
+                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tiket Terjual Hari Ini</div>
                                         <div className="d-flex align-items-baseline gap-2 mt-1">
                                             <span className="fw-extrabold fs-5 text-dark">245</span>
                                             <span className="badge bg-success-subtle text-success p-1" style={{ fontSize: '0.65rem' }}>↑ 18%</span>
@@ -306,7 +306,7 @@ const DashboardPage: React.FC = () => {
                                 </Col>
                                 <Col xs={6}>
                                     <div className="bg-light rounded-3 p-2">
-                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Revenue Today</div>
+                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Pendapatan Hari Ini</div>
                                         <div className="d-flex align-items-baseline gap-2 mt-1">
                                             <span className="fw-extrabold text-dark" style={{ fontSize: '0.95rem' }}>Rp 18.250.000</span>
                                             <span className="badge bg-success-subtle text-success p-1" style={{ fontSize: '0.65rem' }}>↑ 22%</span>
@@ -315,7 +315,7 @@ const DashboardPage: React.FC = () => {
                                 </Col>
                                 <Col xs={6}>
                                     <div className="bg-light rounded-3 p-2">
-                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Check-ins Today</div>
+                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Check-in Hari Ini</div>
                                         <div className="d-flex align-items-baseline gap-2 mt-1">
                                             <span className="fw-extrabold fs-5 text-dark">198</span>
                                             <span className="badge bg-success-subtle text-success p-1" style={{ fontSize: '0.65rem' }}>↑ 16%</span>
@@ -324,7 +324,7 @@ const DashboardPage: React.FC = () => {
                                 </Col>
                                 <Col xs={6}>
                                     <div className="bg-light rounded-3 p-2">
-                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>New Customers</div>
+                                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Pelanggan Baru</div>
                                         <div className="d-flex align-items-baseline gap-2 mt-1">
                                             <span className="fw-extrabold fs-5 text-dark">34</span>
                                             <span className="badge bg-success-subtle text-success p-1" style={{ fontSize: '0.65rem' }}>↑ 12%</span>
@@ -335,7 +335,7 @@ const DashboardPage: React.FC = () => {
                         </Card>
 
                         <Card className="border-0 shadow-sm rounded-4 p-3 bg-white flex-grow-1">
-                            <h6 className="fw-bold text-dark mb-2" style={{ fontSize: '0.95rem' }}>Quick Actions</h6>
+                            <h6 className="fw-bold text-dark mb-2" style={{ fontSize: '0.95rem' }}>Aksi Cepat</h6>
                             <Row className="g-2">
                                 <Col xs={6}>
                                     <div className="border rounded-3 p-2 cursor-pointer hover-bg-light transition-all">
@@ -355,9 +355,9 @@ const DashboardPage: React.FC = () => {
                                                 <div className="rounded-circle bg-success-subtle text-success p-1">
                                                     <i className="bx bx-qr-scan fs-5"></i>
                                                 </div>
-                                                <span className="fw-bold text-dark" style={{ fontSize: '0.78rem' }}>Scan Ticket</span>
+                                                <span className="fw-bold text-dark" style={{ fontSize: '0.78rem' }}>Pindai Tiket</span>
                                             </div>
-                                            <p className="text-muted mb-0" style={{ fontSize: '0.68rem' }}>Scan QR code ticket masuk</p>
+                                            <p className="text-muted mb-0" style={{ fontSize: '0.68rem' }}>Pindai QR code tiket masuk</p>
                                         </div>
                                     </Link>
                                 </Col>
@@ -368,7 +368,7 @@ const DashboardPage: React.FC = () => {
                                                 <div className="rounded-circle bg-purple-subtle text-purple p-1" style={{ color: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.12)' }}>
                                                     <i className="bx bx-calendar-plus fs-5"></i>
                                                 </div>
-                                                <span className="fw-bold text-dark" style={{ fontSize: '0.78rem' }}>Create Event</span>
+                                                <span className="fw-bold text-dark" style={{ fontSize: '0.78rem' }}>Buat Event</span>
                                             </div>
                                             <p className="text-muted mb-0" style={{ fontSize: '0.68rem' }}>Buat event baru</p>
                                         </div>
@@ -381,7 +381,7 @@ const DashboardPage: React.FC = () => {
                                                 <div className="rounded-circle bg-info-subtle text-info p-1">
                                                     <i className="bx bx-bar-chart-alt-2 fs-5"></i>
                                                 </div>
-                                                <span className="fw-bold text-dark" style={{ fontSize: '0.78rem' }}>View Reports</span>
+                                                <span className="fw-bold text-dark" style={{ fontSize: '0.78rem' }}>Lihat Laporan</span>
                                             </div>
                                             <p className="text-muted mb-0" style={{ fontSize: '0.68rem' }}>Lihat laporan penjualan</p>
                                         </div>
@@ -398,11 +398,11 @@ const DashboardPage: React.FC = () => {
                 <Col xl={8} lg={7}>
                     <Card className="border-0 shadow-sm rounded-4 p-3 bg-white">
                         <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
-                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1.05rem' }}>Your Events</h6>
+                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1.05rem' }}>Event Anda</h6>
                             <div className="d-flex align-items-center gap-2">
                                 <div className="position-relative" style={{ width: '180px' }}>
                                     <i className="bx bx-search position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted" style={{ fontSize: '0.9rem' }}></i>
-                                    <input type="text" className="form-control form-control-sm ps-4 bg-light border-0" placeholder="Search events..." style={{ fontSize: '0.8rem', borderRadius: '6px' }} />
+                                    <input type="text" className="form-control form-control-sm ps-4 bg-light border-0" placeholder="Cari event..." style={{ fontSize: '0.8rem', borderRadius: '6px' }} />
                                 </div>
                                 <button className="btn btn-sm btn-light border text-secondary px-2.5 py-1 d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', borderRadius: '6px' }}>
                                     <i className="bx bx-filter fs-6"></i> Filter
@@ -413,11 +413,11 @@ const DashboardPage: React.FC = () => {
                         {/* Clean Underline Tabs */}
                         <div className="d-flex align-items-center gap-4 mb-3 border-bottom" style={{ fontSize: '0.875rem' }}>
                             {[
-                                { id: 'all', label: 'All Events' },
-                                { id: 'published', label: 'Published' },
-                                { id: 'draft', label: 'Draft' },
-                                { id: 'ongoing', label: 'Ongoing' },
-                                { id: 'completed', label: 'Completed' }
+                                { id: 'all', label: 'Semua Event' },
+                                { id: 'published', label: 'Dipublikasikan' },
+                                { id: 'draft', label: 'Draf' },
+                                { id: 'ongoing', label: 'Berlangsung' },
+                                { id: 'completed', label: 'Selesai' }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
@@ -439,11 +439,11 @@ const DashboardPage: React.FC = () => {
                                 <thead className="bg-light text-muted uppercase">
                                     <tr>
                                         <th>Event</th>
-                                        <th>Date</th>
-                                        <th>Tickets Sold</th>
-                                        <th>Revenue</th>
+                                        <th>Tanggal</th>
+                                        <th>Tiket Terjual</th>
+                                        <th>Pendapatan</th>
                                         <th>Status</th>
-                                        <th className="text-end">Action</th>
+                                        <th className="text-end">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -489,7 +489,7 @@ const DashboardPage: React.FC = () => {
                             </Table>
                         </div>
                         <div className="mt-3 text-center">
-                            <Link href="/event" className="text-primary text-decoration-none fw-bold small">View all events →</Link>
+                            <Link href="/event" className="text-primary text-decoration-none fw-bold small">Lihat semua event →</Link>
                         </div>
                     </Card>
                 </Col>
@@ -497,8 +497,8 @@ const DashboardPage: React.FC = () => {
                 <Col xl={4} lg={5}>
                     <Card className="border-0 shadow-sm rounded-4 p-3 bg-white h-100">
                         <div className="d-flex align-items-center justify-content-between mb-3">
-                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '0.95rem' }}>Upcoming Events</h6>
-                            <Link href="/event" className="text-primary text-decoration-none small fw-semibold">View all</Link>
+                            <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '0.95rem' }}>Event Mendatang</h6>
+                            <Link href="/event" className="text-primary text-decoration-none small fw-semibold">Lihat semua</Link>
                         </div>
                         <div className="d-flex flex-column gap-3">
                             {upcomingEvents.map((item, idx) => (
