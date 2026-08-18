@@ -4,24 +4,19 @@
  * @date 02/08/24
  */
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Offcanvas, Button } from 'react-bootstrap';
+import Link from 'next/link';
 import Swal from 'sweetalert2';
 import useBlockUI from '@/pages/_components/useBlockUI';
 import Pagination from '@/pages/_components/Pagination';
 import ConfirmDialog from '@/pages/_components/ConfirmDialog'
 import Filter, { QueryParamsProps } from './_filter';
-import Form from './_form';
-import { Event, InEvent, InEventForm } from '@/models/Event';
+import { Event, InEvent } from '@/models/Event';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'next/router';
 import { ListResponse } from "@/types/apiTypes";
 import EventStatusBadge from "@/pages/_components/EventStatusBadge";
-
-interface ValidationErrorProps {
-    field: string;
-    message: string;
-}
 
 interface PaginationProps {
     current_page: number;
@@ -44,28 +39,6 @@ const EventPage: React.FC = () => {
     const [lastQuery, setLastQuery] = useState<any>({});
     const [sortBy, setSortBy] = useState<string>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [showForm, setShowForm] = useState<boolean>(false);
-    const [formData, setFormData] = useState<InEventForm>({
-        id: null,
-        is_external: "N",
-        external_url: "",
-        events_organizer_id: null,
-        user_id_pic: null,
-        event_category: "",
-        title: "",
-        description: "",
-        start_date: "",
-        end_date: "",
-        location_name: "",
-        location: "",
-        latitude: "",
-        longitude: "",
-        price_pool: "",
-        registration_fee: "",
-        thumbnail_url: null,
-        events_status: "",
-    });
-    const [validationError, SetValidationError] = useState<ValidationErrorProps[]>([]);
     const Model = new Event();
     const handleSort = (column: string) => {
         if (sortBy === column) {
@@ -105,75 +78,6 @@ const EventPage: React.FC = () => {
             }
         }
     };
-
-    const create = () => {
-        clearFormData();
-        SetValidationError([]);
-        jQuery("#modal-Event").modal('show');
-    };
-
-    const clearFormData = () => {
-        setFormData({
-            id: null,
-            events_organizer_id: null,
-            is_external: "N",
-            external_url: "",
-            user_id_pic: null,
-            event_category: "",
-            title: "",
-            description: "",
-            start_date: "",
-            end_date: "",
-            location: "",
-            location_name: "",
-            latitude: "",
-            longitude: "",
-            price_pool: "",
-            registration_fee: "",
-            thumbnail_url: null,
-            events_status: "",
-        });
-    }
-
-    const update = (data: InEventForm) => {
-        clearFormData();
-        SetValidationError([]);
-        setFormData(data);
-        jQuery("#modal-Event").modal('show');
-    };
-
-
-
-    const save = useCallback(async (data: InEventForm) => {
-        console.log({ 'save': data })
-        try {
-            // if (data.id) {
-            //     await Model.update(data.id, data);
-            // } else {
-            //     await Model.create(data);
-            // }
-
-
-            await Model.saveAll(data);
-
-            showToast(`Successfully ${(data.id) ? 'updated' : 'added'}`, "success");
-            jQuery("#modal-Event").modal('hide');
-            listData(lastQuery);
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } catch (error) {
-            let lines = error.message.trim().split('\n');
-            let result: ValidationErrorProps[] = lines.map(line => {
-                let [field, ...message] = line.split(' ');
-                return {
-                    field,
-                    message: message.join(' ')
-                };
-            });
-            SetValidationError(result)
-        }
-    }, [Model, lastQuery, listData]);
 
     const remove = async (id: number) => {
         Swal.fire({
@@ -225,10 +129,10 @@ const EventPage: React.FC = () => {
             <div className="card mt-2">
                 <h5 className="card-header d-flex border-top rounded-0 flex-wrap">
                     <div className="d-flex justify-content-start justify-content-md-end align-items-baseline ms-auto">
-                        <Button variant="primary" onClick={create}>
+                        <Link href="/event/create" className="btn btn-primary">
                             <span><i className="bx bx-plus me-0 me-sm-1"></i></span>
                             <span className="d-none d-sm-inline-block">Create Event</span>
-                        </Button>
+                        </Link>
                     </div>
                 </h5>
                 <div className="table-responsive text-nowrap">
@@ -277,9 +181,9 @@ const EventPage: React.FC = () => {
                                                 <button className="btn btn-md btn-icon btn-danger me-2"
                                                         onClick={() => remove(item.id)}><i className="bx bx-trash"></i>
                                                 </button>
-                                                <button className="btn btn-md btn-icon btn-warning"
-                                                        onClick={() => update(item)}><i className="bx bx-edit"></i>
-                                                </button>
+                                                <Link href={`/event/create?id=${item.id}`} className="btn btn-md btn-icon btn-warning">
+                                                    <i className="bx bx-edit"></i>
+                                                </Link>
                                             </div>
                                         </div>
                                     </td>
@@ -324,12 +228,6 @@ const EventPage: React.FC = () => {
                     )}
                 </div>
             </div>
-            <Form
-                title={formData.id ? 'Edit Event' : 'Create Event'}
-                data={formData}
-                onSave={save}
-                validationError={validationError}
-            />
         </>
     );
 };
