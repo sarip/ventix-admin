@@ -13,3 +13,13 @@
  *
  * @see: https://codeigniter.com/user_guide/extending/common.html
  */
+
+if (!function_exists('iconv')) {
+    function iconv($from_encoding, $to_encoding, $string)
+    {
+        if (function_exists('mb_convert_encoding')) {
+            return mb_convert_encoding($string, $to_encoding, $from_encoding);
+        }
+        return $string;
+    }
+}

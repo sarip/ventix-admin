@@ -8,90 +8,154 @@
             margin: 0;
             size: A4 <?= $orientation ?>;
         }
-        body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            position: relative;
-            background-color: #ffffff;
+            overflow: hidden;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            background: transparent;
+            color: #1e293b;
         }
-        .bg-container {
+
+        /* Fixed background image covering entire A4 page in Dompdf.
+           Dompdf does not reliably auto-stretch replaced elements sized only via
+           top/right/bottom/left insets - it falls back to the image's native pixel
+           size (converted via DPI), which is far larger than the page and makes the
+           background appear "zoomed in". Explicit 100% width/height forces Dompdf to
+           size the image against its containing block instead. */
+        .bg-full-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+        /* Default Layout fallback when no custom JSON template */
+        .cert-card {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
+            top: 15pt;
+            left: 15pt;
+            right: 15pt;
+            bottom: 15pt;
+            border: 3pt solid #1e3a8a;
+            padding: 10pt;
+            background: transparent;
         }
-        .bg-container img {
-            width: 100%;
+        .cert-inner-border {
+            border: 1pt solid #94a3b8;
             height: 100%;
+            padding: 30pt 40pt;
+            position: relative;
+            background: transparent;
         }
-        .certificate-content {
-            padding: 50px;
-            box-sizing: border-box;
+
+        /* Corner decorations */
+        .corner {
+            position: absolute;
+            width: 30pt;
+            height: 30pt;
+            border-color: #d97706;
+            border-style: solid;
+        }
+        .corner-tl { top: 8pt; left: 8pt; border-width: 3pt 0 0 3pt; }
+        .corner-tr { top: 8pt; right: 8pt; border-width: 3pt 3pt 0 0; }
+        .corner-bl { bottom: 8pt; left: 8pt; border-width: 0 0 3pt 3pt; }
+        .corner-br { bottom: 8pt; right: 8pt; border-width: 0 3pt 3pt 0; }
+
+        .cert-header-badge {
             text-align: center;
+            margin-top: 15pt;
         }
-        .cert-header {
-            margin-top: 40px;
-            font-size: 36px;
-            font-weight: bold;
-            color: #1a1a2e;
+        .cert-header-badge span {
+            font-size: 11pt;
+            letter-spacing: 4pt;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            color: #64748b;
+            font-weight: bold;
         }
-        .cert-sub {
-            font-size: 18px;
-            color: #555555;
-            margin-top: 10px;
+
+        .cert-title {
+            text-align: center;
+            margin-top: 10pt;
+            font-size: 34pt;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 3pt;
+            font-family: 'Georgia', serif;
         }
+
+        .cert-subtitle {
+            text-align: center;
+            font-size: 14pt;
+            color: #64748b;
+            margin-top: 15pt;
+            letter-spacing: 1pt;
+            text-transform: uppercase;
+        }
+
         .recipient-name {
-            font-size: 42px;
+            text-align: center;
+            font-size: 36pt;
             font-weight: bold;
-            color: #6C47FF;
-            margin: 30px 0 10px 0;
-            border-bottom: 2px solid #6C47FF;
-            display: inline-block;
-            padding-bottom: 5px;
+            color: #1e3a8a;
+            margin: 18pt auto 8pt auto;
+            padding-bottom: 8pt;
+            border-bottom: 2pt dashed #cbd5e1;
+            width: 75%;
+            font-family: 'Georgia', serif;
         }
-        .cert-body {
-            font-size: 16px;
-            color: #444444;
+
+        .cert-desc {
+            text-align: center;
+            font-size: 14pt;
+            color: #334155;
             line-height: 1.6;
-            margin: 20px auto;
-            width: 80%;
+            margin: 15pt auto;
+            width: 82%;
         }
-        .cert-event {
-            font-size: 24px;
+
+        .cert-event-name {
+            font-size: 22pt;
             font-weight: bold;
-            color: #1a1a2e;
-            margin: 10px 0;
+            color: #0f172a;
+            margin: 6pt 0;
+            display: block;
         }
-        .cert-footer {
-            margin-top: 60px;
+
+        .cert-footer-table {
             width: 100%;
+            margin-top: 35pt;
+            position: absolute;
+            bottom: 30pt;
+            left: 0;
+            padding: 0 40pt;
         }
-        .footer-table {
-            width: 100%;
-            margin-top: 40px;
+
+        .sign-line {
+            border-top: 1pt solid #64748b;
+            width: 160pt;
+            margin: 0 auto;
+            padding-top: 5pt;
         }
-        .qr-code {
-            width: 100px;
-            height: 100px;
-        }
+
         .element-custom {
             position: absolute;
             box-sizing: border-box;
+            background: transparent;
+            padding: 2pt;
         }
     </style>
 </head>
 <body>
     <?php if (!empty($bg_image)): ?>
-        <div class="bg-container">
-            <img src="<?= $bg_image ?>" alt="Background" />
-        </div>
+        <img src="<?= $bg_image ?>" class="bg-full-page" alt="Background" />
     <?php endif; ?>
 
     <?php if (!empty($elements) && is_array($elements)): ?>
@@ -102,62 +166,82 @@
                     $content = str_replace($phKey, $phVal, $content);
                 }
                 $style = sprintf(
-                    "top: %spx; left: %spx; width: %spx; height: %spx; font-size: %spx; color: %s; text-align: %s;",
+                    "top: %spt; left: %spt; width: %spt; height: %spt; font-size: %spt; line-height: 1.2; color: %s; text-align: %s; font-weight: %s; font-style: %s; font-family: %s; background: transparent;",
                     $el['top'] ?? 0,
                     $el['left'] ?? 0,
                     $el['width'] ?? 200,
                     $el['height'] ?? 50,
                     $el['fontSize'] ?? 16,
                     $el['color'] ?? '#000000',
-                    $el['textAlign'] ?? 'left'
+                    $el['textAlign'] ?? 'left',
+                    $el['fontWeight'] ?? 'normal',
+                    $el['fontStyle'] ?? 'normal',
+                    !empty($el['fontFamily']) ? $el['fontFamily'] : 'Helvetica, Arial, sans-serif'
                 );
             ?>
             <div class="element-custom" style="<?= $style ?>">
                 <?php if (($el['type'] ?? '') === 'qr'): ?>
-                    <img src="<?= $qr_data_uri ?>" class="qr-code" style="width: 100%; height: 100%;" />
+                    <img src="<?= $qr_data_uri ?>" style="width: 100%; height: 100%; object-fit: contain;" />
                 <?php elseif (($el['type'] ?? '') === 'image' && !empty($el['src'])): ?>
                     <img src="<?= $el['src'] ?>" style="width: 100%; height: 100%; object-fit: contain;" />
                 <?php else: ?>
-                    <?= nl2br(esc($content)) ?>
+                    <table style="width: 100%; height: 100%; border-collapse: collapse; border: none; padding: 0; margin: 0; background: transparent;">
+                        <tr>
+                            <td style="vertical-align: middle; text-align: <?= $el['textAlign'] ?? 'left' ?>; padding: 0; margin: 0; font-size: inherit; color: inherit; font-weight: inherit; font-style: inherit; font-family: inherit; background: transparent;">
+                                <?= nl2br(esc($content)) ?>
+                            </td>
+                        </tr>
+                    </table>
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
     <?php else: ?>
-        <!-- Default Layout fallback if custom template JSON is empty -->
-        <div class="certificate-content">
-            <div class="cert-header">CERTIFICATE OF PARTICIPATION</div>
-            <div class="cert-sub">PROUDLY PRESENTED TO</div>
-            
-            <div class="recipient-name"><?= esc($placeholders['{{participant_name}}']) ?></div>
-            
-            <div class="cert-body">
-                For successfully attending and completing the event
-                <div class="cert-event"><?= esc($placeholders['{{event_name}}']) ?></div>
-                held on <?= esc($placeholders['{{event_date}}']) ?>.
-            </div>
+        <!-- Premium Fallback Layout when no custom template background/json is set -->
+        <div class="cert-card">
+            <div class="cert-inner-border">
+                <div class="corner corner-tl"></div>
+                <div class="corner corner-tr"></div>
+                <div class="corner corner-bl"></div>
+                <div class="corner corner-br"></div>
 
-            <table class="footer-table">
-                <tr>
-                    <td style="width: 33%; text-align: center;">
-                        <img src="<?= $qr_data_uri ?>" class="qr-code" /><br>
-                        <small style="color: #777;"><?= esc($placeholders['{{certificate_number}}']) ?></small>
-                    </td>
-                    <td style="width: 34%; text-align: center;">
-                        <br><br>
-                        <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
-                            <strong><?= esc($placeholders['{{organizer_name}}']) ?></strong><br>
-                            <small style="color: #777;">Organizer</small>
-                        </div>
-                    </td>
-                    <td style="width: 33%; text-align: center;">
-                        <br><br>
-                        <div style="border-top: 1px solid #333; width: 80%; margin: 0 auto; padding-top: 5px;">
-                            <strong><?= esc($placeholders['{{certificate_date}}']) ?></strong><br>
-                            <small style="color: #777;">Issue Date</small>
-                        </div>
-                    </td>
-                </tr>
-            </table>
+                <div class="cert-header-badge">
+                    <span>Official E-Certificate</span>
+                </div>
+
+                <div class="cert-title">Certificate of Excellence</div>
+                <div class="cert-subtitle">This Certificate is Proudly Presented To</div>
+                
+                <div class="recipient-name"><?= esc($placeholders['{{participant_name}}']) ?></div>
+                
+                <div class="cert-desc">
+                    for successfully participating in and completing the event
+                    <span class="cert-event-name"><?= esc($placeholders['{{event_name}}']) ?></span>
+                    held on <strong><?= esc($placeholders['{{event_date}}']) ?></strong>.
+                </div>
+
+                <table class="cert-footer-table">
+                    <tr>
+                        <td style="width: 30%; text-align: center; vertical-align: bottom;">
+                            <img src="<?= $qr_data_uri ?>" style="width: 90pt; height: 90pt;" /><br>
+                            <span style="font-size: 10pt; color: #64748b; font-family: monospace; text-transform: uppercase;">
+                                <?= esc($placeholders['{{certificate_number}}']) ?>
+                            </span>
+                        </td>
+                        <td style="width: 40%; text-align: center; vertical-align: bottom;">
+                            <div class="sign-line">
+                                <strong style="font-size: 13pt; color: #0f172a;"><?= esc($placeholders['{{organizer_name}}']) ?></strong><br>
+                                <span style="font-size: 11pt; color: #64748b;">Organizer Committee</span>
+                            </div>
+                        </td>
+                        <td style="width: 30%; text-align: center; vertical-align: bottom;">
+                            <div class="sign-line">
+                                <strong style="font-size: 13pt; color: #0f172a;"><?= esc($placeholders['{{certificate_date}}']) ?></strong><br>
+                                <span style="font-size: 11pt; color: #64748b;">Issue Date</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
     <?php endif; ?>
 </body>

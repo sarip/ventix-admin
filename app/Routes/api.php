@@ -415,8 +415,9 @@ $routes->group('api/v1', ['namespace' => 'App\\Controllers\\Api'], function ($ro
     $routes->get('certificates/event/(:num)/participants', 'CertificateController::participants/$1', ['filter' => 'PermissionFilter']);
     $routes->post('certificates/generate', 'CertificateController::generate', ['filter' => 'PermissionFilter']);
     $routes->post('certificates/generate-bulk', 'CertificateController::generateBulk', ['filter' => 'PermissionFilter']);
-    $routes->get('certificates/(:num)/download', 'CertificateController::download');
-    $routes->post('certificates/(:num)/send', 'CertificateController::send', ['filter' => 'tokenFilter']);
+    $routes->get('certificates/(:num)/download', 'CertificateController::download/$1');
+    $routes->post('certificates/(:num)/send', 'CertificateController::send/$1', ['filter' => 'tokenFilter']);
+    $routes->post('certificates/send-bulk', 'CertificateController::sendBulk', ['filter' => 'tokenFilter']);
     $routes->get('certificates/verify/(:any)', 'CertificateController::verify/$1');
 
     // OTHER API REQUEST //

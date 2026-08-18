@@ -9,16 +9,20 @@ class CertificateModel {
         return await APIClient.get(`certificates/event/${eventId}/participants`);
     }
 
-    public async generate(eventId: number, userId: number, templateId?: number) {
-        return await APIClient.post('certificates/generate', { event_id: eventId, user_id: userId, template_id: templateId });
+    public async generate(eventId: number, userId: number, templateId?: number, forceRegenerate?: boolean) {
+        return await APIClient.post('certificates/generate', { event_id: eventId, user_id: userId, template_id: templateId, force_regenerate: forceRegenerate });
     }
 
-    public async generateBulk(eventId: number, templateId?: number) {
-        return await APIClient.post('certificates/generate-bulk', { event_id: eventId, template_id: templateId });
+    public async generateBulk(eventId: number, templateId?: number, forceRegenerate?: boolean) {
+        return await APIClient.post('certificates/generate-bulk', { event_id: eventId, template_id: templateId, force_regenerate: forceRegenerate });
     }
 
     public async send(id: number, channel: 'EMAIL' | 'WHATSAPP') {
         return await APIClient.post(`certificates/${id}/send`, { channel });
+    }
+
+    public async sendBulk(certificateIds: number[], channel: 'EMAIL' | 'WHATSAPP') {
+        return await APIClient.post('certificates/send-bulk', { certificate_ids: certificateIds, channel });
     }
 
     public async verify(number: string) {

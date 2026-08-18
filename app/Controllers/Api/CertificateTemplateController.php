@@ -7,13 +7,35 @@ use App\Models\CertificateTemplate;
 class CertificateTemplateController extends ApiController
 {
     /**
+     * Helper to safely get input variable whether from JSON or Form Post
+     */
+    private function getInputValue(string $key, $default = null)
+    {
+        $postVal = $this->request->getPost($key);
+        if ($postVal !== null && $postVal !== '') {
+            return $postVal;
+        }
+
+        try {
+            $jsonVal = $this->request->getJsonVar($key);
+            if ($jsonVal !== null) {
+                return $jsonVal;
+            }
+        } catch (\Throwable $th) {
+            // Ignore JSON parsing exceptions when request is multipart/form-data
+        }
+
+        return $default;
+    }
+
+    /**
      * List Certificate Templates
      */
     public function index()
     {
         $model = new CertificateTemplate();
         $templates = $model->orderBy('id', 'DESC')->findAll();
-        return $this->successOutput($templates);
+        return $this->successOutput(['data' => $templates]);
     }
 
     /**
@@ -26,7 +48,7 @@ class CertificateTemplateController extends ApiController
         if (!$template) {
             return $this->errorOutput('Template not found', 404);
         }
-        return $this->successOutput($template);
+        return $this->successOutput(['data' => $template]);
     }
 
     /**
@@ -48,15 +70,20 @@ class CertificateTemplateController extends ApiController
             $bgPath = 'uploads/certificate_templates/' . $newName;
         }
 
+        $templateJson = $this->getInputValue('template_json');
+        if (is_array($templateJson) || is_object($templateJson)) {
+            $templateJson = json_encode($templateJson);
+        }
+
         $data = [
-            'name'             => $this->request->getPost('name') ?? $this->request->getJsonVar('name'),
-            'description'      => $this->request->getPost('description') ?? $this->request->getJsonVar('description'),
-            'background_image' => $bgPath ?? $this->request->getPost('background_image') ?? $this->request->getJsonVar('background_image'),
-            'width'            => $this->request->getPost('width') ?? $this->request->getJsonVar('width') ?? 3508,
-            'height'           => $this->request->getPost('height') ?? $this->request->getJsonVar('height') ?? 2480,
-            'orientation'      => $this->request->getPost('orientation') ?? $this->request->getJsonVar('orientation') ?? 'LANDSCAPE',
-            'template_json'    => is_array($this->request->getJsonVar('template_json')) ? json_encode($this->request->getJsonVar('template_json')) : ($this->request->getPost('template_json') ?? $this->request->getJsonVar('template_json')),
-            'is_active'        => $this->request->getPost('is_active') ?? $this->request->getJsonVar('is_active') ?? 1,
+            'name'             => $this->getInputValue('name'),
+            'description'      => $this->getInputValue('description', ''),
+            'background_image' => $bgPath ?? $this->getInputValue('background_image'),
+            'width'            => $this->getInputValue('width', 3508),
+            'height'           => $this->getInputValue('height', 2480),
+            'orientation'      => $this->getInputValue('orientation', 'LANDSCAPE'),
+            'template_json'    => $templateJson,
+            'is_active'        => $this->getInputValue('is_active', 1),
         ];
 
         if (empty($data['name'])) {
@@ -64,7 +91,16 @@ class CertificateTemplateController extends ApiController
         }
 
         $id = $model->insert($data);
-        return $this->successOutput($model->find($id), 'Template created successfully');
+
+        // Only one template may be active at a time, otherwise `where('is_active', 1)->first()`
+        // used during certificate generation picks an arbitrary (oldest) template instead of
+        // the one the user intended.
+        if (!empty($data['is_active'])) {
+            $model->where('id !=', $id)->set('is_active', 0)->update();
+        }
+
+        $created = $model->find($id);
+        return $this->successOutput(['data' => $created, 'message' => 'Template created successfully']);
     }
 
     /**
@@ -90,22 +126,34 @@ class CertificateTemplateController extends ApiController
             $bgPath = 'uploads/certificate_templates/' . $newName;
         }
 
-        $jsonInput = $this->request->getJsonVar('template_json');
-        $templateJson = is_array($jsonInput) || is_object($jsonInput) ? json_encode($jsonInput) : ($this->request->getPost('template_json') ?? $jsonInput ?? $existing->template_json);
+        $templateJson = $this->getInputValue('template_json');
+        if (is_array($templateJson) || is_object($templateJson)) {
+            $templateJson = json_encode($templateJson);
+        }
+        if (empty($templateJson)) {
+            $templateJson = $existing->template_json;
+        }
 
         $data = [
-            'name'             => $this->request->getPost('name') ?? $this->request->getJsonVar('name') ?? $existing->name,
-            'description'      => $this->request->getPost('description') ?? $this->request->getJsonVar('description') ?? $existing->description,
+            'name'             => $this->getInputValue('name', $existing->name),
+            'description'      => $this->getInputValue('description', $existing->description),
             'background_image' => $bgPath,
-            'width'            => $this->request->getPost('width') ?? $this->request->getJsonVar('width') ?? $existing->width,
-            'height'           => $this->request->getPost('height') ?? $this->request->getJsonVar('height') ?? $existing->height,
-            'orientation'      => $this->request->getPost('orientation') ?? $this->request->getJsonVar('orientation') ?? $existing->orientation,
+            'width'            => $this->getInputValue('width', $existing->width),
+            'height'           => $this->getInputValue('height', $existing->height),
+            'orientation'      => $this->getInputValue('orientation', $existing->orientation),
             'template_json'    => $templateJson,
-            'is_active'        => $this->request->getPost('is_active') ?? $this->request->getJsonVar('is_active') ?? $existing->is_active,
+            'is_active'        => $this->getInputValue('is_active', $existing->is_active),
         ];
 
         $model->update($id, $data);
-        return $this->successOutput($model->find($id), 'Template updated successfully');
+
+        // Only one template may be active at a time (see create() for why).
+        if (!empty($data['is_active'])) {
+            $model->where('id !=', $id)->set('is_active', 0)->update();
+        }
+
+        $updated = $model->find($id);
+        return $this->successOutput(['data' => $updated, 'message' => 'Template updated successfully']);
     }
 
     /**
@@ -119,6 +167,6 @@ class CertificateTemplateController extends ApiController
             return $this->errorOutput('Template not found', 404);
         }
         $model->delete($id);
-        return $this->successOutput(null, 'Template deleted successfully');
+        return $this->successOutput(['message' => 'Template deleted successfully']);
     }
 }

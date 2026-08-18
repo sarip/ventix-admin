@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Button, Table, Spinner, Badge } from 'react-bootstrap';
+import { Card, Row, Col, Button, Table, Spinner, Badge, Form } from 'react-bootstrap';
 import CertificateModel from '@/models/CertificateModel';
 import CertificateTemplateModel from '@/models/CertificateTemplateModel';
 import { Event } from '@/models/Event';
@@ -14,6 +14,9 @@ const CertificateManagePage: React.FC = () => {
     const [participants, setParticipants] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
+    const [selectedCertIds, setSelectedCertIds] = useState<Set<number>>(new Set());
+    const [bulkSending, setBulkSending] = useState(false);
+    const [sendingKey, setSendingKey] = useState<string | null>(null);
 
     useEffect(() => {
         loadEvents();
@@ -29,9 +32,7 @@ const CertificateManagePage: React.FC = () => {
     const loadEvents = async () => {
         try {
             const res: any = await EventModel.list({ per_page: 100 });
-            if (res?.data) {
-                setEvents(res.data);
-            }
+            setEvents(res.events || []);
         } catch (err) {
             console.error('Failed to load events', err);
         }
@@ -50,6 +51,7 @@ const CertificateManagePage: React.FC = () => {
 
     const loadParticipants = async (eventId: number) => {
         setLoading(true);
+        setSelectedCertIds(new Set());
         try {
             const res: any = await CertificateModel.getParticipants(eventId);
             if (res?.data) {
@@ -62,12 +64,12 @@ const CertificateManagePage: React.FC = () => {
         }
     };
 
-    const handleGenerateSingle = async (userId: number) => {
+    const handleGenerateSingle = async (userId: number, forceRegenerate: boolean = false) => {
         if (!selectedEventId) return;
         setGenerating(true);
         try {
-            await CertificateModel.generate(selectedEventId, userId, selectedTemplateId || undefined);
-            Swal.fire('Success', 'Certificate generated', 'success');
+            await CertificateModel.generate(selectedEventId, userId, selectedTemplateId || undefined, forceRegenerate);
+            Swal.fire('Success', forceRegenerate ? 'Certificate regenerated successfully' : 'Certificate generated successfully', 'success');
             loadParticipants(selectedEventId);
         } catch (err: any) {
             Swal.fire('Error', err?.message || 'Generation failed', 'error');
@@ -104,13 +106,88 @@ const CertificateManagePage: React.FC = () => {
         }
     };
 
-    const handleSendNotification = async (certificateId: number, channel: 'EMAIL' | 'WHATSAPP') => {
+    // WhatsApp has no server-side send without a paid gateway (not configured yet), so WA is
+    // dispatched by opening a wa.me deep link in the admin's own browser with the message
+    // pre-filled - the admin still has to press Send inside WhatsApp itself.
+    const buildWaMeUrl = (phone: string, message: string) => {
+        let digits = (phone || '').replace(/[^0-9]/g, '');
+        if (digits.startsWith('0')) digits = '62' + digits.slice(1);
+        return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    };
+
+    const buildWaMessage = (name: string, downloadUrl: string) => {
+        const eventTitle = events.find(e => e.id === selectedEventId)?.title || events.find(e => e.id === selectedEventId)?.name || 'event kami';
+        return `Halo ${name || 'Peserta'},\n\nTerima kasih telah mengikuti event ${eventTitle}.\n\nSertifikat digital Anda dapat diakses melalui link berikut:\n${downloadUrl}\n\nTerima kasih.`;
+    };
+
+    const handleSendNotification = async (p: any, channel: 'EMAIL' | 'WHATSAPP') => {
+        const certificateId = p.certificate_id;
+        const key = `${certificateId}_${channel}`;
+        setSendingKey(key);
         try {
+            if (channel === 'WHATSAPP') {
+                const url = buildWaMeUrl(p.user_phone, buildWaMessage(p.user_name, p.download_url));
+                window.open(url, '_blank');
+            }
             await CertificateModel.send(certificateId, channel);
-            Swal.fire('Success', `Sent via ${channel}`, 'success');
+            if (channel === 'EMAIL') Swal.fire('Success', `Sent via ${channel}`, 'success');
             if (selectedEventId) loadParticipants(selectedEventId);
         } catch (err: any) {
             Swal.fire('Error', err?.message || 'Sending failed', 'error');
+        } finally {
+            setSendingKey(null);
+        }
+    };
+
+    const sendableCertIds = participants.filter(p => p.certificate_id).map(p => p.certificate_id as number);
+    const allSendableSelected = sendableCertIds.length > 0 && sendableCertIds.every(id => selectedCertIds.has(id));
+
+    const toggleSelectAll = () => {
+        setSelectedCertIds(allSendableSelected ? new Set() : new Set(sendableCertIds));
+    };
+
+    const toggleSelectOne = (certId: number) => {
+        setSelectedCertIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(certId)) next.delete(certId);
+            else next.add(certId);
+            return next;
+        });
+    };
+
+    const handleBulkSend = async (channel: 'EMAIL' | 'WHATSAPP') => {
+        const ids = Array.from(selectedCertIds);
+        if (ids.length === 0) return;
+
+        const confirm = await Swal.fire({
+            title: `Send ${channel === 'WHATSAPP' ? 'WhatsApp' : 'Email'} to ${ids.length} recipient(s)?`,
+            text: channel === 'WHATSAPP'
+                ? 'A WhatsApp tab will open for each recipient - your browser may block tabs after the first one. Allow pop-ups for this site if that happens.'
+                : undefined,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Send',
+        });
+        if (!confirm.isConfirmed) return;
+
+        setBulkSending(true);
+        try {
+            if (channel === 'WHATSAPP') {
+                participants
+                    .filter(p => selectedCertIds.has(p.certificate_id))
+                    .forEach(p => window.open(buildWaMeUrl(p.user_phone, buildWaMessage(p.user_name, p.download_url)), '_blank'));
+            }
+
+            const res: any = await CertificateModel.sendBulk(ids, channel);
+            const sentCount = res?.data?.sent_count ?? 0;
+            const total = res?.data?.total ?? ids.length;
+            Swal.fire('Done', `${sentCount}/${total} sent successfully via ${channel}`, sentCount === total ? 'success' : 'warning');
+            setSelectedCertIds(new Set());
+            if (selectedEventId) loadParticipants(selectedEventId);
+        } catch (err: any) {
+            Swal.fire('Error', err?.message || 'Bulk send failed', 'error');
+        } finally {
+            setBulkSending(false);
         }
     };
 
@@ -157,7 +234,20 @@ const CertificateManagePage: React.FC = () => {
             </Row>
 
             <Card className="border-0 shadow-sm rounded-4 p-3 bg-white">
-                <h6 className="fw-bold mb-3">Attended Participants List ({participants.length})</h6>
+                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h6 className="fw-bold mb-0">Attended Participants List ({participants.length})</h6>
+                    {selectedCertIds.size > 0 && (
+                        <div className="d-flex align-items-center gap-2">
+                            <span className="small text-muted">{selectedCertIds.size} selected</span>
+                            <Button size="sm" variant="outline-success" onClick={() => handleBulkSend('WHATSAPP')} disabled={bulkSending}>
+                                {bulkSending ? <Spinner size="sm" animation="border" /> : <><i className="bx bxl-whatsapp me-1"></i> Send WA to Selected</>}
+                            </Button>
+                            <Button size="sm" variant="outline-primary" onClick={() => handleBulkSend('EMAIL')} disabled={bulkSending}>
+                                {bulkSending ? <Spinner size="sm" animation="border" /> : <><i className="bx bx-envelope me-1"></i> Send Email to Selected</>}
+                            </Button>
+                        </div>
+                    )}
+                </div>
 
                 {loading ? (
                     <div className="text-center py-4"><Spinner animation="border" variant="primary" /></div>
@@ -165,6 +255,15 @@ const CertificateManagePage: React.FC = () => {
                     <Table hover responsive className="align-middle mb-0">
                         <thead className="bg-light">
                             <tr>
+                                <th style={{ width: '36px' }}>
+                                    <Form.Check
+                                        type="checkbox"
+                                        checked={allSendableSelected}
+                                        onChange={toggleSelectAll}
+                                        disabled={sendableCertIds.length === 0}
+                                        title="Select all sendable participants"
+                                    />
+                                </th>
                                 <th>Participant</th>
                                 <th>Email / Phone</th>
                                 <th>Check-in Time</th>
@@ -176,13 +275,22 @@ const CertificateManagePage: React.FC = () => {
                         <tbody>
                             {participants.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-4 text-muted">
+                                    <td colSpan={7} className="text-center py-4 text-muted">
                                         {selectedEventId ? 'No present participants found for this event.' : 'Please select an event to view attendees.'}
                                     </td>
                                 </tr>
                             ) : (
                                 participants.map(p => (
                                     <tr key={p.ticket_id}>
+                                        <td>
+                                            {p.certificate_id ? (
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    checked={selectedCertIds.has(p.certificate_id)}
+                                                    onChange={() => toggleSelectOne(p.certificate_id)}
+                                                />
+                                            ) : null}
+                                        </td>
                                         <td className="fw-bold">{p.user_name}</td>
                                         <td className="small text-muted">{p.user_email}<br />{p.user_phone}</td>
                                         <td className="small">{p.check_in_at || 'Present'}</td>
@@ -197,14 +305,35 @@ const CertificateManagePage: React.FC = () => {
                                         <td className="text-end">
                                             {p.certificate_id ? (
                                                 <div className="d-flex justify-content-end gap-1">
-                                                    <a href={p.download_url} target="_blank" rel="noreferrer" className="btn btn-sm btn-light border">
+                                                    <a href={p.download_url} target="_blank" rel="noreferrer" className="btn btn-sm btn-light border" title="Download PDF">
                                                         <i className="bx bx-download"></i> PDF
                                                     </a>
-                                                    <Button size="sm" variant="outline-success" onClick={() => handleSendNotification(p.certificate_id, 'WHATSAPP')}>
-                                                        <i className="bx bxl-whatsapp"></i> WA
+                                                    <Button size="sm" variant="outline-secondary" onClick={() => handleGenerateSingle(p.user_id, true)} disabled={generating} title="Regenerate Certificate">
+                                                        <i className="bx bx-refresh"></i> Re-generate
                                                     </Button>
-                                                    <Button size="sm" variant="outline-primary" onClick={() => handleSendNotification(p.certificate_id, 'EMAIL')}>
-                                                        <i className="bx bx-envelope"></i> Email
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-success"
+                                                        onClick={() => handleSendNotification(p, 'WHATSAPP')}
+                                                        disabled={sendingKey !== null}
+                                                    >
+                                                        {sendingKey === `${p.certificate_id}_WHATSAPP` ? (
+                                                            <Spinner size="sm" animation="border" />
+                                                        ) : (
+                                                            <><i className="bx bxl-whatsapp"></i> WA</>
+                                                        )}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-primary"
+                                                        onClick={() => handleSendNotification(p, 'EMAIL')}
+                                                        disabled={sendingKey !== null}
+                                                    >
+                                                        {sendingKey === `${p.certificate_id}_EMAIL` ? (
+                                                            <Spinner size="sm" animation="border" />
+                                                        ) : (
+                                                            <><i className="bx bx-envelope"></i> Email</>
+                                                        )}
                                                     </Button>
                                                 </div>
                                             ) : (
